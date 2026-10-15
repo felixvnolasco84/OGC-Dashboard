@@ -2,12 +2,8 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { updateProviderStatsForTransactionChange } from "./providerStats";
-import { v } from "convex/values";
-import {
-  updateHonorariosMonto,
-  updateMeticasPresupuesto,
-  updatePagadoForHierarchy,
-} from "./functions";
+import { v, type Infer } from "convex/values";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 import {
   assertCanWrite,
   assertProviderManager,
@@ -23,6 +19,8 @@ import {
 import { mostSpecificCostLabel, normalizeCostText } from "./costRules";
 import { classifyProjectMatch } from "./projectMatchUtils";
 import { assertProviderManagementRole, hasProviderManagementAccess } from "./providerRules";
+import { markInvoicesStaleForTransaction } from "./invoiceIntegrity";
+import { summarizeLaborWorkforce } from "./laborWorkforceRules";
 
 const MAX_ROWS = 1_000;
 const MONEY_TOLERANCE = 0.01;
@@ -64,6 +62,43 @@ const weekValidator = v.object({
   warnings: v.array(v.string()),
   transactions: v.array(transactionValidator),
 });
+
+type ImportTransaction = Infer<typeof transactionValidator>;
+type ImportLine = Infer<typeof lineItemValidator>;
+
+function invoiceKey(transaction: { factura?: string; tipo_pago: string; moneda: string }, providerKey: string) {
+  // Keep invoice punctuation: two distinct folios must never overwrite each other.
+  return JSON.stringify([transaction.factura?.trim().toUpperCase(), normalizeText(transaction.tipo_pago),
+    normalizeText(transaction.moneda), providerKey]);
+}
+
+function paymentValues(items: Array<{ monto: number; numero_personas_origen?: number }>) {
+  return JSON.stringify(items.map(item => [Math.round(item.monto * 100), item.numero_personas_origen ?? null])
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
+}
+
+function mergePaymentConcepts(existing: Doc<"pagos">[], incoming: ImportLine[]) {
+  const writes: Array<{ item: ImportLine; previous?: Doc<"pagos"> }> = [];
+  const includedPartidas = new Set(incoming.map(item => String(item.partida_id)));
+  const preserved = existing.filter(item => !includedPartidas.has(String(item.partida_id)));
+  for (const partidaId of includedPartidas) {
+    const before = existing.filter(item => String(item.partida_id) === partidaId);
+    const after = incoming.filter(item => String(item.partida_id) === partidaId);
+    if (paymentValues(before) === paymentValues(after)) {
+      preserved.push(...before);
+      continue;
+    }
+    if (before.length > after.length) {
+      throw new Error("La recarga contiene menos filas de un concepto ya registrado en esa factura. Revisa el pago desde Editar antes de reducir sus filas.");
+    }
+    after.forEach((item, index) => writes.push({ item, previous: before[index] }));
+  }
+  const merged = [...preserved, ...writes.map(({ item }) => ({
+    monto: item.monto, numero_personas_origen: item.numero_personas_origen, source_row: item.source_row,
+    sub_partida_snapshot: item.sub_partida, familia_snapshot: item.familia,
+  }))];
+  return { writes, merged, amount: Math.round(merged.reduce((sum, item) => sum + item.monto, 0) * 100) / 100 };
+}
 
 function normalizeText(value: unknown) {
   return String(value ?? "")
@@ -284,232 +319,164 @@ export const replaceLaborPaymentImport = mutation({
     }
     if (validatedRows !== args.source.row_count) throw new Error("El conteo total de filas no coincide.");
 
-    const sameHash = await ctx.db
-      .query("labor_payment_imports")
-      .withIndex("by_proyecto_file_hash", (q) =>
-        q.eq("proyecto", args.proyecto).eq("source_file_hash", args.source.file_hash)
-      )
-      .collect();
-    const activeSameHashDates = new Set(
-      sameHash.filter((item) => item.status === "active").map((item) => item.capture_date),
-    );
-    if (
-      activeSameHashDates.size === requestedDates.size &&
-      [...requestedDates].every((date) => activeSameHashDates.has(date))
-    ) {
-      return {
-        status: "unchanged" as const,
-        dates: [...requestedDates].sort(),
-        transaction_count: args.weeks.reduce((sum, week) => sum + week.transactions.length, 0),
-        row_count: validatedRows,
-        amount_total: Math.round(validatedAmount * 100) / 100,
-        total_people: [...args.weeks].sort((left, right) => left.date.localeCompare(right.date)).at(-1)?.total_people || 0,
-        providers_created: 0,
-        providers_reused: 0,
-      };
-    }
+    const providersByName = buildProviderMatchIndex(await ctx.db.query("proveedores").collect());
+    const providerKey = (name: string, id?: Id<"proveedores">) => {
+      const match = classifyProviderImportAction(name, providersByName);
+      return String(id || match.provider?._id || normalizeProviderName(name));
+    };
+    if (!hasProviderManagementAccess(user) && args.weeks.some(week =>
+      week.transactions.some(transaction => classifyProviderImportAction(transaction.proveedor, providersByName).action === "create"),
+    )) assertProviderManagementRole(user);
 
-    const providersByName = buildProviderMatchIndex(
-      await ctx.db.query("proveedores").collect(),
-    );
-    if (!hasProviderManagementAccess(user) && args.weeks.some((week) =>
-      week.transactions.some((transaction) =>
-        classifyProviderImportAction(transaction.proveedor, providersByName).action === "create",
-      ),
-    )) {
-      assertProviderManagementRole(user);
-    }
-
-    const oldImportsByDate = new Map<string, Array<Id<"labor_payment_imports">>>();
-    const affectedHierarchies = new Map<string, {
-      partida: string;
-      familia: string;
-      sub_partida: string;
-      nivel: number;
-      proyecto: string;
-    }>();
+    // A date is a reporting cut, not a replacement key. Compare actual payments
+    // even for a known hash: a previous import may have been changed or deleted.
+    const plans = [];
     for (const week of args.weeks) {
-      const previousImports = await ctx.db
-        .query("labor_payment_imports")
-        .withIndex("by_proyecto_fecha_estado", (q) =>
-          q.eq("proyecto", args.proyecto).eq("capture_date", week.date).eq("status", "active")
-        )
+      const previousImports = await ctx.db.query("labor_payment_imports")
+        .withIndex("by_proyecto_fecha_estado", q => q.eq("proyecto", args.proyecto).eq("capture_date", week.date).eq("status", "active"))
         .collect();
-      oldImportsByDate.set(week.date, previousImports.map((item) => item._id));
-      for (const previousImport of previousImports) {
-        const transactions = await ctx.db
-          .query("transacciones")
-          .withIndex("by_labor_import", (q) => q.eq("labor_import_id", previousImport._id))
-          .collect();
-        for (const transaction of transactions) {
-          const payments = await ctx.db
-            .query("pagos")
-            .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
-            .collect();
-          for (const payment of payments) {
-            const partida = payment.partida_id ? await ctx.db.get(payment.partida_id) : null;
-            if (partida) {
-              const key = `${partida.nombre}|${partida.familia}|${partida.sub_partida}`;
-              affectedHierarchies.set(key, {
-                partida: partida.partida_nombre || partida.nombre,
-                familia: partida.familia,
-                sub_partida: partida.sub_partida,
-                nivel: partida.nivel,
-                proyecto: String(args.proyecto),
-              });
-            }
-            await ctx.db.delete(payment._id);
-          }
-          await updateProviderStatsForTransactionChange(ctx, transaction, null);
-          await ctx.db.delete(transaction._id);
+      const previousTransactions = (await Promise.all(previousImports.map(previousImport => ctx.db.query("transacciones")
+        .withIndex("by_labor_import", q => q.eq("labor_import_id", previousImport._id)).collect()))).flat();
+      const paymentsByTransaction = new Map(await Promise.all(previousTransactions.map(async transaction => {
+        if (transaction.proyecto !== args.proyecto) throw new Error("El corte contiene un pago de otro proyecto.");
+        const payments = await ctx.db.query("pagos").withIndex("by_transaccion", q => q.eq("transaccion_id", transaction._id)).collect();
+        return [transaction._id, payments] as const;
+      })));
+      const seenKeys = new Set<string>();
+      const transactions = week.transactions.map((input: ImportTransaction) => {
+        const key = invoiceKey(input, providerKey(input.proveedor, input.proveedor_id));
+        if (seenKeys.has(key)) throw new Error(`La factura ${input.factura} aparece como varios pagos equivalentes en la recarga.`);
+        seenKeys.add(key);
+        const matches = previousTransactions.filter(transaction => transaction.fecha === displayDate(week.date) &&
+          invoiceKey(transaction, providerKey(transaction.proveedor || "", transaction.proveedor_id)) === key);
+        if (matches.length > 1) throw new Error(`Hay varios pagos equivalentes para ${input.factura}. Revisa los duplicados antes de importar.`);
+        const existing = matches[0];
+        const previousPayments = existing ? paymentsByTransaction.get(existing._id) || [] : [];
+        if (existing && Math.abs(previousPayments.reduce((sum, item) => sum + item.monto, 0) - existing.monto_total) > MONEY_TOLERANCE) {
+          throw new Error(`Los conceptos de ${input.factura} no coinciden con su total registrado. Revisa el pago antes de importar.`);
         }
-      }
+        const concepts = mergePaymentConcepts(previousPayments, input.line_items);
+        const changed = !existing || concepts.writes.length > 0 || existing.monto_total !== concepts.amount ||
+          existing.status !== "Pagado" || normalizeText(existing.categoria) !== normalizeText(input.categoria);
+        return { input, existing, concepts, changed };
+      });
+      const changed = transactions.some(transaction => transaction.changed);
+      const matchedIds = new Set(transactions.flatMap(transaction => transaction.existing ? [transaction.existing._id] : []));
+      const preservedTransactions = previousTransactions.filter(transaction => !matchedIds.has(transaction._id));
+      const workforceRows = [
+        ...preservedTransactions.flatMap(transaction => (paymentsByTransaction.get(transaction._id) || []).map(payment => ({
+          subpartida: payment.sub_partida_snapshot || "", familia: payment.familia_snapshot || "",
+          numeroPersonas: payment.numero_personas_origen, tipoPago: transaction.tipo_pago, sourceRow: payment.source_row,
+        }))),
+        ...transactions.flatMap(transaction => transaction.concepts.merged.map(payment => ({
+          subpartida: payment.sub_partida_snapshot || "", familia: payment.familia_snapshot || "",
+          numeroPersonas: payment.numero_personas_origen, tipoPago: transaction.input.tipo_pago, sourceRow: payment.source_row,
+        }))),
+      ];
+      const workforce = summarizeLaborWorkforce(workforceRows);
+      if (workforce.errors.length) throw new Error(`${week.date}: ${workforce.errors.join(" ")}`);
+      plans.push({ week, previousImports, transactions, preservedTransactions, workforce, changed,
+        rowCount: workforceRows.length,
+        amount: Math.round((preservedTransactions.reduce((sum, transaction) => sum + transaction.monto_total, 0) +
+          transactions.reduce((sum, transaction) => sum + transaction.concepts.amount, 0)) * 100) / 100,
+      });
+    }
+    const resultSummary = {
+      dates: [...requestedDates].sort(),
+      transaction_count: args.weeks.reduce((sum, week) => sum + week.transactions.length, 0),
+      row_count: validatedRows,
+      amount_total: Math.round(validatedAmount * 100) / 100,
+      total_people: [...plans].sort((left, right) => left.week.date.localeCompare(right.week.date)).at(-1)?.workforce.totalPeople || 0,
+    };
+    if (plans.every(plan => !plan.changed)) {
+      return { status: "unchanged" as const, ...resultSummary, providers_created: 0, providers_reused: 0 };
     }
 
     const now = Date.now();
-    let importedTransactions = 0;
     let replacedDates = 0;
-    const resolvedProviders = new Map<string, {
-      providerId: Id<"proveedores">;
-      status: "matched" | "created";
-    }>();
+    const resolvedProviders = new Map<string, { providerId: Id<"proveedores">; status: "matched" | "created" }>();
     const createdProviderIds = new Set<Id<"proveedores">>();
     const reusedProviderIds = new Set<Id<"proveedores">>();
-    for (const week of args.weeks) {
+    for (const plan of plans) {
+      if (!plan.changed) continue;
+      const { week } = plan;
       const newImportId = await ctx.db.insert("labor_payment_imports", {
-        proyecto: args.proyecto,
-        capture_date: week.date,
-        total_people: week.total_people,
-        roles: week.roles.map((role) => ({
-          key: normalizeText(role.key),
-          label: role.label.trim(),
-          count: role.count,
-        })),
-        source_file_name: args.source.file_name.trim(),
-        source_file_hash: args.source.file_hash.toLowerCase(),
-        source_sheet_name: args.source.sheet_name.trim(),
-        source_administration: args.source.administration.trim(),
-        source_currency: sourceCurrency,
-        source_row_count: week.row_count,
-        transaction_count: week.transactions.length,
-        amount_total: Math.round(week.amount_total * 100) / 100,
-        warnings: week.warnings.map((warning) => warning.slice(0, 300)),
-        status: "active",
-        imported_by: user._id,
-        imported_at: now,
+        proyecto: args.proyecto, capture_date: week.date,
+        total_people: plan.workforce.totalPeople, roles: plan.workforce.roles,
+        source_file_name: args.source.file_name.trim(), source_file_hash: args.source.file_hash.toLowerCase(),
+        source_sheet_name: args.source.sheet_name.trim(), source_administration: args.source.administration.trim(),
+        source_currency: sourceCurrency, source_row_count: plan.rowCount,
+        transaction_count: plan.preservedTransactions.length + plan.transactions.length, amount_total: plan.amount,
+        warnings: [...new Set([...week.warnings, ...plan.workforce.warnings])].map(warning => warning.slice(0, 300)),
+        status: "active", imported_by: user._id, imported_at: now,
       });
-      const oldImportIds = oldImportsByDate.get(week.date) || [];
-      if (oldImportIds.length) replacedDates += 1;
-      for (const oldImportId of oldImportIds) {
-        await ctx.db.patch(oldImportId, {
-          status: "superseded",
-          superseded_at: now,
-          superseded_by_user: user._id,
-          superseded_by_import: newImportId,
-        });
+      if (plan.previousImports.length) replacedDates += 1;
+      for (const previousImport of plan.previousImports) {
+        await ctx.db.patch(previousImport._id, { status: "superseded", superseded_at: now,
+          superseded_by_user: user._id, superseded_by_import: newImportId });
       }
-
-      for (const transaction of week.transactions) {
-        const providerKey = normalizeProviderName(transaction.proveedor);
-        let providerResolution = resolvedProviders.get(providerKey);
-        if (!providerResolution) {
-          providerResolution = await resolveProvider(
-            ctx,
-            user._id,
-            transaction.proveedor,
-            providersByName,
-            transaction.proveedor_id,
-          );
-          resolvedProviders.set(providerKey, providerResolution);
-          if (providerResolution.status === "created") {
-            createdProviderIds.add(providerResolution.providerId);
-          } else {
-            reusedProviderIds.add(providerResolution.providerId);
-          }
+      // Keep transaction IDs and linked documents while consolidating the cut.
+      for (const transaction of plan.preservedTransactions) {
+        await ctx.db.patch(transaction._id, { labor_import_id: newImportId });
+      }
+      for (const transaction of plan.transactions) {
+        const { input, existing, concepts } = transaction;
+        if (!transaction.changed && existing) {
+          await ctx.db.patch(existing._id, { labor_import_id: newImportId });
+          continue;
         }
-        const transactionId = await ctx.db.insert("transacciones", {
-          proyecto: args.proyecto,
-          proveedor_id: providerResolution.providerId,
-          proveedor: transaction.proveedor.trim(),
-          labor_import_id: newImportId,
-          import_source_key: transaction.source_key,
-          import_signature: `${args.source.file_hash.toLowerCase()}:${transaction.source_key}`,
-          monto_total: Math.round(transaction.monto_total * 100) / 100,
-          fecha: displayDate(week.date),
-          tipo_pago: transaction.tipo_pago.trim(),
-          moneda: sourceCurrency,
-          tipo_cambio: "1",
-          status: "Pagado",
-          categoria: transaction.categoria.trim(),
-          factura: transaction.factura.trim(),
-        });
-        await updateProviderStatsForTransactionChange(ctx, null, {
-          proveedor_id: providerResolution.providerId,
-          proyecto: args.proyecto,
-          monto_total: Math.round(transaction.monto_total * 100) / 100,
-        });
-        for (const item of transaction.line_items) {
+        const key = normalizeProviderName(input.proveedor);
+        let provider = resolvedProviders.get(key);
+        if (!provider) {
+          provider = await resolveProvider(ctx, user._id, input.proveedor, providersByName, input.proveedor_id);
+          resolvedProviders.set(key, provider);
+          (provider.status === "created" ? createdProviderIds : reusedProviderIds).add(provider.providerId);
+        }
+        const fields = {
+          proyecto: args.proyecto, proveedor_id: provider.providerId, proveedor: input.proveedor.trim(),
+          labor_import_id: newImportId, import_source_key: input.source_key,
+          import_signature: `${args.source.file_hash.toLowerCase()}:${input.source_key}`,
+          monto_total: concepts.amount, fecha: displayDate(week.date), tipo_pago: input.tipo_pago.trim(),
+          moneda: sourceCurrency, tipo_cambio: "1", status: "Pagado", categoria: input.categoria.trim(), factura: input.factura.trim(),
+        };
+        let transactionId: Id<"transacciones">;
+        if (existing) {
+          await markInvoicesStaleForTransaction(ctx, existing._id);
+          await ctx.db.patch(existing._id, fields);
+          transactionId = existing._id;
+        } else transactionId = await ctx.db.insert("transacciones", fields);
+        await updateProviderStatsForTransactionChange(ctx, existing || null, fields);
+        for (const { item, previous } of concepts.writes) {
           const partida = partidaDocs.get(String(item.partida_id));
-          if (!partida || partida.proyecto !== args.proyecto) {
-            throw new Error("Una partida de la importaci?n no pertenece al proyecto.");
-          }
-          const partidaNombre = String(
-            partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre || "",
-          ).trim();
+          if (!partida) throw new Error("Una partida de la importación ya no existe.");
+          const partidaNombre = String(partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre || "").trim();
           const familia = String(partida.familia || "").trim();
           const subPartida = String(partida.sub_partida || "").trim();
-          const concepto = mostSpecificCostLabel({
-            sub_partida: subPartida,
-            familia,
-            partida: partidaNombre,
-            nombre: partida.nombre,
-          });
-          await ctx.db.insert("pagos", {
-            transaccion_id: transactionId,
-            partida_id: item.partida_id,
-            proyecto_id: args.proyecto,
-            concepto,
-            concepto_normalizado: normalizeCostText(concepto),
-            partida_nombre_snapshot: partidaNombre,
-            familia_snapshot: familia,
-            sub_partida_snapshot: subPartida,
-            classification_status: "mapped",
-            monto: Math.round(item.monto * 100) / 100,
-            numero_personas_origen: item.numero_personas_origen,
-            source_row: item.source_row,
-          });
-          const key = `${partidaNombre}|${familia}|${subPartida}`;
-          affectedHierarchies.set(key, {
-            partida: partidaNombre,
-            familia,
-            sub_partida: subPartida,
-            nivel: partida.nivel,
-            proyecto: String(args.proyecto),
-          });
+          const concepto = mostSpecificCostLabel({ sub_partida: subPartida, familia, partida: partidaNombre, nombre: partida.nombre });
+          const paymentFields = {
+            transaccion_id: transactionId, partida_id: item.partida_id, proyecto_id: args.proyecto,
+            concepto, concepto_normalizado: normalizeCostText(concepto), partida_nombre_snapshot: partidaNombre,
+            familia_snapshot: familia, sub_partida_snapshot: subPartida, classification_status: "mapped" as const,
+            monto: Math.round(item.monto * 100) / 100, numero_personas_origen: item.numero_personas_origen, source_row: item.source_row,
+          };
+          if (previous) await ctx.db.patch(previous._id, paymentFields);
+          else await ctx.db.insert("pagos", paymentFields);
         }
-        importedTransactions += 1;
       }
     }
 
-    for (const hierarchy of affectedHierarchies.values()) {
-      await updatePagadoForHierarchy(ctx, hierarchy);
-    }
-    await updateMeticasPresupuesto(ctx, String(args.proyecto));
-    await updateHonorariosMonto(ctx, String(args.proyecto));
     if (!project.moneda_principal) {
       await ctx.db.patch(args.proyecto, { moneda_principal: sourceCurrency });
     }
+    // Rebuild once after the merge. Recalculating each changed concept
+    // repeatedly reads the same payment history and can exceed mutation limits.
+    // Keep this in the same mutation so a failure rolls back the entire import.
+    await repairProjectPaymentTotals(ctx, args.proyecto);
 
     return {
       status: replacedDates ? "replaced" as const : "created" as const,
-      dates: [...requestedDates].sort(),
-      replaced_dates: replacedDates,
-      transaction_count: importedTransactions,
-      row_count: validatedRows,
-      amount_total: Math.round(validatedAmount * 100) / 100,
-      total_people: [...args.weeks].sort((left, right) => left.date.localeCompare(right.date)).at(-1)?.total_people || 0,
-      providers_created: createdProviderIds.size,
-      providers_reused: reusedProviderIds.size,
+      ...resultSummary, replaced_dates: replacedDates,
+      providers_created: createdProviderIds.size, providers_reused: reusedProviderIds.size,
     };
   },
 });

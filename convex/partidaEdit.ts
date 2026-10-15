@@ -7,11 +7,12 @@ import { cleanHierarchyText, normalizeHierarchyText as normalize, partidaEditSou
 import { budgetTotals, budgetRollupPatch, approvedBudgetPatch } from "./budgetRollupRules";
 import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
-import { repairProjectPaymentTotals } from "./budgetMaintenance";
+import { feeHierarchyPaymentTotals, repairProjectPaymentTotals } from "./budgetMaintenance";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
-import { FEE_CONCEPT_CALCULATION_VERSION } from "./feeConceptRules";
+import { currentFeeConcepts, FEE_CONCEPT_CALCULATION_VERSION } from "./feeConceptRules";
 
 export const partidaEditFields = {
+  presupuesto_original: v.optional(v.number()),
   presupuesto_aprobado: v.optional(v.number()), sub_partida: v.optional(v.string()),
   unidad: v.optional(v.string()), cantidad: v.optional(v.number()), precio_unitario: v.optional(v.number()),
 };
@@ -63,7 +64,7 @@ function editableChanges(target: Doc<"partidas">, proposed: PartidaEditChanges) 
   const patch: PartidaEditChanges = {};
   for (const key of Object.keys(proposed) as (keyof PartidaEditChanges)[]) {
     const value = proposed[key];
-    if (!Object.prototype.hasOwnProperty.call(partidaEditFields, key) || (target.nivel !== 3 && key !== "presupuesto_aprobado")) {
+    if (!Object.prototype.hasOwnProperty.call(partidaEditFields, key) || (target.nivel !== 3 && key !== "presupuesto_aprobado" && key !== "presupuesto_original")) {
       throw new ConvexError("Ese campo no se puede editar en este nivel del presupuesto.");
     }
     if (value === undefined) continue;
@@ -143,7 +144,23 @@ export async function analyzePartidaEdit(ctx: ReadCtx, args: Identity & { change
     feeConcepts: project.fee_concepts, convert: feeBudgetConvert(project), excludedPartidas: project.excluded_partidas_honorarios,
     partidas: plan.after, transactions, pagos,
   }) : project.honorarios_monto;
-  const after = calculatePresupuestoMetrics(plan.after, afterHonorarios, afterIndirectos);
+  let reviewedAfter = plan.after;
+  if (project.fee_concepts?.length) {
+    const paidTransactions = new Set(transactions.filter(t => t.status === "Pagado").map(t => t._id));
+    const directPayments = new Map<string, number>();
+    for (const pago of pagos) {
+      if (pago.partida_id && paidTransactions.has(pago.transaccion_id)) {
+        directPayments.set(pago.partida_id, (directPayments.get(pago.partida_id) || 0) + pago.monto);
+      }
+    }
+    const honorariosSource = currentFeeConcepts(project.fee_concepts, plan.after).find(c => c.concepto === "honorarios")?.partida_id;
+    const totals = feeHierarchyPaymentTotals(plan.after, directPayments, afterHonorarios, afterIndirectos, honorariosSource);
+    reviewedAfter = plan.after.map(p => {
+      const pagado = totals.get(p._id) || 0;
+      return { ...p, pagado, por_gastar: p.presupuesto_aprobado - pagado };
+    });
+  }
+  const after = calculatePresupuestoMetrics(reviewedAfter, afterHonorarios, afterIndirectos);
   const details = plan.renameProgram ? await budget.collect(ctx.db.query("programa_obra_detalle").withIndex("by_proyecto", q => q.eq("proyecto", project._id))) : [];
   const program = details.filter(d => d.nivel === 3 && normalize(d.partida) === normalize(rootName(target)) &&
     normalize(d.familia) === normalize(target.familia) && normalize(d.subpartida) === normalize(target.sub_partida || target.nombre));
@@ -152,7 +169,7 @@ export async function analyzePartidaEdit(ctx: ReadCtx, args: Identity & { change
   }
   const rows = sorted(partidas.filter(p => plan.affected.has(p._id))).sort((a, b) => b.nivel - a.nivel).map(p => ({
     id: p._id, nivel: p.nivel, name: p.nivel === 1 ? p.nombre : p.nivel === 2 ? p.familia : p.sub_partida,
-    before: amountFields(p), after: amountFields(plan.after.find(next => next._id === p._id)!),
+    before: amountFields(p), after: amountFields(reviewedAfter.find(next => next._id === p._id)!),
   }));
   if (!rows.every(row => [row.before, row.after].every(amounts => Object.values(amounts).every(Number.isFinite)))) {
     throw new ConvexError("Los importes de la jerarquía no son válidos; no se puede verificar el impacto.");
@@ -179,12 +196,15 @@ export async function executePartidaEdit(ctx: MutationCtx, args: Identity & { ch
   const { impact, plan, program } = await analyzePartidaEdit(ctx, args);
   if (impact.expectedReview !== args.expectedReview) throw new ConvexError(PARTIDA_EDIT_CONFLICT);
   if (!impact.hasChanges) return impact.base;
-  // Leaf first, then family/root. Triggers use the same rollup rules; these
-  // final patches additionally include original-budget rollups from the old update.
-  const byLevel = new Map(plan.after.map(p => [p._id, p.nivel]));
-  for (const change of plan.patches.sort((a, b) => byLevel.get(b.id)! - byLevel.get(a.id)!)) await ctx.db.patch(change.id, change.patch);
-  for (const detail of program) await ctx.db.patch(detail._id, { subpartida: plan.changes.sub_partida! });
   const project = await ctx.db.get(args.proyecto);
+  // Zero a configured source before its descendants so per-row triggers never
+  // see a positive fee with an empty original breakdown during the transition.
+  const zeroedSources = new Set(project?.fee_concepts?.filter(c =>
+    plan.after.some(p => p._id === c.partida_id && p.presupuesto_original === 0)).map(c => c.partida_id));
+  // Otherwise apply leaves first, then their family/root rollups.
+  const byLevel = new Map(plan.after.map(p => [p._id, p.nivel]));
+  for (const change of plan.patches.sort((a, b) => Number(zeroedSources.has(b.id)) - Number(zeroedSources.has(a.id)) || byLevel.get(b.id)! - byLevel.get(a.id)!)) await ctx.db.patch(change.id, change.patch);
+  for (const detail of program) await ctx.db.patch(detail._id, { subpartida: plan.changes.sub_partida! });
   if (project?.fee_concepts?.length) {
     await repairProjectPaymentTotals(ctx, args.proyecto);
     return await ctx.db.get(args.id);

@@ -4,7 +4,7 @@ import { Settings } from "lucide-react";
 
 interface ChartDataPoint {
     date: string;
-    monto: number;
+    monto: number; // Cumulative balance, already calculated by the query
 }
 
 /**
@@ -94,21 +94,12 @@ export default function FamiliaChart({
     // Use real data from queries (filtered by configuration)
     const rawData = data;
 
-    // Deduplicate and aggregate data points with the same date
+    // Queries return chronological cumulative balances; keep the closing balance per day.
     const chartData = React.useMemo(() => {
         const dataMap = new Map<string, ChartDataPoint>();
 
         rawData.forEach((point) => {
-            const existing = dataMap.get(point.date);
-            if (existing) {
-                // Sum values for duplicate dates (aggregate all transactions on the same date)
-                dataMap.set(point.date, {
-                    date: point.date,
-                    monto: (existing.monto || 0) + (point.monto || 0),
-                });
-            } else {
-                dataMap.set(point.date, point);
-            }
+            dataMap.set(point.date, point);
         });
 
         return Array.from(dataMap.values());
@@ -176,16 +167,11 @@ export default function FamiliaChart({
             return dateA.getTime() - dateB.getTime();
         });
 
-        // Calculate cumulative values - each point should be sum of all previous + current
-        // This ensures the chart only grows upward over time (like ProgressChart)
-        let cumulativeTotal = 0;
-        const cumulativeData = sortedData.map((d) => {
-            cumulativeTotal += d.monto || 0;
-            return {
-                primary: parseDateString(d.date),
-                secondary: cumulativeTotal,
-            };
-        });
+        // Plot the API balance directly so the curve ends at the reported total.
+        const cumulativeData = sortedData.map((d) => ({
+            primary: parseDateString(d.date),
+            secondary: d.monto,
+        }));
 
         const series: ReactChartsSeries[] = [];
 
@@ -225,19 +211,7 @@ export default function FamiliaChart({
                 shouldNice: true,
                 showDatumElements: false,
                 formatters: {
-                    scale: (value: number) => {
-                        if (value >= 1000000) {
-                            return `$${(value / 1000000).toFixed(0)}M`;
-                        } else if (value >= 1000) {
-                            return `$${(value / 1000).toFixed(0)}K`;
-                        }
-                        return new Intl.NumberFormat('es-MX', {
-                            style: 'currency',
-                            currency: 'MXN',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0,
-                        }).format(value);
-                    },
+                    scale: formatNumber,
                     tooltip: (value: number) => {
                         return new Intl.NumberFormat('es-MX', {
                             style: 'currency',

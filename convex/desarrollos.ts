@@ -4,7 +4,6 @@ import { INDIRECTOS_START, isAutomaticIndirectos, isIndirectosPartida, indirecto
 import { getBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
-import { assertBudgetReference } from "./partidaReferences";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { mutation } from "./functions";
@@ -22,7 +21,7 @@ import { getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 import { updateHonorariosMonto } from "./functions";
 import {
     feeConfigValidators, proposedFeeProject, feeConfig, feeConfigChanged,
-    loadFeeImpactRecords, feeImpactScope, feeBudgetScenario,
+    loadFeeImpactRecords, feeImpactScope, feeBudgetScenario, persistFeeProjectTotals,
     type FeeImpactRecords, type FeeProposal,
 } from "./projectFeeImpact";
 import { isDispHonorarios, isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
@@ -1147,12 +1146,16 @@ export const create = mutation({
 });
 
 // Update project
-const inspectFeeImpact = async (ctx: QueryCtx, project: Doc<"desarrollos">, proposal: FeeProposal, user: Doc<"users">) => {
-    for (const id of proposal.excluded_partidas_honorarios || []) await assertBudgetReference(ctx, id, project._id, 1);
+const loadReviewedFeeRecords = async (ctx: QueryCtx, project: Doc<"desarrollos">, user: Doc<"users">) => {
     const records = await loadFeeImpactRecords(ctx, project);
-    const proposed = proposedFeeProject(project, proposal, records);
     records.movements = records.movements.filter(m => hasGlobalAdminAccess(user) || !m.organization_id || m.organization_id === getScopedOrganizationId(user));
-    const expectedImpact = feeImpactScope(project, proposed, records);
+    return records;
+};
+
+const inspectFeeImpact = async (ctx: QueryCtx, project: Doc<"desarrollos">, proposal: FeeProposal, user: Doc<"users">) => {
+    const records = await loadReviewedFeeRecords(ctx, project, user);
+    const proposed = proposedFeeProject(project, proposal, records);
+    const expectedImpact = await feeImpactScope(project, proposed, records);
     const dates = [...records.transactions, ...records.movements].map(r => parseReportDate(r.fecha)).filter((d): d is Date => Boolean(d));
     const start = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : new Date(2026, 9, 1);
     const end = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))) : new Date(2026, 9, 1);
@@ -1215,7 +1218,9 @@ export const previewFeeImpact = query({
     },
 });
 
-export const update = mutation({
+// Financial saves explicitly rebuild their derived totals from the reviewed
+// snapshot. Per-row triggers would reread the entire history for each root.
+export const update = rawMutation({
     args: {
         id: v.id("desarrollos"),
         nombre: v.optional(v.string()),
@@ -1270,10 +1275,6 @@ export const update = mutation({
                 .filter(([, value]) => value !== undefined)
                 .map(([key, value]) => [key, key === "ubicacion" && value === null ? undefined : value])
         );
-        // Budget exclusions must be revalidated in this transaction.
-        for (const partidaId of args.excluded_partidas_honorarios || []) {
-            await assertBudgetReference(ctx, partidaId, id, 1);
-        }
         validateIndirectosPercentage(args.indirectos_porcentaje);
         const proposal: FeeProposal = {
             honorarios_porcentaje: args.honorarios_porcentaje,
@@ -1282,23 +1283,23 @@ export const update = mutation({
             excluded_partidas_honorarios: args.excluded_partidas_honorarios,
             fee_concepts: args.fee_concepts,
         };
-        const conceptRecords = args.fee_concepts !== undefined ? await loadFeeImpactRecords(ctx, existing) : undefined;
-        const proposed = proposedFeeProject(existing, proposal, conceptRecords);
-        if (feeConfigChanged(existing, proposed)) {
+        const records = expected_impact || Object.values(proposal).some(value => value !== undefined)
+            ? await loadReviewedFeeRecords(ctx, existing, currentUser) : undefined;
+        const proposed = proposedFeeProject(existing, proposal, records);
+        const financialChanged = feeConfigChanged(existing, proposed);
+        if (financialChanged || expected_impact) {
             if (!expected_impact) throw new Error("Revisa el impacto financiero antes de guardar.");
-            const impact = await inspectFeeImpact(ctx, existing, proposal, currentUser);
-            if (impact.expectedImpact !== expected_impact) throw new Error("El impacto cambió mientras lo revisabas. Revisa la actualización antes de guardar.");
-        } else if (expected_impact) {
             // A reviewed financial proposal must not silently become a no-op after
             // another user applies it, possibly together with different settings.
-            const impact = await inspectFeeImpact(ctx, existing, proposal, currentUser);
-            if (impact.expectedImpact !== expected_impact) throw new Error("El impacto cambió mientras lo revisabas. Revisa la actualización antes de guardar.");
+            const scope = await feeImpactScope(existing, proposed, records!);
+            if (scope !== expected_impact) throw new Error("El impacto cambió mientras lo revisabas. Revisa la actualización antes de guardar.");
         }
         if (args.indirectos_porcentaje !== undefined) {
             updateData.indirectos_fecha_inicio = existing?.indirectos_fecha_inicio || INDIRECTOS_START;
         }
         if (args.fee_concepts !== undefined) updateData.fee_concepts = proposed.fee_concepts;
         await ctx.db.patch(id, updateData);
+        if (financialChanged) await persistFeeProjectTotals(ctx, existing, proposed, records!);
         if (args.nombre !== undefined) {
             const root = await findProjectDocumentRoot(ctx, id);
             if (root) await ctx.db.patch(root._id, { nombre: args.nombre, updated_at: Date.now() });

@@ -40,7 +40,11 @@ Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Lo
 
 El corte del 1 de octubre de 2026 se conserva para Honorarios y los esquemas anteriores de Indirectos. Viáticos y General Conditions configurados recalculan también el ejercido previo del proyecto. Las obras sin esos conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
 
-El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto. Cambios externos en datos financieros invalidan una revisión abierta y exigen actualizarla antes de guardar. Cancelar no escribe. La revisión completa mantiene los límites de 2,500 registros y 512 KiB de alcance canónico.
+El filtro mensual de P&L solo cambia la revisión; guardar aplica a todo el proyecto. Cambios externos en datos financieros invalidan una revisión abierta y exigen actualizarla antes de guardar. Cancelar no escribe.
+
+La revisión completa admite hasta 8,000 registros, 3,500 transacciones y 8 MiB de datos fuente. El comprobante usa SHA-256 de todos los datos financieros canónicos, por lo que no transmite los registros ni rechaza proyectos cuyo alcance supere 512 KiB. El guardado revalida y reutiliza una sola lectura del historial para actualizar configuración, jerarquía y métricas en la misma transacción; evita las relecturas completas por cada partida actualizada. Si falla la revisión, el modal muestra la causa y el botón Reintentar cálculo junto a Guardar Cambios.
+
+El diagnóstico autorizado de solo lectura del 15 de octubre confirmó el bloqueo en Larena - Torre I: 811 partidas, 645 transacciones y 1,716 conceptos de pago, 3,172 registros antes de contar movimientos OGC. La vista previa desplegada de Honorarios devuelve el error de capacidad del límite anterior de 2,500 registros. El diagnóstico no guardó configuraciones ni desplegó código.
 
 Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-612`. Los cambios de frontend se incluyen en `main`; su publicación depende del hosting configurado para esa rama. El despliegue no activa conceptos ni migra proyectos. Queda pendiente conciliar los resultados contra el aprobado vigente de los Excel reales; las tasas de referencia de la reunión no son valores prefijados.
 
@@ -52,6 +56,6 @@ Para esta corrección se reconstruyeron los totales derivados del proyecto afect
 - test:indirectos-ui: avance de pagado sobre aprobado, tasas y porcentajes con dos decimales, búsqueda y selección de exclusiones, base neta visible, rechazo de base cero, revisión y persistencia de cambios solo en exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
 - Pruebas relacionadas de P&L, Presupuesto, jerarquía, edición de pagos, edición/eliminación de partidas y clasificación OGC; TypeScript, lint y build.
 
-Validación de la corrección: 269 pruebas aprobadas, 2 omitidas; TypeScript, ESLint, build y pruebas visuales aprobados.
+Validación de la corrección de guardado del 15 de octubre de 2026: 279 pruebas aprobadas, 1 omitida; TypeScript de frontend y Convex, ESLint, build y pruebas del modal a 390 y 1440 px aprobados. Incluye proyectos de más de 2,500 registros, alcances superiores a 512 KiB, 1,600 transacciones sin relecturas al guardar, límites de capacidad y rechazo de cambios concurrentes aun cuando sus importes se compensen. Esta corrección está validada localmente; no se ha desplegado.
 
 El plan complementado está en docs/plan-conceptos-porcentuales.md.

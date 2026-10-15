@@ -65,8 +65,15 @@ try {
     await page.getByRole("button", { name: "Usar valores actuales en esos campos" }).click();
     await expect(page.getByLabel("Nombre del Proyecto *", { exact: true })).toHaveValue("Nombre externo");
     await page.evaluate(() => window.feeFixtureChange({ previewFailure: true }));
-    await expect(page.getByText("No se pudo calcular el impacto completo. Error de prueba.")).toBeVisible();
+    const previewError = page.getByRole("alert").filter({ hasText: "No se pudo calcular el impacto completo. Error de prueba." });
+    await expect(previewError).toBeVisible();
+    assert.equal(await previewError.evaluate(element => element.closest("[data-project-form-scroll]") === null), true);
+    const retry = page.getByRole("button", { name: "Reintentar cálculo", exact: true });
+    await expect(retry).toBeInViewport();
+    await retry.click();
+    await expect(previewError).toBeVisible();
     await expect(save).toBeDisabled();
+    await expect(field).toHaveValue("20");
     await page.evaluate(() => window.feeFixtureChange({ previewFailure: false }));
     await expect(save).toBeEnabled();
     await page.evaluate(() => window.feeFixtureChange({ mutationFailure: true }));

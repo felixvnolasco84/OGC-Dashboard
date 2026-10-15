@@ -57,6 +57,8 @@ export function useQuery(ref: any, args: any) {
   if (name === "users:getCurrentUser") return { ...tables.users[0] };
   if (name === "currency_helpers:getProjectDefaultCurrency") return { defaultCurrency: tables.desarrollos[0].moneda_principal };
   if (name === "desarrollos:getById") return tables.desarrollos[0];
+  if (name === "partida:getByNivel") return tables.partidas.filter(p => p.nivel === args.nivel && p.proyecto === args.proyecto);
+  if (name === "partida:getDistinctFamiliasByPartida") return [];
   if (name === "pagos:getPaymentsByDateRange") return { paymentsByPartida: { leaf: 250, sibling: 100, family: 200, root: 100 }, indirectos: 32.5 };
   if (name.startsWith("pagos:")) return [];
   throw new Error(`Unexpected fixture query: ${name}`);
@@ -80,6 +82,11 @@ const client = { async query(ref: any, args: any) {
 } };
 export function useConvex() { return client; }
 export function useMutation(ref: any) { return async (args: any) => {
+  if (getFunctionName(ref) === "partida:createPartida") {
+    recorded.mutations.push({ args });
+    const result = await ctx.db.insert("partidas", { ...args, por_gastar: args.presupuesto_aprobado - args.pagado });
+    publish(); return result;
+  }
   if (getFunctionName(ref) !== "partida:update") throw new Error("Unexpected fixture mutation");
   recorded.mutations.push({ args });
   await wait(600);

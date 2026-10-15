@@ -66,6 +66,7 @@ function PartidaEditor({ initial, partida, onClose, closeRequestRef }: {
     cantidad: isLeaf ? z.number({ invalid_type_error: "Ingresa una cantidad válida" }).finite("Debe ser un número finito").min(0, "Debe ser mayor o igual a cero") : z.number(),
     precio_unitario: isLeaf ? z.number().finite("Debe ser un número finito").min(0, "Debe ser mayor o igual a cero") : z.number(),
     presupuesto_aprobado: z.number().finite("Debe ser un número finito").min(0, "Debe ser mayor o igual a cero"),
+    presupuesto_original: z.number().finite("Debe ser un número finito").min(0, "Debe ser mayor o igual a cero"),
   }), [isLeaf]);
   const form = useForm<PartidaEditValues>({ resolver: zodResolver(schema), mode: "onChange", defaultValues: partidaEditValues(base) });
   const { isDirty } = form.formState;
@@ -175,15 +176,16 @@ function PartidaEditor({ initial, partida, onClose, closeRequestRef }: {
             <FormField control={form.control} name="cantidad" render={({ field }) => <FormItem><FormLabel>Cantidad</FormLabel><FormControl><Input {...field} type="number" step="any" value={Number.isNaN(field.value) ? "" : field.value} onChange={e => field.onChange(e.currentTarget.valueAsNumber)} disabled={!isLeaf || disabled} variant={isLeaf ? "card" : "muted"} /></FormControl><FormMessage /></FormItem>} />
             <FormField control={form.control} name="precio_unitario" render={({ field }) => <FormItem><FormLabel>Precio unitario</FormLabel><FormControl><MoneyInput {...field} currency={currency} disabled={!isLeaf || disabled} variant={isLeaf ? "card" : "muted"} /></FormControl><FormMessage /></FormItem>} />
           </div>
-          {isLeaf && <p className="mt-3 text-xs text-muted-foreground">Cantidad y precio unitario no modifican automáticamente el presupuesto aprobado.</p>}
+          {isLeaf && <p className="mt-3 text-xs text-muted-foreground">Cantidad y precio unitario no modifican automáticamente el presupuesto original ni el aprobado.</p>}
         </div>
         <div className="border-t pt-4">
           <h3 className="text-sm font-medium mb-3">Estado presupuestal</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><label htmlFor="partida-edit-original" className="text-sm font-medium">Presupuesto original</label><MoneyInput id="partida-edit-original" currency={currency} disabled variant="muted" value={base.presupuesto_original} /></div>
+            <FormField control={form.control} name="presupuesto_original" render={({ field }) => <FormItem><FormLabel>Presupuesto original</FormLabel><FormControl><MoneyInput {...field} currency={currency} placeholder="0.00" disabled={disabled} variant="card" /></FormControl><FormMessage /></FormItem>} />
             <FormField control={form.control} name="presupuesto_aprobado" render={({ field }) => <FormItem><FormLabel>Presupuesto aprobado</FormLabel><FormControl><MoneyInput {...field} currency={currency} disabled={disabled} variant="card" /></FormControl><FormMessage /></FormItem>} />
-            <div className="space-y-2"><label htmlFor="partida-edit-paid" className="text-sm font-medium">Pagado registrado</label><MoneyInput id="partida-edit-paid" currency={currency} disabled variant="muted" value={base.pagado} /><p className="text-xs text-muted-foreground">Se conserva al guardar.</p></div>
+            <div className="space-y-2"><label htmlFor="partida-edit-paid" className="text-sm font-medium">Pagado visible actual</label><MoneyInput id="partida-edit-paid" currency={currency} disabled variant="muted" value={base.pagado} /><p className="text-xs text-muted-foreground">Se conservan los registros de pagos. Los cargos automáticos se recalculan con los presupuestos vigentes.</p></div>
           </div>
+          <p className="mt-3 text-xs text-muted-foreground">Si el concepto se agregó después del presupuesto inicial, puedes dejar el original en $0 y conservar su aprobado.</p>
         </div>
         {loading && <p role="status" className="flex gap-2 items-center text-sm"><Loader2 className="h-4 w-4 animate-spin" />Revisando impacto…</p>}
         {error && <div role="alert" className="border border-border p-3 space-y-3"><p className="text-sm text-destructive">{error}</p><Button type="button" variant="outline" disabled={disabled} onClick={() => conflict ? void refresh() : setAttempt(n => n + 1)}>{refreshing ? "Actualizando revisión…" : conflict ? "Actualizar revisión" : "Reintentar revisión"}</Button></div>}

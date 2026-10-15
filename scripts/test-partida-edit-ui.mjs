@@ -9,7 +9,7 @@ const server = await createServer({ configFile: `${root}/e2e/partida-edit/vite.c
 await server.listen();
 let browser;
 const errors = [];
-const output = `${root}/output/partida-edit-impact`;
+const output = process.env.PARTIDA_EDIT_UI_OUTPUT || `${root}/output/partida-edit-impact`;
 try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   await mkdir(output, { recursive: true });
@@ -116,6 +116,58 @@ try {
     if (level !== "empty") await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("no se distribuye");
     await discard(page);
   }
+  for (const level of ["root", "family", "leaf"]) {
+    await open(page, "", level);
+    const original = page.getByLabel("Presupuesto original", { exact: true });
+    await expect(original).toBeEnabled();
+    const approved = await page.getByLabel("Presupuesto aprobado", { exact: true }).inputValue();
+    await original.focus();
+    await original.press("ControlOrMeta+A");
+    await original.fill("0");
+    await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+    await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue(approved);
+    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    const changes = await page.evaluate(() => window.partidaEditRecorded.mutations[0].args.changes);
+    assert.deepEqual(changes, { presupuesto_original: 0 });
+  }
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width < 500 ? 844 : 1000 });
+    for (const withChildren of [false, true]) {
+      await page.goto("http://127.0.0.1:4207/e2e/partida-edit/preview.html");
+      await page.getByRole("button", { name: "Nueva partida de prueba", exact: true }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByRole("button", { name: "Agregar Partida", exact: true }).click();
+      await dialog.getByPlaceholder("Nombre de la partida (ej. ESTRUCTURA)").fill("NUEVA");
+      if (withChildren) {
+        await dialog.getByRole("button", { name: "Agregar Familia", exact: true }).click();
+        await dialog.getByPlaceholder("Nombre de la familia (ej. CONCRETOS)").fill("NUEVA FAMILIA");
+        await dialog.getByRole("button", { name: /Agregar Sub/ }).click();
+        await dialog.getByPlaceholder("Nombre de la sub-partida (ej. COLUMNAS)").fill("NUEVA SUBPARTIDA");
+      }
+      await dialog.getByLabel("Unidad", { exact: true }).fill("LOTE");
+      await dialog.getByLabel("Cantidad", { exact: true }).fill("2");
+      await dialog.getByLabel("Precio unitario", { exact: true }).fill("600");
+      await dialog.getByLabel("Presupuesto aprobado", { exact: true }).fill("1500");
+      const original = dialog.getByLabel("Presupuesto original", { exact: true });
+      await expect(original).toHaveValue("0");
+      // Both an explicit amount and a subsequent explicit zero must persist in the draft.
+      await original.fill("100"); await original.fill("0");
+      await expect(dialog.getByRole("button", { name: /^Guardar \d+ elemento/ })).toBeEnabled();
+      await original.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `${output}/create-original-zero-${withChildren ? "hierarchy" : "root"}-${width}.png` });
+      assert.equal(await dialog.evaluate(el => el.scrollWidth > el.clientWidth), false, `Creation overflow at ${width}`);
+      await dialog.getByRole("button", { name: /^Guardar \d+ elemento/ }).click();
+      await expect(dialog).toHaveCount(0);
+      const payloads = await page.evaluate(() => window.partidaEditRecorded.mutations.map(m => m.args));
+      assert.equal(payloads.length, withChildren ? 3 : 1);
+      for (const payload of payloads) {
+        assert.equal(payload.presupuesto_original, 0);
+        assert.equal(payload.presupuesto_aprobado, 1500);
+      }
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await open(page, "filtered"); await edit(page);
   await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("$782.50");
   await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("Los filtros de la tabla no limitan");
@@ -176,5 +228,5 @@ try {
   }
   await page.close();
   assert.deepEqual(errors, []);
-  console.log("Partida edit UI passed: table/dropdown, 3 levels, full/filtered totals, USD, zero/negative remaining, rename/duplicates, stale responses, cancellation/reopen, errors, concurrency and single submission at 1440/390/320px. Screenshots: output/partida-edit-impact.");
+  console.log(`Partida UI passed: original editable to zero at all 3 levels, new root/hierarchy with zero original and independent approval, full/filtered totals, USD, cancellation, errors and concurrency at 1440/390/320px. Screenshots: ${output}.`);
 } finally { if (browser) await browser.close(); await server.close(); }

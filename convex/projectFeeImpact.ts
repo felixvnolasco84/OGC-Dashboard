@@ -1,12 +1,13 @@
 import type { Doc } from "./_generated/dataModel";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { getHonorariosBreakdown, getHonorariosModo } from "./honorariosRules";
+import { getHonorariosBreakdown, getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
 import { INDIRECTOS_START, validateIndirectosPercentage } from "./indirectosRules";
 import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
 import { deriveFeeConcepts, canonicalFeeConcepts, FEE_CONCEPT_CALCULATION_VERSION, type FeeConceptInput } from "./feeConceptRules";
 import { feeConceptInputValidator } from "./feeConceptValidators";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 
 export const feeConfigValidators = {
   honorarios_porcentaje: v.optional(v.number()),
@@ -23,12 +24,17 @@ export type FeeImpactRecords = {
   movements: Doc<"ogc_movimientos">[];
 };
 
-// Leave room for revalidation and synchronous triggers in the save transaction.
-export const FEE_IMPACT_LIMIT = 2500;
-const TOO_LARGE = "El proyecto supera el límite de revisión completa. No se guardaron cambios financieros; solicita una revisión de capacidad.";
+// Saving reuses this snapshot instead of loading it again through triggers.
+// Leave room below Convex's document, byte and index-range transaction limits.
+export const FEE_IMPACT_LIMIT = 8000;
+export const FEE_IMPACT_TRANSACTION_LIMIT = 3500;
+const TOO_LARGE = "El proyecto supera el límite de revisión completa (8,000 registros, 3,500 transacciones u 8 MiB). No se guardaron cambios financieros; solicita una revisión de capacidad.";
 
 export function proposedFeeProject(project: Doc<"desarrollos">, proposal: FeeProposal, records?: FeeImpactRecords) {
   validateIndirectosPercentage(proposal.indirectos_porcentaje);
+  if (proposal.excluded_partidas_honorarios?.some(id => !records?.partidas.some(p => p._id === id && p.proyecto === project._id && p.nivel === 1))) {
+    throw new Error("Las exclusiones deben ser partidas de nivel 1 del mismo proyecto.");
+  }
   if (proposal.honorarios_porcentaje !== undefined &&
       (!Number.isFinite(proposal.honorarios_porcentaje) || proposal.honorarios_porcentaje < 0 || proposal.honorarios_porcentaje > 100)) {
     throw new Error("El porcentaje de honorarios debe estar entre 0 y 100.");
@@ -59,9 +65,14 @@ export function feeConfigChanged(before: Doc<"desarrollos">, after: Doc<"desarro
 
 export async function loadFeeImpactRecords(ctx: Pick<QueryCtx, "db">, project: Doc<"desarrollos">): Promise<FeeImpactRecords> {
   const partidas = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).take(FEE_IMPACT_LIMIT + 1);
-  const transactions = await ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).take(FEE_IMPACT_LIMIT + 1);
-  const movements = await ctx.db.query("ogc_movimientos").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).take(FEE_IMPACT_LIMIT + 1);
-  let count = partidas.length + transactions.length + movements.length;
+  let count = partidas.length;
+  if (count > FEE_IMPACT_LIMIT) throw new Error(TOO_LARGE);
+  const transactions = await ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", project._id))
+    .take(Math.min(FEE_IMPACT_TRANSACTION_LIMIT, FEE_IMPACT_LIMIT - count) + 1);
+  count += transactions.length;
+  if (count > FEE_IMPACT_LIMIT || transactions.length > FEE_IMPACT_TRANSACTION_LIMIT) throw new Error(TOO_LARGE);
+  const movements = await ctx.db.query("ogc_movimientos").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).take(FEE_IMPACT_LIMIT - count + 1);
+  count += movements.length;
   if (count > FEE_IMPACT_LIMIT) throw new Error(TOO_LARGE);
   const pagos: Doc<"pagos">[] = [];
   // Historical payments may lack proyecto_id, so never use that index alone.
@@ -72,13 +83,15 @@ export async function loadFeeImpactRecords(ctx: Pick<QueryCtx, "db">, project: D
     if (count > FEE_IMPACT_LIMIT) throw new Error(TOO_LARGE);
     pagos.push(...rows);
   }
-  return { partidas, transactions, movements, pagos };
+  const records = { partidas, transactions, movements, pagos };
+  if (new TextEncoder().encode(JSON.stringify(records)).byteLength > 8 * 1024 * 1024) throw new Error(TOO_LARGE);
+  return records;
 }
 
-export function feeImpactScope(project: Doc<"desarrollos">, proposed: Doc<"desarrollos">, records: FeeImpactRecords) {
+export async function feeImpactScope(project: Doc<"desarrollos">, proposed: Doc<"desarrollos">, records: FeeImpactRecords) {
   const sorted = <T extends { _id: string }>(rows: T[]) => [...rows].sort((a, b) => a._id.localeCompare(b._id));
-  // Exact canonical scope, rather than a collision-prone checksum. Only financial
-  // inputs are sent back; bank details and document attachments are excluded.
+  // Hash every canonical financial input. The fixed-size token keeps large
+  // projects reviewable without returning their records to the client.
   const scope = JSON.stringify({
     version: FEE_CONCEPT_CALCULATION_VERSION,
     project: [project._id, project.organization_id, project.moneda_principal, project.honorarios_monto, feeConfig(project)],
@@ -89,8 +102,26 @@ export function feeImpactScope(project: Doc<"desarrollos">, proposed: Doc<"desar
     pagos: sorted(records.pagos).map(p => [p._id, p.transaccion_id, p.partida_id, p.monto]),
     movements: sorted(records.movements).map(m => [m._id, m.organization_id, m.proyecto, m.tipo, m.categoria, m.descripcion, m.monto, m.fecha, m.moneda, m.tipo_cambio, m.status]),
   });
-  if (new TextEncoder().encode(scope).byteLength > 512 * 1024) throw new Error(TOO_LARGE);
-  return scope;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(scope));
+  return `sha256:${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Called with the raw mutation database after revalidating the reviewed snapshot.
+// Rebuild all derived values once, atomically, without per-row trigger rereads.
+export async function persistFeeProjectTotals(ctx: MutationCtx, previous: Doc<"desarrollos">, project: Doc<"desarrollos">, records: FeeImpactRecords) {
+  if (previous.fee_concepts?.length || project.fee_concepts?.length) {
+    await repairProjectPaymentTotals(ctx, project._id, false, { project, ...records });
+    return;
+  }
+  const totals = feeBudgetScenario(project, records, true);
+  await ctx.db.patch(project._id, { honorarios_monto: totals.honorarios });
+  const source = records.partidas.find(p => p.nivel === 1 && isHonorariosPartida(p));
+  if (source) await ctx.db.patch(source._id, { pagado: totals.honorarios, por_gastar: source.presupuesto_aprobado - totals.honorarios });
+  const metrics = { presupuesto_original: totals.presupuesto_original, presupuesto_aprobado: totals.presupuesto_aprobado,
+    gasto_total: totals.gasto_total, por_gastar: totals.por_gastar };
+  const existing = await ctx.db.query("meticas_presupuesto").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).first();
+  if (existing) await ctx.db.patch(existing._id, metrics);
+  else await ctx.db.insert("meticas_presupuesto", { proyecto: project._id, ...metrics });
 }
 
 export function feeBudgetScenario(project: Doc<"desarrollos">, records: FeeImpactRecords, recalculate: boolean) {

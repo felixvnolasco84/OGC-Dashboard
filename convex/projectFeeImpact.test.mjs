@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { previewFeeImpact, update, getPnlSummary } from "./desarrollos";
 import { getByProyecto, getFilteredMetrics } from "./meticas_presupuesto";
-import { FEE_IMPACT_LIMIT } from "./projectFeeImpact";
+import { FEE_IMPACT_LIMIT, FEE_IMPACT_TRANSACTION_LIMIT } from "./projectFeeImpact";
 import { projectDraftPatch } from "../src/lib/project-fee-draft";
 import { deriveFeeConcepts, calculateFeeConceptPayments } from "./feeConceptRules";
 import { getPaymentsByDateRange } from "./pagos";
 import { mutation } from "./functions";
 
-// Indexed database double running the actual mutation wrapper and triggers.
+// Indexed database double running the actual handlers and payment triggers.
 // Rollback models Convex transaction behavior; this is not a deployed-db test.
 function fixture(overrides = {}) {
   const tables = structuredClone({
@@ -87,7 +87,7 @@ describe("reviewed project fee changes", () => {
     await f.save(proposal, impact.expectedImpact);
     expect(f.tables.desarrollos[0].honorarios_monto).toBe(10000);
   });
-  it("simulates without writes and matches saved budget and P&L through actual triggers", async () => {
+  it("simulates without writes and matches saved budget and P&L", async () => {
     const f = fixture();
     const proposal = { indirectos_porcentaje: 10, honorarios_porcentaje: 15 };
     const impact = await f.preview(proposal);
@@ -207,6 +207,91 @@ describe("reviewed project fee changes", () => {
     expect((await getByProyecto._handler(f.ctx, { proyecto_id: "desarrollos:p" })).gasto_total).toBe(impact.afterBudget.gasto_total);
     f.tables.partidas = Array.from({ length: FEE_IMPACT_LIMIT + 1 }, (_, i) => ({ _id: `partidas:${i}`, proyecto: "desarrollos:p", nivel: 1, nombre: `${i}` }));
     expect(await f.preview({ indirectos_porcentaje: 10 })).toMatchObject({ status: "error", message: expect.stringContaining("límite") });
+  });
+  it("reviews and saves configured fees with more than 2,500 records using a single payment snapshot", async () => {
+    const f = fixture({ pagos: Array.from({ length: 3000 }, (_, i) => ({
+      _id: `pagos:${i}`, transaccion_id: "transacciones:t", partida_id: "partidas:work", monto: 10,
+    })) });
+    f.tables.transacciones[0].monto_total = 30000;
+    f.tables.partidas[0].pagado = 30000;
+    const proposal = { fee_concepts: [{ concepto: "honorarios", partida_id: "partidas:fee", excluded_partidas: [] }] };
+    const impact = await f.preview(proposal);
+    expect(impact.status).toBe("ready");
+    expect(impact.counts.payments).toBe(3000);
+    expect(impact.afterBudget.honorarios).toBeGreaterThan(0);
+    f.reads.length = 0;
+    await f.save(proposal, impact.expectedImpact);
+    expect(f.reads.filter(([table]) => table === "pagos")).toHaveLength(1);
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(impact.afterBudget.honorarios);
+    expect(f.tables.meticas_presupuesto[0].gasto_total).toBe(impact.afterBudget.gasto_total);
+  });
+  it("saves a long transaction history without repeating its indexed payment reads", async () => {
+    const f = fixture({
+      transacciones: Array.from({ length: 1600 }, (_, i) => ({ _id: `transacciones:${i}`, proyecto: "desarrollos:p",
+        monto_total: 100, fecha: "2026-10-01", status: "Pagado", moneda: "MXN" })),
+      pagos: Array.from({ length: 1600 }, (_, i) => ({ _id: `pagos:${i}`, transaccion_id: `transacciones:${i}`,
+        partida_id: "partidas:work", monto: 100 })),
+    });
+    f.tables.partidas[0].pagado = 160000;
+    const proposal = { fee_concepts: [{ concepto: "honorarios", partida_id: "partidas:fee", excluded_partidas: [] }] };
+    const impact = await f.preview(proposal);
+    expect(impact.status).toBe("ready");
+    f.reads.length = 0;
+    await f.save(proposal, impact.expectedImpact);
+    expect(f.reads.filter(([table]) => table === "pagos")).toHaveLength(1600);
+    expect(f.tables.meticas_presupuesto[0].gasto_total).toBe(impact.afterBudget.gasto_total);
+  });
+  it("updates the legacy honorarios root when its family was created first", async () => {
+    const f = fixture();
+    f.tables.partidas.unshift({ _id: "partidas:family", proyecto: "desarrollos:p", nivel: 2,
+      nombre: "HONORARIOS", partida_nombre: "HONORARIOS", familia: "Familia", presupuesto_aprobado: 1000, pagado: 500 });
+    const proposal = { honorarios_porcentaje: 20 };
+    const impact = await f.preview(proposal);
+    await f.save(proposal, impact.expectedImpact);
+    expect(f.tables.partidas.find(p => p._id === "partidas:fee").pagado).toBe(20000);
+    expect(f.tables.partidas.find(p => p._id === "partidas:family").pagado).toBe(500);
+  });
+  it("reviews scopes larger than 512 KiB without sending the records back in the save token", async () => {
+    const f = fixture({ ogc_movimientos: Array.from({ length: 600 }, (_, i) => ({
+      _id: `ogc_movimientos:${i}`, proyecto: "desarrollos:p", organization_id: "org", tipo: "costo_estructura",
+      categoria: "INDIRECTOS", descripcion: "Detalle del costo de estructura. ".repeat(40), monto: 1,
+      fecha: "2026-10-02", moneda: "MXN", status: "activo",
+    })) });
+    const proposal = { indirectos_porcentaje: 10 };
+    const impact = await f.preview(proposal);
+    expect(impact.status).toBe("ready");
+    expect(impact.expectedImpact).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect((await f.preview(proposal)).expectedImpact).toBe(impact.expectedImpact);
+    await f.save(proposal, impact.expectedImpact);
+    expect(f.tables.meticas_presupuesto[0].gasto_total).toBe(impact.afterBudget.gasto_total);
+  });
+  it("bounds transaction index reads and snapshot bytes without partially saving", async () => {
+    const f = fixture({ transacciones: Array.from({ length: FEE_IMPACT_TRANSACTION_LIMIT + 1 }, (_, i) => ({
+      _id: `transacciones:${i}`, proyecto: "desarrollos:p", monto_total: 1, fecha: "2026-10-01", status: "Pagado",
+    })) });
+    const proposal = { indirectos_porcentaje: 10 };
+    expect(await f.preview(proposal)).toMatchObject({ status: "error", message: expect.stringContaining("3,500") });
+    expect(f.reads.some(([table]) => table === "pagos")).toBe(false);
+    await expect(f.save(proposal, "oversized")).rejects.toThrow("límite");
+    expect(f.writes).toEqual([]);
+    const g = fixture({ ogc_movimientos: Array.from({ length: 100 }, (_, i) => ({
+      _id: `ogc_movimientos:${i}`, proyecto: "desarrollos:p", descripcion: "x".repeat(90000),
+    })) });
+    expect(await g.preview(proposal)).toMatchObject({ status: "error", message: expect.stringContaining("8 MiB") });
+    expect(g.writes).toEqual([]);
+  });
+  it("detects offsetting payment edits even when the reviewed totals stay the same", async () => {
+    const f = fixture();
+    f.tables.pagos.push({ ...f.tables.pagos[0], _id: "pagos:second", monto: 100 });
+    const proposal = { indirectos_porcentaje: 10 };
+    const impact = await f.preview(proposal);
+    f.tables.pagos[0].monto += 1;
+    f.tables.pagos[1].monto -= 1;
+    const next = await f.preview(proposal);
+    expect(next.afterBudget.gasto_total).toBe(impact.afterBudget.gasto_total);
+    expect(next.expectedImpact).not.toBe(impact.expectedImpact);
+    await expect(f.save(proposal, impact.expectedImpact)).rejects.toThrow("impacto cambió");
+    expect(f.writes).toEqual([]);
   });
 });
 

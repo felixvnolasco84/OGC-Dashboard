@@ -1,4 +1,5 @@
 import { classifyProjectMatch } from "../../convex/projectMatchUtils.ts";
+import { summarizeLaborWorkforce } from "../../convex/laborWorkforceRules.ts";
 
 export const LABOR_IMPORT_MAX_FILE_SIZE = 10 * 1024 * 1024;
 export const LABOR_IMPORT_MAX_ROWS = 1_000;
@@ -272,23 +273,6 @@ function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-function roleHeadcount(entries: Array<{ count: number; tipoPago: string }>) {
-  const byCount = new Map<number, Map<string, number>>();
-  for (const entry of entries) {
-    const tipo = normalizeLaborImportText(entry.tipoPago) || "SIN TIPO";
-    const byTipo = byCount.get(entry.count) || new Map<string, number>();
-    byTipo.set(tipo, (byTipo.get(tipo) || 0) + 1);
-    byCount.set(entry.count, byTipo);
-  }
-  let total = 0;
-  for (const [count, byTipo] of byCount) {
-    // Same headcount on transferencia and efectivo is one crew paid in two
-    // ways. Distinct headcounts (or extra rows of the same type) are extra people.
-    total += count * Math.max(...byTipo.values());
-  }
-  return total;
-}
-
 function stringifyRow(row: ParsedSourceRow) {
   return JSON.stringify({
     administration: normalizeLaborImportText(row.administration),
@@ -479,60 +463,8 @@ export function parseLaborPaymentRows(
 
   const weeks: LaborPaymentWeek[] = [];
   for (const [date, weekRows] of [...rowsByDate.entries()].sort(([left], [right]) => left.localeCompare(right))) {
-    const weekWarnings: string[] = [];
-    const fasarRows = weekRows
-      .filter((row) => normalizeLaborImportText(row.subpartida).includes("FASAR"));
-    // Zero on a FASAR payment means "this line has no headcount", not "the
-    // week has zero people". Treat it like a blank cell and infer from roles.
-    const summaryCounts = [...new Set(
-      fasarRows
-        .map((row) => row.numeroPersonas)
-        .filter((value): value is number => value !== undefined && value > 0),
-    )];
-    if (summaryCounts.length > 1) {
-      errors.push(`${date}: las filas FASAR declaran totales de personas distintos.`);
-    }
-    if (fasarRows.length && summaryCounts.length === 0) {
-      weekWarnings.push("La fila FASAR no declara NO. PERSONAS; el total se inferirá desde los puestos.");
-    }
-
-    const roleCounts = new Map<string, { label: string; entries: Array<{ count: number; tipoPago: string }> }>();
-    for (const row of weekRows) {
-      if (normalizeLaborImportText(row.subpartida).includes("FASAR")) continue;
-      if (row.numeroPersonas === undefined) {
-        weekWarnings.push(`Fila ${row.sourceRow}: ${row.subpartida} no tiene NO. PERSONAS.`);
-        continue;
-      }
-      // Zero means this payment concept has no associated workforce. It must not
-      // create a zero-count role (or an empty role for family-only partidas).
-      if (row.numeroPersonas === 0) continue;
-      const label = row.subpartida || row.familia;
-      const key = normalizeLaborImportText(label);
-      const current = roleCounts.get(key) || { label, entries: [] };
-      current.entries.push({ count: row.numeroPersonas, tipoPago: row.tipoPago });
-      roleCounts.set(key, current);
-    }
-
-    const roles: LaborPaymentRole[] = [...roleCounts.entries()].map(([key, role]) => ({
-      key,
-      label: role.label,
-      count: roleHeadcount(role.entries),
-    }));
-    const explicitTotal = roles.reduce((sum, role) => sum + role.count, 0);
-    let totalPeople: number;
-    if (summaryCounts.length === 1) {
-      totalPeople = summaryCounts[0];
-      if (explicitTotal > totalPeople) {
-        errors.push(`${date}: los puestos suman ${explicitTotal}, por encima del total FASAR de ${totalPeople}.`);
-      } else if (explicitTotal < totalPeople) {
-        roles.push({ key: "NO DESGLOSADO", label: "No desglosado", count: totalPeople - explicitTotal });
-      }
-    } else {
-      totalPeople = explicitTotal;
-      if (totalPeople > 0) {
-        weekWarnings.push("No hay un total FASAR válido; el total se infirió desde los puestos deduplicados.");
-      }
-    }
+    const { roles, totalPeople, warnings: weekWarnings, errors: workforceErrors } = summarizeLaborWorkforce(weekRows);
+    errors.push(...workforceErrors.map(error => `${date}: ${error}`));
 
     const groupedTransactions = new Map<string, ParsedSourceRow[]>();
     for (const row of weekRows) {
@@ -569,11 +501,6 @@ export function parseLaborPaymentRows(
       });
     }
 
-    roles.sort((left, right) => {
-      if (left.key === "NO DESGLOSADO") return 1;
-      if (right.key === "NO DESGLOSADO") return -1;
-      return right.count - left.count || left.label.localeCompare(right.label, "es");
-    });
     const amountTotal = roundMoney(weekRows.reduce((sum, row) => sum + row.monto, 0));
     weeks.push({
       date,

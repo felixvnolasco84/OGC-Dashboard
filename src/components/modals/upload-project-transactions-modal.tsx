@@ -50,7 +50,6 @@ type ValidationReport = {
   fileHash: string;
   transactions: PreviewTransaction[];
   replacedDates: string[];
-  unchanged: boolean;
 };
 
 type UploadReport = {
@@ -227,27 +226,18 @@ export default function UploadProjectTransactionsModal() {
         { proyecto: proyectoId },
       );
       const dates = new Set(parsed.weeks.map((week) => week.date));
-      const identicalDates = new Set(
-        currentImports
-          .filter((item) => item.source_file_hash === fileHash)
-          .map((item) => item.capture_date),
-      );
-      const unchanged = identicalDates.size === dates.size &&
-        [...dates].every((date) => identicalDates.has(date));
       const replacedDates = [...new Set(
         currentImports
           .filter((item) => dates.has(item.capture_date))
           .map((item) => item.capture_date),
       )].sort();
 
-      setValidationReport({ parsed, fileHash, transactions, replacedDates, unchanged });
+      setValidationReport({ parsed, fileHash, transactions, replacedDates });
       setCurrentStep("preview");
       if (transactions.some((transaction) => transaction.errors.length)) {
         toast.error("La carga está bloqueada", {
           description: "Corrige los conflictos de proveedor antes de continuar.",
         });
-      } else if (unchanged) {
-        toast.info("Este archivo ya está activo y no producirá cambios.");
       } else {
         toast.success("Archivo validado", {
           description: `${transactions.length} pagos y ${parsed.weeks.length} cortes listos.`,
@@ -320,9 +310,9 @@ export default function UploadProjectTransactionsModal() {
       });
       setCurrentStep("result");
       if (response.status === "unchanged") {
-        toast.info("El archivo ya estaba activo; no se realizaron escrituras.");
+        toast.info("Los pagos del archivo ya están registrados; no se realizaron cambios.");
       } else {
-        toast.success(response.status === "replaced" ? "Carga reemplazada" : "Carga completada", {
+        toast.success(response.status === "replaced" ? "Carga actualizada" : "Carga completada", {
           description: `${response.transaction_count} pagos, ${response.providers_created} proveedores creados y ${response.providers_reused} reutilizados.`,
         });
       }
@@ -448,7 +438,7 @@ export default function UploadProjectTransactionsModal() {
                 </div>
               </div>
 
-              {(validationReport.unchanged || validationReport.replacedDates.length > 0 || validationReport.parsed.projectMatchMode === "alias") && (
+              {(validationReport.replacedDates.length > 0 || validationReport.parsed.projectMatchMode === "alias") && (
                 <div className="border border-warning-border bg-warning-muted rounded-none p-3 text-sm text-warning">
                   <AlertTriangle className="inline h-4 w-4 mr-2" />
                   {validationReport.parsed.projectMatchMode === "alias" && (
@@ -456,11 +446,9 @@ export default function UploadProjectTransactionsModal() {
                       ADMINISTRACIÓN “{validationReport.parsed.administration}” se asoció a {proyectoNombre}.{" "}
                     </span>
                   )}
-                  {validationReport.unchanged
-                    ? "El mismo archivo ya está activo; confirmar devolverá ‘sin cambios’."
-                    : validationReport.replacedDates.length > 0
-                      ? `Se reemplazarán únicamente las cargas del importador para: ${validationReport.replacedDates.map(formatDate).join(", ")}.`
-                      : null}
+                  {validationReport.replacedDates.length > 0
+                    ? `Se integrarán los pagos a los cortes del ${validationReport.replacedDates.map(formatDate).join(", ")}. Se conservarán las demás facturas y los conceptos que este archivo no incluye. Los pagos ya registrados no se duplicarán.`
+                    : null}
                 </div>
               )}
 
@@ -537,7 +525,7 @@ export default function UploadProjectTransactionsModal() {
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-medium">
                   {uploadReport.status === "unchanged" ? "Archivo sin cambios" :
-                    uploadReport.status === "replaced" ? "Carga reemplazada correctamente" : "Carga completada correctamente"}
+                    uploadReport.status === "replaced" ? "Carga actualizada correctamente" : "Carga completada correctamente"}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -551,7 +539,7 @@ export default function UploadProjectTransactionsModal() {
                 <div className="bg-success-muted p-3 text-center text-success"><strong className="text-xl">{uploadReport.providersReused}</strong><p className="text-xs">Proveedores existentes reutilizados</p></div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Cortes: {uploadReport.dates.map(formatDate).join(", ")}. Lotes reemplazados: {uploadReport.replacedDates}.
+                Cortes: {uploadReport.dates.map(formatDate).join(", ")}. Cortes actualizados: {uploadReport.replacedDates}.
               </p>
             </div>
           )}

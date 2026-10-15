@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: [
+      "src/components/Charts/FamiliaChart.test.mjs",
       "convex/rfiTransitions.test.mjs",
       "convex/requisicionStates.test.mjs",
       "convex/requisicionIntegration.test.mjs",
@@ -29,6 +30,7 @@ export default defineConfig({
       "convex/ingresosPermissions.test.mjs",
       "convex/autorizacionesPermissions.test.mjs",
       "convex/proveedoresPermissions.test.mjs",
+      "convex/laborPaymentImports.test.mjs",
     ],
     pool: "forks",
     fileParallelism: false,

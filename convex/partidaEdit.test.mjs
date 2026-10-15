@@ -45,6 +45,92 @@ async function fixture({ currency = "MXN", indirectos = 5 } = {}) {
 }
 
 describe("reviewed budget edits with real Convex triggers", () => {
+  it.each(["root", "family", "emptyFamily", "leaf", "standalone"])("saves zero original on %s independently of approval and payments", async key => {
+    const f = await fixture(); const id = f.ids[key]; const before = await f.snapshot();
+    const original = await f.get(id); const changes = { presupuesto_original: 0 };
+    const impact = await f.review(id, changes);
+    expect(impact.changedFields).toEqual([{ field: "presupuesto_original", before: original.presupuesto_original, after: 0 }]);
+    await f.save(id, changes, impact);
+    expect(await f.get(id)).toMatchObject({ presupuesto_original: 0, presupuesto_aprobado: original.presupuesto_aprobado, pagado: original.pagado });
+    for (const row of impact.rows) expect(await f.get(row.id)).toMatchObject(row.after);
+    expect((await f.snapshot()).meticas_presupuesto[0]).toMatchObject(impact.project.after);
+    const after = await f.snapshot();
+    expect(after.pagos).toEqual(before.pagos); expect(after.transacciones).toEqual(before.transacciones);
+    for (const row of before.partidas.filter(p => p.nivel > original.nivel)) expect(await f.get(row._id)).toEqual(row);
+  });
+
+  it("keeps a zero original when quantities, price or approval are edited later", async () => {
+    const f = await fixture(); const id = f.ids.leaf;
+    await f.save(id, { presupuesto_original: 0 }, await f.review(id, { presupuesto_original: 0 }));
+    const changes = { cantidad: 10, precio_unitario: 500, presupuesto_aprobado: 1500 };
+    await f.save(id, changes, await f.review(id, changes));
+    expect(await f.get(id)).toMatchObject({ ...changes, presupuesto_original: 0 });
+    expect((await f.get(f.ids.family)).presupuesto_original).toBe(200);
+    expect((await f.get(f.ids.root)).presupuesto_original).toBe(500);
+  });
+
+  it.each([NaN, Infinity, -Infinity, -1])("rejects invalid original input %s without writes", async value => {
+    const f = await fixture(); const before = await f.snapshot();
+    await expect(f.review(f.ids.root, { presupuesto_original: value })).rejects.toThrow(/finitos/);
+    expect(await f.snapshot()).toEqual(before);
+  });
+
+  it("creates a new hierarchy with zero original and a positive approved budget", async () => {
+    const f = await fixture(); const before = await f.snapshot();
+    const common = { proyecto: f.ids.project, nombre: "NUEVA", familia: "", sub_partida: "", unidad: "LOTE", cantidad: 1,
+      precio_unitario: 1200, presupuesto_original: 0, presupuesto_aprobado: 1200, pagado: 0, archivo_origen: "" };
+    const root = await f.writer.mutation(api.partida.createPartida, { ...common, nivel: 1 });
+    const family = await f.writer.mutation(api.partida.createPartida, { ...common, nivel: 2, partida_nombre: "NUEVA", familia: "NUEVA FAMILIA" });
+    const leaf = await f.writer.mutation(api.partida.createPartida, { ...common, nivel: 3, partida_nombre: "NUEVA", familia: "NUEVA FAMILIA", sub_partida: "NUEVA SUBPARTIDA" });
+    for (const id of [root, family, leaf]) expect(await f.get(id)).toMatchObject({ presupuesto_original: 0, presupuesto_aprobado: 1200, por_gastar: 1200 });
+    const changes = { presupuesto_original: 123.45 };
+    await f.save(leaf, changes, await f.review(leaf, changes));
+    for (const id of [root, family, leaf]) expect(await f.get(id)).toMatchObject({ presupuesto_original: 123.45, presupuesto_aprobado: 1200 });
+    const after = await f.snapshot();
+    expect(after.pagos).toEqual(before.pagos); expect(after.transacciones).toEqual(before.transacciones);
+  });
+
+  it("reviews and persists the automatic charge removed by setting a fee original to zero", async () => {
+    const f = await fixture({ indirectos: 0 });
+    await f.t.run(async ctx => {
+      await ctx.db.patch(f.ids.user, { role: "admin" });
+      await ctx.db.patch(f.ids.standalone, { presupuesto_original: 100, presupuesto_aprobado: 100 });
+    });
+    const fee_concepts = [{ concepto: "general_conditions", partida_id: f.ids.standalone, excluded_partidas: [] }];
+    const preview = await f.writer.query(api.desarrollos.previewFeeImpact, { id: f.ids.project, fee_concepts });
+    expect(preview.status, preview.message).toBe("ready");
+    await f.writer.mutation(api.desarrollos.update, { id: f.ids.project, fee_concepts, expected_impact: preview.expectedImpact });
+    const before = await f.snapshot(); const changes = { presupuesto_original: 0 };
+    const impact = await f.review(f.ids.standalone, changes);
+    expect(impact.rows[0].after).toMatchObject({ presupuesto_original: 0, presupuesto_aprobado: 100, pagado: 0, por_gastar: 100 });
+    expect(impact.project.indirectosAfter.automaticos).toBe(0);
+    await f.save(f.ids.standalone, changes, impact);
+    expect(await f.get(f.ids.standalone)).toMatchObject(impact.rows[0].after);
+    expect((await f.get(f.ids.project)).fee_concepts[0]).toMatchObject({ monto_original: 0, porcentaje: 0 });
+    expect((await f.snapshot()).meticas_presupuesto[0]).toMatchObject(impact.project.after);
+    const after = await f.snapshot();
+    expect(after.pagos).toEqual(before.pagos); expect(after.transacciones).toEqual(before.transacciones);
+  });
+
+  it("sets the last fee leaf original to zero with the same reviewed zero on its ancestors", async () => {
+    const f = await fixture({ indirectos: 0 });
+    const leaf = await f.t.run(async ctx => {
+      await ctx.db.patch(f.ids.user, { role: "admin" });
+      const common = { proyecto: f.ids.project, nombre: "DIRECTA", partida_nombre: "DIRECTA", familia: "NUEVA", sub_partida: "",
+        unidad: "LOTE", cantidad: 1, precio_unitario: 100, presupuesto_original: 100, presupuesto_aprobado: 100, pagado: 0, archivo_origen: "" };
+      await ctx.db.insert("partidas", { ...common, nivel: 2 });
+      return ctx.db.insert("partidas", { ...common, nivel: 3, sub_partida: "NUEVA" });
+    });
+    const fee_concepts = [{ concepto: "general_conditions", partida_id: f.ids.standalone, excluded_partidas: [] }];
+    const preview = await f.writer.query(api.desarrollos.previewFeeImpact, { id: f.ids.project, fee_concepts });
+    expect(preview.status, preview.message).toBe("ready");
+    await f.writer.mutation(api.desarrollos.update, { id: f.ids.project, fee_concepts, expected_impact: preview.expectedImpact });
+    const changes = { presupuesto_original: 0 }; const impact = await f.review(leaf, changes);
+    await f.save(leaf, changes, impact);
+    for (const row of impact.rows) expect(await f.get(row.id)).toMatchObject(row.after);
+    expect((await f.get(f.ids.project)).fee_concepts[0]).toMatchObject({ monto_original: 0, porcentaje: 0 });
+  });
+
   it.each([
     { excluded: "root", base: 200, rate: 50, fee: 325, expense: 975 },
     { excluded: "standalone", base: 1100, rate: 100 / 1100 * 100, fee: 59.09, expense: 709.09 },
@@ -264,6 +350,15 @@ describe("reviewed budget edits with real Convex triggers", () => {
 });
 
 describe("budget draft rebasing", () => {
+  it("keeps an explicitly edited zero original while rebasing other amounts at every level", () => {
+    for (const nivel of [1, 2, 3]) {
+      const base = { nivel, sub_partida: "NUEVA", unidad: "LOTE", cantidad: 1, precio_unitario: 100, presupuesto_original: 100, presupuesto_aprobado: 150 };
+      const values = { ...partidaEditValues(base), presupuesto_original: 0 };
+      const current = { ...base, presupuesto_original: 200, presupuesto_aprobado: 300 };
+      expect(partidaEditDraft(base, values)).toEqual({ presupuesto_original: 0 });
+      expect(rebasePartidaEdit(base, current, values)).toEqual({ ...partidaEditValues(current), presupuesto_original: 0 });
+    }
+  });
   it("preserves edited fields and replaces untouched stale fields", () => {
     const base = { nivel: 3, sub_partida: "VARILLA", unidad: "m", cantidad: 4, precio_unitario: 100, presupuesto_aprobado: 400 };
     const values = { ...partidaEditValues(base), unidad: "kg" };

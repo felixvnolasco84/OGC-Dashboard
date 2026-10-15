@@ -1,7 +1,7 @@
 import type { PartidaEditImpact } from "../../../convex/partidaEdit";
 import { formatCurrency } from "@/lib/utils";
 
-const labels = { presupuesto_aprobado: "Presupuesto aprobado", sub_partida: "Subpartida", unidad: "Unidad", cantidad: "Cantidad", precio_unitario: "Precio unitario" };
+const labels = { presupuesto_original: "Presupuesto original", presupuesto_aprobado: "Presupuesto aprobado", sub_partida: "Subpartida", unidad: "Unidad", cantidad: "Cantidad", precio_unitario: "Precio unitario" };
 
 export function PartidaEditReview({ impact }: { impact: PartidaEditImpact }) {
   const money = (n: number) => formatCurrency(n, impact.currency);
@@ -24,12 +24,12 @@ export function PartidaEditReview({ impact }: { impact: PartidaEditImpact }) {
       {impact.changedFields.map(change => <div key={change.field} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <dt className="text-muted-foreground">{labels[change.field]}</dt>
         <dd className="text-right break-words min-w-0 max-w-full">
-          <span className="text-muted-foreground">{change.field === "presupuesto_aprobado" || change.field === "precio_unitario" ? money(Number(change.before)) : String(change.before === "" ? "—" : change.before)}</span>
-          {" → "}<strong className="font-medium">{change.field === "presupuesto_aprobado" || change.field === "precio_unitario" ? money(Number(change.after)) : String(change.after === "" ? "—" : change.after)}</strong>
+          <span className="text-muted-foreground">{change.field === "presupuesto_original" || change.field === "presupuesto_aprobado" || change.field === "precio_unitario" ? money(Number(change.before)) : String(change.before === "" ? "—" : change.before)}</span>
+          {" → "}<strong className="font-medium">{change.field === "presupuesto_original" || change.field === "presupuesto_aprobado" || change.field === "precio_unitario" ? money(Number(change.after)) : String(change.after === "" ? "—" : change.after)}</strong>
         </dd>
       </div>)}
     </dl>
-    {impact.hasChildren && <p className="border border-border p-3 text-xs text-muted-foreground">Este importe no se distribuye entre los hijos. Una edición posterior de sus presupuestos puede recalcularlo.</p>}
+    {impact.hasChildren && <p className="border border-border p-3 text-xs text-muted-foreground">El importe editado no se distribuye entre los hijos. Una edición posterior de sus presupuestos puede recalcular el original y el aprobado del padre desde el desglose.</p>}
     <div className="space-y-4">
       {impact.rows.map((row, index) => <div className="border border-border p-3" key={row.id}>
         <h4 className="text-sm font-medium break-words">{row.nivel === 1 ? "Partida" : row.nivel === 2 ? "Familia" : "Subpartida"}: {row.name}
@@ -37,8 +37,8 @@ export function PartidaEditReview({ impact }: { impact: PartidaEditImpact }) {
         <dl className="mt-3 space-y-2 text-sm">
           {comparison("Aprobado", row.before.presupuesto_aprobado, row.after.presupuesto_aprobado)}
           {comparison("Por gastar", row.before.por_gastar, row.after.por_gastar)}
-          {comparison("Pagado registrado", row.before.pagado, row.after.pagado, true)}
-          {row.before.presupuesto_original !== row.after.presupuesto_original && comparison("Original recalculado", row.before.presupuesto_original, row.after.presupuesto_original)}
+          {comparison("Pagado visible", row.before.pagado, row.after.pagado, true)}
+          {row.before.presupuesto_original !== row.after.presupuesto_original && comparison("Original", row.before.presupuesto_original, row.after.presupuesto_original)}
         </dl>
         {row.after.por_gastar < 0 && <p className="mt-2 text-xs text-destructive">El pagado supera el aprobado; el por gastar queda negativo.</p>}
       </div>)}
@@ -48,7 +48,7 @@ export function PartidaEditReview({ impact }: { impact: PartidaEditImpact }) {
           {comparison("Aprobado", impact.project.before.presupuesto_aprobado, impact.project.after.presupuesto_aprobado)}
           {comparison("Gasto total", impact.project.before.gasto_total, impact.project.after.gasto_total)}
           {comparison("Por gastar", impact.project.before.por_gastar, impact.project.after.por_gastar)}
-          {impact.project.before.presupuesto_original !== impact.project.after.presupuesto_original && comparison("Original recalculado", impact.project.before.presupuesto_original, impact.project.after.presupuesto_original)}
+          {impact.project.before.presupuesto_original !== impact.project.after.presupuesto_original && comparison("Original", impact.project.before.presupuesto_original, impact.project.after.presupuesto_original)}
           {impact.project.indirectosBefore.automaticos !== impact.project.indirectosAfter.automaticos && comparison("Indirectos automáticos", impact.project.indirectosBefore.automaticos, impact.project.indirectosAfter.automaticos)}
           {impact.project.indirectosBefore.manualesSustituidos !== impact.project.indirectosAfter.manualesSustituidos && comparison("Indirectos manuales sustituidos", impact.project.indirectosBefore.manualesSustituidos, impact.project.indirectosAfter.manualesSustituidos)}
         </dl>

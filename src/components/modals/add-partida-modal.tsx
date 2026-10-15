@@ -39,6 +39,7 @@ type Metrics = {
     unidad: string;
     cantidad: number;
     precio_unitario: number;
+    presupuesto_original: number;
     presupuesto_aprobado: number; // 0 means "auto" (use cantidad * precio_unitario at submit)
     pagado: number;
 };
@@ -77,6 +78,7 @@ const emptyMetrics = (): Metrics => ({
     unidad: "",
     cantidad: 0,
     precio_unitario: 0,
+    presupuesto_original: 0,
     presupuesto_aprobado: 0,
     pagado: 0,
 });
@@ -140,7 +142,8 @@ const calcTotal = (m: Metrics) => (m.cantidad || 0) * (m.precio_unitario || 0);
 const effectiveAprobado = (m: Metrics) => m.presupuesto_aprobado || calcTotal(m);
 
 const isMetricsValid = (m: Metrics) =>
-    Boolean(m.unidad.trim()) && (m.cantidad || 0) > 0 && (m.precio_unitario || 0) > 0;
+    Boolean(m.unidad.trim()) && (m.cantidad || 0) > 0 && (m.precio_unitario || 0) > 0 &&
+    Number.isFinite(m.presupuesto_original) && m.presupuesto_original >= 0;
 
 // ---- Rollup (aggregate metrics from children) -----------------------------
 //
@@ -158,7 +161,7 @@ type RollupTotals = {
 const rollupFamiliaMetrics = (f: DraftFamilia): RollupTotals => {
     if (f.subPartidas.length === 0) {
         return {
-            original: calcTotal(f),
+            original: f.presupuesto_original,
             aprobado: effectiveAprobado(f),
             pagado: f.pagado || 0,
         };
@@ -167,7 +170,7 @@ const rollupFamiliaMetrics = (f: DraftFamilia): RollupTotals => {
     let aprobado = 0;
     let pagado = 0;
     for (const sp of f.subPartidas) {
-        original += calcTotal(sp);
+        original += sp.presupuesto_original;
         aprobado += effectiveAprobado(sp);
         pagado += sp.pagado || 0;
     }
@@ -177,7 +180,7 @@ const rollupFamiliaMetrics = (f: DraftFamilia): RollupTotals => {
 const rollupPartidaMetrics = (p: DraftPartida): RollupTotals => {
     if (p.familias.length === 0) {
         return {
-            original: calcTotal(p),
+            original: p.presupuesto_original,
             aprobado: effectiveAprobado(p),
             pagado: p.pagado || 0,
         };
@@ -204,6 +207,8 @@ type CellProps = {
     onChange: (value: string) => void;
     className?: string;
     required?: boolean;
+    label?: string;
+    showZero?: boolean;
 };
 
 function Cell({
@@ -214,13 +219,16 @@ function Cell({
     onChange,
     className = "",
     required,
+    label,
+    showZero = false,
 }: CellProps) {
     return (
         <Input
             type={type}
             step={step}
             placeholder={placeholder}
-            value={typeof value === "number" ? (value === 0 ? "" : value) : value}
+            value={typeof value === "number" && value === 0 && !showZero ? "" : value}
+            aria-label={label}
             onChange={(e) => onChange(e.target.value)}
             required={required}
             density="compact"
@@ -229,7 +237,7 @@ function Cell({
     );
 }
 
-// ---- Metrics row (5 inline editable fields shared by all levels) ----------
+// ---- Metrics row (shared by all levels) -----------------------------------
 
 type MetricsRowProps = {
     metrics: Metrics;
@@ -240,13 +248,14 @@ type MetricsRowProps = {
 function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps) {
     const total = calcTotal(metrics);
     return (
-        <div className="grid grid-cols-12 gap-2 items-end">
+        <div className="grid grid-cols-4 sm:grid-cols-12 gap-2 items-end">
             <div className="col-span-2 space-y-1">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Unidad
                 </span>
                 <Cell
                     placeholder="m², kg…"
+                    label="Unidad"
                     value={metrics.unidad}
                     onChange={(v) => onChange({ unidad: v })}
                     required={requireUnidad}
@@ -260,6 +269,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                     type="number"
                     step="0.01"
                     placeholder="0"
+                    label="Cantidad"
                     value={metrics.cantidad}
                     onChange={(v) => onChange({ cantidad: toNumber(v) })}
                 />
@@ -272,8 +282,23 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                     type="number"
                     step="0.01"
                     placeholder="0.00"
+                    label="Precio unitario"
                     value={metrics.precio_unitario}
                     onChange={(v) => onChange({ precio_unitario: toNumber(v) })}
+                />
+            </div>
+            <div className="col-span-2 space-y-1">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Original
+                </span>
+                <Cell
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    label="Presupuesto original"
+                    showZero
+                    value={metrics.presupuesto_original}
+                    onChange={(v) => onChange({ presupuesto_original: toNumber(v) })}
                 />
             </div>
             <div className="col-span-2 space-y-1">
@@ -284,6 +309,7 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                     type="number"
                     step="0.01"
                     placeholder={total ? total.toFixed(2) : "auto"}
+                    label="Presupuesto aprobado"
                     value={metrics.presupuesto_aprobado}
                     onChange={(v) => onChange({ presupuesto_aprobado: toNumber(v) })}
                 />
@@ -296,11 +322,12 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
                     type="number"
                     step="0.01"
                     placeholder="0.00"
+                    label="Pagado"
                     value={metrics.pagado}
                     onChange={(v) => onChange({ pagado: toNumber(v) })}
                 />
             </div>
-            <div className="col-span-2 text-right">
+            <div className="col-span-4 sm:col-span-12 text-right">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Total
                 </span>
@@ -317,11 +344,11 @@ function MetricsRow({ metrics, onChange, requireUnidad = true }: MetricsRowProps
 function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
     const porEjercer = totals.aprobado - totals.pagado;
     return (
-        <div className="grid grid-cols-12 gap-2 items-end rounded-none bg-muted/40 px-3 py-2 border border-dashed">
-            <div className="col-span-12 text-xs uppercase tracking-wide text-muted-foreground">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end rounded-none bg-muted/40 px-3 py-2 border border-dashed">
+            <div className="col-span-2 sm:col-span-4 text-xs uppercase tracking-wide text-muted-foreground">
                 Totales calculados automáticamente desde los hijos
             </div>
-            <div className="col-span-3 space-y-0.5">
+            <div className="min-w-0 space-y-0.5">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Aprobado
                 </span>
@@ -329,7 +356,7 @@ function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
                     {formatCurrency(totals.aprobado)}
                 </p>
             </div>
-            <div className="col-span-3 space-y-0.5">
+            <div className="min-w-0 space-y-0.5">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Pagado
                 </span>
@@ -337,7 +364,7 @@ function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
                     {formatCurrency(totals.pagado)}
                 </p>
             </div>
-            <div className="col-span-3 space-y-0.5">
+            <div className="min-w-0 space-y-0.5">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Por ejercer
                 </span>
@@ -349,7 +376,7 @@ function RollupSummaryRow({ totals }: { totals: RollupTotals }) {
                     {formatCurrency(porEjercer)}
                 </p>
             </div>
-            <div className="col-span-3 space-y-0.5 text-right">
+            <div className="min-w-0 space-y-0.5 text-right">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     Presupuesto original
                 </span>
@@ -613,13 +640,12 @@ export default function AddPartidaModal() {
         const buildLeafPayload = (m: Metrics) => {
             const cantidad = m.cantidad || 0;
             const precio = m.precio_unitario || 0;
-            const original = cantidad * precio;
-            const aprobado = m.presupuesto_aprobado || original;
+            const aprobado = effectiveAprobado(m);
             return {
                 unidad: m.unidad,
                 cantidad,
                 precio_unitario: precio,
-                presupuesto_original: original,
+                presupuesto_original: m.presupuesto_original,
                 presupuesto_aprobado: aprobado,
                 pagado: m.pagado || 0,
             };
@@ -633,7 +659,7 @@ export default function AddPartidaModal() {
             unidad: m.unidad && m.unidad.trim() ? m.unidad : "LOTE",
             cantidad: 1,
             precio_unitario: r.aprobado,
-            presupuesto_original: r.original || r.aprobado,
+            presupuesto_original: r.original,
             presupuesto_aprobado: r.aprobado,
             pagado: r.pagado,
         });
@@ -735,6 +761,7 @@ export default function AddPartidaModal() {
                             {partidaContext.projectName ?? partidaContext.proyecto}
                         </span>
                         . Cada nivel se desglosa dentro del nivel superior.
+                        {" "}El original inicia en $0 y se captura por separado del aprobado.
                     </SheetDescription>
                 </SheetHeader>
 

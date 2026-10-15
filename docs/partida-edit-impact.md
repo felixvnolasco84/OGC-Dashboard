@@ -6,7 +6,9 @@ Implementación local del 13 de octubre de 2026. Alcance: Construcción; Sales y
 
 El formulario carga datos actuales y muestra «Cambios al guardar» sin añadir un segundo paso de confirmación. Incluye campos anteriores/nuevos, moneda vigente del proyecto, aprobado/por gastar de la jerarquía, pagado conservado, originales recalculados y totales globales. Los filtros de presentación no limitan la revisión. El pie del diálogo permanece accesible al recorrer el formulario.
 
-Las ediciones directas del aprobado de padres no se distribuyen entre hijos. Una edición posterior de hijos puede sustituirlas mediante rollup; el formulario explica esta regla. Cantidad × precio no se convierte automáticamente en aprobado.
+Las ediciones directas del original o aprobado de padres no se distribuyen entre hijos. Una edición posterior de hijos puede sustituirlas mediante rollup; el formulario explica esta regla. Cantidad × precio no se convierte automáticamente en original ni aprobado al editar.
+
+Al agregar elementos manualmente, el original inicia en $0 y se captura de forma independiente. El aprobado conserva su valor automático de cantidad × precio si se deja vacío. Los originales de los padres suman los originales capturados en sus hijos; una suma de cero se guarda como cero, sin sustituirla por el aprobado. Se puede editar posteriormente el original en cualquier nivel, incluido $0 para conceptos agregados después del presupuesto inicial. La revisión refleja los nuevos totales y los cargos automáticos afectados antes de guardar.
 
 Se muestra cuántos detalles actuales de Programa cambian al renombrar una subpartida. Se conservan IDs, snapshots e históricos. Si otro hermano mantiene el nombre anterior equivalente, las referencias de Programa conservan ese nombre. La clasificación actual de indirectos utiliza también nombres; el análisis recalcula esa consecuencia con las reglas existentes.
 
@@ -18,7 +20,7 @@ Cancelar/cerrar/Escape piden descartar el borrador dentro del mismo diálogo cua
 - `partida.getEditImpact({id, proyecto, nivel, changes})`: consulta sin escrituras con la transición y `expectedReview`.
 - `partida.update({id, proyecto, nivel, changes, expectedReview})`: recalcula el análisis dentro de la transacción, compara la revisión y aplica sólo los cambios permitidos.
 
-`nivel` es el nivel persistido 1/2/3; el dropdown usa 0/1/2. Los campos inmutables y derivados ya no viajan como valores a escribir. En todos los niveles se permite aprobado; sólo en subpartidas, nombre/unidad/cantidad/precio. El servidor valida finitud, no negatividad, nombres equivalentes, existencia y acceso al proyecto, incluyendo el rechazo de viewer/almacenista.
+`nivel` es el nivel persistido 1/2/3; el dropdown usa 0/1/2. Los campos inmutables y derivados ya no viajan como valores a escribir. En todos los niveles se permite original y aprobado; sólo en subpartidas, nombre/unidad/cantidad/precio. El servidor valida finitud, no negatividad, nombres equivalentes, existencia y acceso al proyecto, incluyendo el rechazo de viewer/almacenista.
 
 `budgetRollupRules` conserva las reglas de agregación y los pagos propios de padres; también se usa en las cascadas y rollups existentes. El plan de edición se usa tanto para revisar como para guardar. Los triggers siguen activos. El cache final de métricas de esta edición usa la composición revisada con honorarios e indirectos, evitando que el recálculo anterior omitiera indirectos. No se cambian sus fórmulas ni transacciones/pagos.
 
@@ -28,7 +30,8 @@ Los análisis completos se limitan a 5.000 documentos, 4 MiB y 2.800 lecturas in
 
 ## Validación y capturas
 
-- `npm run test:partida-edit`: 42 casos con `convex-test`, mutaciones y triggers reales; comparación preview/persistencia, padres/hojas, pagos directos, negativos/cero, nombres, permisos, concurrencia, conservación de fuentes y límites.
+- Actualización del 15 de octubre: 167 pruebas aprobadas y una omitida en cinco suites, incluyendo 58 casos de edición. Se verificaron creación con original cero, original independiente del aprobado, actualización de cargos automáticos y revisión/persistencia coherentes al poner en cero el último original de un desglose. Tipos, ESLint de los archivos de implementación modificados y build aprobados. El script de interfaz también verifica original cero al crear partidas/desgloses en 1440/390 px y edición en los tres niveles; capturas nuevas en `output/partida-original-ui-20261015-final/`.
+- `npm run test:partida-edit`: 58 casos con `convex-test`, mutaciones y triggers reales; comparación preview/persistencia, padres/hojas, pagos directos, originales/aprobados independientes, negativos/cero, nombres, permisos, concurrencia, conservación de fuentes y límites.
 - `npm run test:partida-edit-ui`: interfaz real a través de tabla y dropdown sobre un backend aislado en memoria. Revisa 1440/390/320 px, un viewport corto de 320 × 640, filtros, USD, cancelación/reapertura, teclado, errores, rebase, respuestas obsoletas y un solo envío.
 - Regresión: 256 pruebas aprobadas (incluyen las 42 nuevas) y una omitida, cubriendo presupuesto, jerarquía de pagos, borrado, Programa, honorarios/indirectos, pagos y P&L. En el sandbox de Windows, ejecutar Vitest con `--pool=threads` evita un fallo de acceso a temporales de los procesos fork.
 - Compilación, tipos de Convex y ESLint del editor aprobados. El lint del archivo completo `convex/partida.ts` conserva 16 errores de `no-explicit-any`, verificados también en HEAD; no los introduce esta implementación.

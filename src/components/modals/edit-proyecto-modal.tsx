@@ -402,7 +402,6 @@ export default function EditProyectoModal() {
           </div>}
           {patch?.financialChanged && !patch.invalid && <div ref={impactPanel} tabIndex={-1} aria-live="polite" aria-busy={!previewMatches || impact === undefined} className="space-y-3">
             {(!previewMatches || impact === undefined) && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Calculando impacto…</p>}
-            {previewMatches && impact?.status === "error" && <div role="alert" className="space-y-2 border p-3 text-sm"><p>{impact.message}</p><Button type="button" variant="outline" onClick={() => void retryPreview()}>Reintentar cálculo</Button></div>}
             {stale && <div role="status" className="space-y-2 border p-3 text-sm"><p>Los datos cambiaron mientras revisabas. Este es el impacto actualizado; revísalo antes de guardar.</p><Button type="button" variant="outline" onClick={() => { if (impact?.status === "ready") { setReviewed({ key: proposalKey, scope: impact.expectedImpact }); setSaveError(null); } }}>Revisar actualización</Button></div>}
             {previewMatches && impact?.status === "ready" && <ProjectFeeImpactReview impact={impact} partidas={partidas || []} />}
           </div>}
@@ -420,7 +419,10 @@ export default function EditProyectoModal() {
                   if (panel && scroll) scroll.scrollTop += panel.getBoundingClientRect().top - scroll.getBoundingClientRect().top;
                   panel?.focus({ preventScroll: true });
                 }}>Ver impacto antes de guardar</button>
-              </> : <p>{stale ? "Revisa el impacto actualizado antes de guardar." : impact?.status === "error" ? "No se pudo calcular el impacto. Reintenta la revisión." : "El guardado estará disponible al completar la revisión del impacto."}</p>}
+              </> : previewMatches && impact?.status === "error" ? <div role="alert" className="space-y-2">
+                <p className="break-words">{impact.message}</p>
+                <Button type="button" variant="outline" onClick={retryPreview}>Reintentar cálculo</Button>
+              </div> : <p>{stale ? "Revisa el impacto actualizado antes de guardar." : "El guardado estará disponible al completar la revisión del impacto."}</p>}
             </div>}
             <div className="flex justify-end gap-3">
             <Button

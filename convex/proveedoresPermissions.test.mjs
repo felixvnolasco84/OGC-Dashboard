@@ -3,8 +3,8 @@ import * as providers from "./proveedores";
 import * as imports from "./laborPaymentImports";
 
 // Provider authorization tests exercise import persistence, independent of budget recalculation.
-vi.mock("./functions", () => ({
-  updateHonorariosMonto: vi.fn(), updateMeticasPresupuesto: vi.fn(), updatePagadoForHierarchy: vi.fn(),
+vi.mock("./budgetMaintenance", () => ({
+  repairProjectPaymentTotals: vi.fn(),
 }));
 
 function fixture(role = "admin", { authenticated = true, allowed = true } = {}) {

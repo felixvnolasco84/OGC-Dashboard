@@ -5,11 +5,12 @@ import { cleanHierarchyText } from "../../convex/partidaRules";
 export const partidaEditValues = (p: Doc<"partidas">) => ({
   sub_partida: p.sub_partida, unidad: p.unidad, cantidad: p.cantidad,
   precio_unitario: p.precio_unitario, presupuesto_aprobado: p.presupuesto_aprobado,
+  presupuesto_original: p.presupuesto_original,
 });
 export type PartidaEditValues = ReturnType<typeof partidaEditValues>;
 
 export function partidaEditDraft(base: Doc<"partidas">, values: PartidaEditValues): PartidaEditChanges {
-  const fields = base.nivel === 3 ? Object.keys(values) as (keyof PartidaEditValues)[] : ["presupuesto_aprobado"] as const;
+  const fields = base.nivel === 3 ? Object.keys(values) as (keyof PartidaEditValues)[] : ["presupuesto_aprobado", "presupuesto_original"] as const;
   const changes: PartidaEditChanges = {};
   for (const field of fields) {
     const value = field === "sub_partida" ? cleanHierarchyText(values[field]) : values[field];

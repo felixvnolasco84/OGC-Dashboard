@@ -1,6 +1,6 @@
 import { feeBudgetConvert, calculateBudgetIndirectos } from "./indirectosBudget";
 import { internalMutation, type MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { calculateHierarchyPaymentTotals } from "./paymentHierarchyRules";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
@@ -11,15 +11,16 @@ export async function repairProjectPaymentTotals(
   ctx: Pick<MutationCtx, "db">,
   projectId: Id<"desarrollos">,
   dryRun = false,
+  records?: { project: Doc<"desarrollos">; partidas: Doc<"partidas">[]; transactions: Doc<"transacciones">[]; pagos: Doc<"pagos">[] },
 ) {
   const [project, partidas, transactions, existingMetrics] = await Promise.all([
-    ctx.db.get(projectId),
-    ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", projectId)).collect(),
-    ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", projectId)).collect(),
+    records ? records.project : ctx.db.get(projectId),
+    records ? records.partidas : ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", projectId)).collect(),
+    records ? records.transactions : ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", projectId)).collect(),
     ctx.db.query("meticas_presupuesto").withIndex("by_proyecto", q => q.eq("proyecto", projectId)).first(),
   ]);
   if (!project) throw new Error("Proyecto no encontrado");
-  const pagos = (await Promise.all(transactions.map(transaction =>
+  const pagos = records?.pagos ?? (await Promise.all(transactions.map(transaction =>
     ctx.db.query("pagos").withIndex("by_transaccion", q => q.eq("transaccion_id", transaction._id)).collect()
   ))).flat();
   const paidTransactionIds = new Set(transactions.filter(t => t.status === "Pagado").map(t => t._id));
