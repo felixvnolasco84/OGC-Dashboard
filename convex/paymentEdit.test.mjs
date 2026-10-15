@@ -177,9 +177,9 @@ describe("payment edit review and atomic save", () => {
     await f.save(paid);
     expect((await f.get(f.ids.root)).pagado).toBe(1000);
   });
-  it("moves period and cutoff eligibility while preserving budget honorarios semantics", async () => {
+  it("moves the reporting month while keeping historical honorarios and indirectos charges", async () => {
     const f = await fixture(), r = await f.review({ fecha: "30/09/2026" }, []);
-    expect(r.result.afterBudget.indirectos).toBe(0);
+    expect(r.result.afterBudget.indirectos).toBe(50);
     expect(Object.keys(r.result.beforePnl.monthly)).toEqual(["2026-10"]);
     expect(Object.keys(r.result.afterPnl.monthly)).toEqual(["2026-9"]);
     await f.save(r);

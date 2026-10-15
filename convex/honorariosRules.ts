@@ -1,4 +1,4 @@
-import { calculateFeeConceptPayments, isActiveFeeConcept, type FeeConceptConfig, type FeeConceptPartida } from "./feeConceptRules";
+import { calculateFeeConceptPayments, type FeeConceptConfig, type FeeConceptPartida } from "./feeConceptRules";
 export type HonorariosModo = "automatico" | "transacciones";
 
 export function isHonorariosPartida(partida: {
@@ -28,12 +28,9 @@ export function getHonorariosBreakdown(input: {
 }): { base: number; excludedAmount: number; amount: number } {
   const configured = input.feeConcepts?.find(c => c.concepto === "honorarios");
   if (configured) {
-    const legacy = getHonorariosBreakdown({ ...input, feeConcepts: undefined,
-      transactions: input.transactions.filter(t => !isActiveFeeConcept(configured, t.fecha)) });
     const current = calculateFeeConceptPayments({ configs: input.feeConcepts || [configured], partidas: input.partidas,
       transactions: input.transactions, pagos: input.pagos, convert: input.convert, allocate: false }).concepts.find(c => c.concepto === "honorarios")!;
-    return { base: legacy.base + current.basePagada, excludedAmount: legacy.excludedAmount,
-      amount: Math.round((legacy.amount + current.monto) * 100) / 100 };
+    return { base: current.basePagada, excludedAmount: 0, amount: current.monto };
   }
   const transactionIds = new Set(input.transactions.map((transaction) => String(transaction._id)));
   const partidasById = new Map(input.partidas.map((partida) => [String(partida._id), partida]));

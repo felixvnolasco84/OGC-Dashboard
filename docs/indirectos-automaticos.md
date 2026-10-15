@@ -14,7 +14,7 @@ Cambiar solo las exclusiones también requiere revisar y guardar el impacto. Cam
 
 ## Cargos y desglose
 
-**Indirectos, Viáticos y General Conditions configurados usan todas las líneas de pagos con estado Pagado del acumulado completo del proyecto**, incluyendo las anteriores al 1 de octubre de 2026. Honorarios conserva su fecha de inicio y su tratamiento anterior. El porcentaje global anterior de Indirectos conserva su corte; este cambio corresponde al concepto seleccionado desde presupuesto.
+**Honorarios, Indirectos, Viáticos y General Conditions configurados usan todas las líneas de pagos válidos con estado Pagado del historial completo del proyecto, sin fecha de inicio.** El porcentaje general de Indirectos también se aplica a todo el historial elegible. Las fechas de inicio guardadas por versiones anteriores se ignoran y las nuevas configuraciones no generan otra fecha de corte.
 
 Cada cargo es base pagada × porcentaje vigente. Se incluyen los importes registrados en honorarios, viáticos y partidas excluidas del presupuesto. Los cargos automáticos no vuelven a integrar la base como nuevos pagos. Las consultas por fechas y los meses de P&L solo incluyen los pagos del periodo solicitado, sin trasladar todo el acumulado a octubre.
 
@@ -38,7 +38,7 @@ Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Lo
 
 ## Compatibilidad y revisión
 
-El corte del 1 de octubre de 2026 se conserva para Honorarios y los esquemas anteriores de Indirectos. Indirectos, Viáticos y General Conditions configurados recalculan también el ejercido previo del proyecto. Las obras sin esos conceptos configurados mantienen sus porcentajes manuales y exclusiones anteriores, disponibles en Configuración anterior y periodos históricos. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
+El corte del 1 de octubre de 2026 se eliminó para todos los conceptos y el porcentaje general de Indirectos. Honorarios configurado usa su tasa vigente para todo el historial de pagos válidos, sin sumar el porcentaje anterior en periodos previos ni en transacciones con fechas inválidas. Los filtros de periodo conservan el alcance solicitado por el usuario. Las obras sin conceptos desde presupuesto mantienen sus modos, porcentajes y exclusiones generales. Una tasa configurada al 0% sigue activa y puede sustituir manuales sin generar cargo.
 
 En Torre I se confirmó que Indirectos solo reconocía $103,401.40 desde octubre y generaba $3,898.80. El acumulado válido de pagos es $69,713,424.90; con la tasa vigente de 3.770545138454147% genera $2,628,576.33, con redondeo por pago. General Conditions tenía original $0 en el padre y $1,128,509.82 en su familia. Con autorización del usuario se corrigió el original del padre a $1,128,509.82 mediante edición revisada de presupuesto, conservando el aprobado. Se verificaron la tasa de 1.3499159979628834% y el cargo acumulado de $941,073.23. Los montos en cero continúan siendo válidos y no se sustituyen automáticamente por aprobados ni por sumas de hijos; el editor explica que producen cargo cero.
 
@@ -54,7 +54,7 @@ Para esta corrección se reconstruyeron los totales derivados del proyecto afect
 
 ## Pruebas
 
-- test:project-fees: fórmula sobre aprobado menos exclusiones independientes por concepto, acumulado histórico de Viáticos y General Conditions sobre $6.5 millones, fechas filtradas, Honorarios sin cambios, manuales históricos sustituidos una vez, selecciones inválidas o duplicadas, autorrecálculo, cinco subpartidas, corte, monedas, revisión y concurrencia.
+- test:project-fees: fórmula sobre aprobado menos exclusiones independientes por concepto, acumulado histórico de los cuatro conceptos, fechas filtradas, Honorarios con su tasa vigente sin mezclar porcentajes anteriores, manuales históricos sustituidos una vez, selecciones inválidas o duplicadas, autorrecálculo, cinco subpartidas, monedas, revisión y concurrencia.
 - test:indirectos-ui: avance de pagado sobre aprobado, tasas y porcentajes con dos decimales, búsqueda y selección de exclusiones, base neta visible, rechazo de base cero, revisión y persistencia de cambios solo en exclusiones, porcentaje actualizado sin guardar otra vez, desglose de cinco hojas, revisión y guardado a 390 y 1440 px. Usa datos sintéticos sin conexión a Convex y genera capturas en output/indirectos-ui.
 - Pruebas relacionadas de P&L, Presupuesto, jerarquía, edición de pagos, edición/eliminación de partidas y clasificación OGC; TypeScript, lint y build.
 
@@ -71,3 +71,13 @@ El plan complementado está en docs/plan-conceptos-porcentuales.md.
 Se publicó la versión 4 del cálculo en `dev:animated-walrus-612`, junto con las optimizaciones del mismo cálculo descritas arriba. La consulta desplegada confirmó Indirectos por $2,628,576.33 y General Conditions por $941,073.23, ambos sobre $69,713,424.90 de pagos válidos. La revisión financiera devuelve `ready` con 656 transacciones y 1,752 conceptos de pago; se conserva una transacción con fecha inválida fuera de los cargos automáticos. Honorarios permanece en $11,155,347.39. La simulación posterior de reconstrucción devolvió cero partidas pendientes y métricas coincidentes, por lo que no se ejecutó una reconstrucción adicional.
 
 Validación de esta corrección: 286 pruebas aprobadas y una omitida, TypeScript de frontend y Convex, ESLint, build y modal a 390 y 1440 px. El texto y aviso de original cero del editor están preparados en el frontend local; su publicación sigue el despliegue del hosting.
+
+### Eliminación completa de fechas de inicio, versión 5
+
+El 15 de octubre de 2026 se publicó la versión 5 en `dev:animated-walrus-612`. Los cuatro conceptos y el porcentaje general de Indirectos usan el historial completo de pagos válidos Pagado. Las configuraciones nuevas no generan fecha de inicio; las fechas antiguas se ignoran. Los modales de creación, edición y revisión explican este alcance.
+
+Con autorización del usuario se revisaron las 11 obras y se reconstruyeron los cargos derivados de las dos con conceptos configurados. Torre I quedó con Honorarios por $10,916,442.77 (antes $11,155,347.39), Indirectos por $2,628,576.33 y General Conditions por $941,073.23. Lote 77 quedó con Honorarios por $1,011,745.06 (antes $1,012,053.13), General Conditions por $168,624.09 y Viáticos por $787,300.49. Se retiraron las seis fechas de inicio guardadas. Las otras nueve obras no requerían cambios.
+
+Se compararon huellas SHA-256 antes y después del recálculo: presupuestos originales y aprobados, transacciones y pagos fuente se conservaron. En ambas obras, una segunda simulación devolvió cero partidas pendientes, cero fechas antiguas y métricas coincidentes; la revisión financiera desplegada devolvió `ready`.
+
+Validación: 301 pruebas aprobadas y una omitida; TypeScript de frontend y Convex, ESLint, build y comprobaciones del modal a 390 y 1440 px aprobados. Las regresiones incluyen fechas anteriores a octubre, fechas antiguas configuradas en 2099, conservación de filtros por periodo y limpieza idempotente de metadatos sin modificar las fuentes.

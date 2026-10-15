@@ -4,7 +4,7 @@ import type { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FEE_CONCEPT_LABELS, feeConceptUsesProjectHistory } from "../../../convex/feeConceptRules";
+import { FEE_CONCEPT_LABELS } from "../../../convex/feeConceptRules";
 import { formatPercentage } from "@/lib/utils";
 
 export type FeeImpact = Extract<FunctionReturnType<typeof api.desarrollos.previewFeeImpact>, { status: "ready" }>;
@@ -59,11 +59,11 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
       <p className="mt-1 text-xs text-muted-foreground">Actual → Propuesto · El guardado aplica a todo el proyecto.</p>
     </div>
     <details open={!impact.afterConfig.fee_concepts?.length} className="space-y-2 text-xs">
-      <summary className="min-h-11 cursor-pointer py-2 font-medium">Configuración anterior y periodos históricos</summary>
+      <summary className="min-h-11 cursor-pointer py-2 font-medium">Configuración general para conceptos sin partida</summary>
       <dl className="space-y-2">
       <div><dt className="text-muted-foreground">Modo de honorarios en Presupuesto</dt><dd>{mode(impact.beforeConfig.honorarios_modo)} → {mode(impact.afterConfig.honorarios_modo)}</dd></div>
       <div><dt className="text-muted-foreground">Porcentaje de honorarios</dt><dd>{formatPercentage(impact.beforeConfig.honorarios_porcentaje ?? 0)} → {formatPercentage(impact.afterConfig.honorarios_porcentaje ?? 0)}</dd></div>
-      <div><dt className="text-muted-foreground">Indirectos</dt><dd>{percent(impact.beforeConfig.indirectos_porcentaje)} → {percent(impact.afterConfig.indirectos_porcentaje)} · Inicio: {impact.afterConfig.indirectos_fecha_inicio || "Sin activar"}</dd></div>
+      <div><dt className="text-muted-foreground">Indirectos</dt><dd>{percent(impact.beforeConfig.indirectos_porcentaje)} → {percent(impact.afterConfig.indirectos_porcentaje)} · Alcance: historial completo del proyecto</dd></div>
       <div><dt className="text-muted-foreground">Exclusiones compartidas de nivel 1 y descendientes</dt><dd>{added.length ? `Se excluyen: ${added.map(name).join(", ")}. ` : ""}{removed.length ? `Se incluyen: ${removed.map(name).join(", ")}.` : ""}{!added.length && !removed.length ? "Se conservan las exclusiones actuales." : ""}</dd></div>
       </dl>
     </details>
@@ -72,14 +72,14 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
       <p>Monto original: {money(concept.monto_original, impact.budgetCurrency)} · Aprobado total: {money(concept.aprobado_total ?? concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
       <p>Aprobado excluido: {money(concept.aprobado_excluido ?? 0, impact.budgetCurrency)} · Base aprobada después de exclusiones: {money(concept.base_aprobada ?? concept.base_original, impact.budgetCurrency)}</p>
       <p>Partidas excluidas: {concept.excluded_partidas.length ? concept.excluded_partidas.map(name).join(", ") : "Ninguna"}.</p>
-      <p>Porcentaje propuesto: {formatPercentage(concept.porcentaje)} · {feeConceptUsesProjectHistory(concept) ? "Alcance: acumulado completo del proyecto" : `Inicio: ${concept.fecha_inicio}`}</p>
+      <p>Porcentaje propuesto: {formatPercentage(concept.porcentaje)} · Alcance: acumulado completo del proyecto</p>
       <p>La tasa usa el aprobado menos exclusiones y se actualiza automáticamente al cambiar el presupuesto aprobado.</p>
       <p>Tasa aprobada anterior: {(impact.beforeConfig.fee_concepts || []).some(c => c.concepto === concept.concepto) ? formatPercentage((impact.beforeConfig.fee_concepts || []).find(c => c.concepto === concept.concepto)!.porcentaje) : "Sin configurar"}</p>
     </div>)}
-    {impact.beforeConfig.indirectos_porcentaje === null && impact.afterConfig.indirectos_porcentaje !== null && <p className="border-l-2 border-foreground pl-3 text-xs" role="status">La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%. Los registros no se eliminan.</p>}
+    {impact.beforeConfig.indirectos_porcentaje === null && impact.afterConfig.indirectos_porcentaje !== null && <p className="border-l-2 border-foreground pl-3 text-xs" role="status">La activación sustituye componentes manuales de todo el historial, incluso al 0%. Los registros no se eliminan.</p>}
     <div>
       <h3 className="font-medium">Presupuesto · {impact.budgetCurrency}</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Acumulado completo. Los conceptos desde presupuesto se aplican a pagos Pagado; la configuración anterior de honorarios conserva su tratamiento histórico. El gasto afecta también las métricas de Control.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Acumulado completo, sin fecha de inicio. Los conceptos desde presupuesto se aplican a pagos Pagado. El gasto afecta también las métricas de Control.</p>
       <dl className="mt-2">{budgetRows.map(([label, key]) => <AmountRow key={key} label={label} before={impact.beforeBudget[key]} after={impact.afterBudget[key]} currency={impact.budgetCurrency} />)}</dl>
     </div>
     <div className="border-t pt-4">
@@ -106,7 +106,7 @@ export default function ProjectFeeImpactReview({ impact, partidas }: { impact: F
       </dl>
       <div className="mt-3 space-y-2 text-xs text-muted-foreground">
         <p>{impact.counts.transactions} transacciones · {impact.counts.paid} Pagado · {impact.counts.payments} conceptos. Sin datos, los cargos calculados son cero.</p>
-        <p>Presupuesto: efecto neto de indirectos = cargo automático − manuales sustituidos. P&amp;L conserva el tratamiento histórico anterior al inicio y omite ingresos manuales de indirectos del periodo automático. Los costos reales provienen de movimientos OGC.</p>
+        <p>Presupuesto: efecto neto de indirectos = cargo automático − manuales sustituidos. Los cargos automáticos aplican a todo el historial y sustituyen sus ingresos manuales de indirectos en P&amp;L. Los costos reales provienen de movimientos OGC.</p>
         <p>La configuración anterior de honorarios suma importes registrados sin conversión. Los conceptos desde presupuesto usan la moneda del proyecto. {impact.currencies.length > 1 ? `Hay monedas mixtas: ${impact.currencies.join(", ")}. ` : ""}P&amp;L convierte a MXN con el tipo de cambio del registro o respaldo USD {impact.rates.USD}, EUR {impact.rates.EUR}; otras tasas de consulta pueden dar importes diferentes.</p>
         {Math.abs(impact.beforeBudget.honorarios - impact.beforeBudget.honorariosSegunReglas) >= .005 && <p>El honorario actual difiere del cálculo con los registros actuales. El guardado financiero también lo recalculará; ese ajuste está incluido en el importe propuesto.</p>}
         {impact.counts.invalidDates > 0 && <p>{impact.counts.invalidDates} transacciones tienen fechas no válidas para P&amp;L y no se incluyen en ese contexto.</p>}

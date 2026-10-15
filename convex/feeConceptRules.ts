@@ -1,18 +1,17 @@
 import type { Id } from "./_generated/dataModel";
 
-export const FEE_CONCEPT_START = "2026-10-01";
-export const FEE_CONCEPT_CALCULATION_VERSION = 4;
+export const FEE_CONCEPT_CALCULATION_VERSION = 5;
 export const FEE_CONCEPT_LABELS = {
   honorarios: "Honorarios", indirectos: "Indirectos", general_conditions: "General Conditions", viaticos: "Viáticos",
 } as const;
 export type FeeConceptKind = keyof typeof FEE_CONCEPT_LABELS;
 export type FeeConceptInput = { concepto: FeeConceptKind; partida_id: Id<"partidas">; excluded_partidas: Id<"partidas">[] };
-export type FeeConceptConfig = FeeConceptInput & { porcentaje: number; monto_original: number; base_original: number; base_aprobada?: number; aprobado_total?: number; aprobado_excluido?: number; fecha_inicio: string };
+export type FeeConceptConfig = FeeConceptInput & { porcentaje: number; monto_original: number; base_original: number; base_aprobada?: number; aprobado_total?: number; aprobado_excluido?: number; fecha_inicio?: string };
 export type FeeConceptPartida = { _id: string; proyecto?: string; nivel: number; nombre: string; partida_nombre?: string; familia?: string; presupuesto_original?: number; presupuesto_aprobado?: number };
 export function canonicalFeeConcepts(configs: readonly FeeConceptConfig[] = []) {
   return configs.map(c => ({ concepto: c.concepto, partida_id: c.partida_id, excluded_partidas: [...new Set(c.excluded_partidas)].sort(),
     porcentaje: c.porcentaje, monto_original: c.monto_original, base_original: c.base_original, base_aprobada: c.base_aprobada,
-    aprobado_total: c.aprobado_total, aprobado_excluido: c.aprobado_excluido, fecha_inicio: c.fecha_inicio }))
+    aprobado_total: c.aprobado_total, aprobado_excluido: c.aprobado_excluido }))
     .sort((a,b) => a.concepto.localeCompare(b.concepto));
 }
 type FeeTransaction = { _id: string; fecha?: string; status?: string; moneda?: string; tipo_cambio?: string | number };
@@ -26,12 +25,10 @@ function isoDate(fecha?: string) {
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d
     ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
 }
-export function feeConceptUsesProjectHistory(config: Pick<FeeConceptInput, "concepto">) {
-  return config.concepto !== "honorarios";
-}
-export function isActiveFeeConcept(config: FeeConceptConfig, fecha?: string) {
-  const date = isoDate(fecha?.trim());
-  return Boolean(date && (feeConceptUsesProjectHistory(config) || date >= config.fecha_inicio));
+// Existing start-date metadata is ignored. Every concept uses the complete
+// valid history; report date filters still determine the requested period.
+export function isActiveFeeConcept(_config: FeeConceptConfig, fecha?: string) {
+  return Boolean(isoDate(fecha?.trim()));
 }
 export function hasActiveIndirectFeeConcepts(configs: readonly FeeConceptConfig[] = [], fecha?: string) {
   return configs.some(c => c.concepto !== "honorarios" && isActiveFeeConcept(c, fecha));
@@ -78,7 +75,7 @@ export function feeConceptBudgetBase(excludedPartidas: readonly string[], partid
   if (!Number.isFinite(base) || base <= 0) throw new Error("El presupuesto aprobado menos exclusiones debe ser mayor a cero y finito.");
   return { aprobadoTotal, aprobadoExcluido, base };
 }
-export function deriveFeeConcepts(inputs: readonly FeeConceptInput[], partidas: readonly FeeConceptPartida[], previous: readonly FeeConceptConfig[] = [], proyectoId?: string): FeeConceptConfig[] {
+export function deriveFeeConcepts(inputs: readonly FeeConceptInput[], partidas: readonly FeeConceptPartida[], proyectoId?: string): FeeConceptConfig[] {
   const roots = partidas.filter(p => p.nivel === 1 && (!proyectoId || p.proyecto === proyectoId));
   if (!inputs.length) return [];
   const kinds = new Set<string>(), sources = new Set<string>();
@@ -98,16 +95,16 @@ export function deriveFeeConcepts(inputs: readonly FeeConceptInput[], partidas: 
     const excluded = [...new Set(input.excluded_partidas)].sort();
     const { base, aprobadoTotal, aprobadoExcluido } = feeConceptBudgetBase(excluded, roots);
     if (!Number.isFinite(amount / base * 100)) throw new Error("Los importes exceden el rango de cálculo válido.");
-    return { ...input, excluded_partidas: excluded, monto_original: amount, base_original: base, base_aprobada: base,
+    return { concepto: input.concepto, partida_id: input.partida_id, excluded_partidas: excluded, monto_original: amount, base_original: base, base_aprobada: base,
       aprobado_total: aprobadoTotal, aprobado_excluido: aprobadoExcluido,
-      porcentaje: amount / base * 100, fecha_inicio: previous.find(p => p.concepto === input.concepto)?.fecha_inicio || FEE_CONCEPT_START };
+      porcentaje: amount / base * 100 };
   });
   return configs;
 }
 
 export function currentFeeConcepts(configs: readonly FeeConceptConfig[] = [], partidas: readonly FeeConceptPartida[]) {
   const projectId = partidas.find(p => p._id === configs[0]?.partida_id)?.proyecto;
-  return deriveFeeConcepts(configs, partidas, configs, projectId);
+  return deriveFeeConcepts(configs, partidas, projectId);
 }
 
 export function feeChargesForPayment(configs: readonly FeeConceptConfig[], _partida: FeeConceptPartida, partidas: readonly FeeConceptPartida[], fecha: string | undefined, amount: number) {

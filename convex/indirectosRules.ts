@@ -1,7 +1,6 @@
 import { isHonorariosPartida } from "./honorariosRules";
 import { calculateFeeConceptPayments, hasActiveIndirectFeeConcepts, type FeeConceptConfig, type FeeConceptPartida } from "./feeConceptRules";
 
-export const INDIRECTOS_START = "2026-10-01";
 export type IndirectosConfig = { indirectos_porcentaje?: number; indirectos_fecha_inicio?: string; fee_concepts?: readonly FeeConceptConfig[] };
 type Partida = { _id: string; nombre: string; nivel: number; partida_nombre?: string; familia?: string; sub_partida?: string };
 type Transaction = { _id: string; fecha: string; status: string; moneda?: string; tipo_cambio?: string | number };
@@ -24,7 +23,7 @@ export function reportDateIso(value?: string): string | null {
 
 export function isAutomaticIndirectos(config: IndirectosConfig, fecha?: string) {
   const date = reportDateIso(fecha);
-  return !hasActiveIndirectFeeConcepts(config.fee_concepts, fecha) && config.indirectos_porcentaje !== undefined && Boolean(date && date >= (config.indirectos_fecha_inicio || INDIRECTOS_START));
+  return !hasActiveIndirectFeeConcepts(config.fee_concepts, fecha) && config.indirectos_porcentaje !== undefined && Boolean(date);
 }
 
 export function validateIndirectosPercentage(value?: number) {

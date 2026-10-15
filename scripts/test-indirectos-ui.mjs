@@ -105,7 +105,7 @@ try {
     await page.getByRole("button", { name: "Editar proyecto de prueba" }).click();
     await expect(field).toHaveValue("");
     await field.fill("0");
-    await expect(review).toContainText("La activación sustituye componentes manuales desde la fecha de inicio, incluso al 0%.");
+    await expect(review).toContainText("La activación sustituye componentes manuales de todo el historial, incluso al 0%.");
     await page.keyboard.press("Escape");
     assert.equal(await page.evaluate(() => window.indirectosMutation), undefined);
     // Exclusions reduce the approved denominator per concept. Paid charges
@@ -134,6 +134,8 @@ try {
     await expect(page.getByTestId("concept-review-honorarios")).toContainText("Aprobado excluido: $55,600.00");
     await expect(page.getByTestId("concept-review-honorarios")).toContainText("Base aprobada después de exclusiones: $200,000.00");
     await expect(page.getByTestId("concept-review-viaticos")).toContainText("acumulado completo del proyecto");
+    await expect(page.getByTestId("concept-review-honorarios")).toContainText("acumulado completo del proyecto");
+    await expect(page.getByRole("dialog")).not.toContainText("Inicio: 2026-10-01");
     await expect(save).toBeEnabled();
     await scrollSection(page.getByRole("checkbox", { name: "Calcular Honorarios desde presupuesto", exact: true }));
     await page.screenshot({ path: `${root}/output/indirectos-ui/concept-exclusions-${width}.png` });

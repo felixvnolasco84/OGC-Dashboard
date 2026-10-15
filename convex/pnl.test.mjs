@@ -227,7 +227,7 @@ describe.each([["P&L", getPnlSummary], ["Profitability", getProfitabilitySummary
     expect(f.tables).toEqual(before);
   });
 
-  it("preserves September and mixes legacy and automatic months without duplicating ledger income", async () => {
+  it("calculates general indirectos for September and October without duplicating manual income", async () => {
     const f = automaticDatabase({
       partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA" }, { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS" }],
       transacciones: [
@@ -238,10 +238,10 @@ describe.each([["P&L", getPnlSummary], ["Profitability", getProfitabilitySummary
       ogc_movimientos: [movement({ categoria: "INDIRECTOS", monto: 9999, fecha: "2026-10-02" })],
     });
     const september = await query._handler(f.ctx, { ...october, cutoffMonth: 9 });
-    expect(september.totals).toMatchObject({ indirectos: 1000, indirectosLegacyCosto: 1000, ebitda: 150 });
+    expect(september.totals).toMatchObject({ indirectos: 100, indirectosLegacyCosto: 0, ebitda: 250 });
     const mixed = await query._handler(f.ctx, october);
-    expect(mixed.totals).toMatchObject({ indirectos: 11000, indirectosLegacyCosto: 1000, ebitda: 25150 });
-    expect(mixed.projects[0].monthlyOgcMovements["2026-9"].indirectos).toBe(1000);
+    expect(mixed.totals).toMatchObject({ indirectos: 10100, indirectosLegacyCosto: 0, ebitda: 25250 });
+    expect(mixed.projects[0].monthlyOgcMovements["2026-9"].indirectos).toBe(100);
     expect(mixed.projects[0].monthlyOgcMovements["2026-10"].indirectos).toBe(10000);
   });
 
@@ -285,7 +285,7 @@ it("includes corporate real indirect expenses only in consolidated P&L", async (
   expect(profitability.totals).toMatchObject({ saldoIndirectos: 10000, costosRealesIndirectos: 0 });
 });
 
-it("substitutes post-cut manual indirectos in budget, control, filtered payments and WIP", async () => {
+it("substitutes automatic indirectos in budget, control, filtered payments and WIP", async () => {
   const f = automaticDatabase({
     partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA", pagado: 100000, presupuesto_aprobado: 200000 }, { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS", pagado: 8000 }],
     pagos: [{ transaccion_id: "transaction", partida_id: "work", monto: 100000 }, { transaccion_id: "transaction", partida_id: "indirect", monto: 8000 }],
@@ -301,17 +301,18 @@ it("substitutes post-cut manual indirectos in budget, control, filtered payments
   expect(calculatePresupuestoMetrics(f.tables.partidas, 15000, { automaticos: 10800, manualesSustituidos: 8000 }).gasto_total).toBe(metrics.gasto_total);
 });
 
-it("validates percentages and activation dates without accepting invalid calendar dates", () => {
+it("ignores stored activation dates while validating percentages and calendar dates", () => {
   for (const value of [-1, 101, NaN, Infinity]) expect(() => validateIndirectosPercentage(value)).toThrow();
   for (const value of [undefined, 0, 10, 100]) expect(() => validateIndirectosPercentage(value)).not.toThrow();
   expect(isAutomaticIndirectos({}, "2026-10-01")).toBe(false);
   expect(isAutomaticIndirectos({ indirectos_porcentaje: 0 }, "2026-10-01")).toBe(true);
   expect(isAutomaticIndirectos({ indirectos_porcentaje: 10 }, "31/09/2026")).toBe(false);
+  expect(isAutomaticIndirectos({ indirectos_porcentaje: 10, indirectos_fecha_inicio: "2099-01-01" }, "2020-01-01")).toBe(true);
   const f = automaticDatabase();
   const calculate = () => calculateIndirectosFromRecords({ config: f.tables.desarrollos[0], partidas: f.tables.partidas, transactions: f.tables.transacciones, pagos: f.tables.pagos });
   expect(calculate().automaticos).toBe(10000);
   f.tables.desarrollos[0].indirectos_fecha_inicio = "2026-11-01";
-  expect(calculate().automaticos).toBe(0);
+  expect(calculate().automaticos).toBe(10000);
 });
 
 const snapshotPath = process.env.PNL_AUDIT_SNAPSHOT;

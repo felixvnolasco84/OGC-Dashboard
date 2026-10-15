@@ -2,7 +2,7 @@ import type { Doc } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getHonorariosBreakdown, getHonorariosModo, isHonorariosPartida } from "./honorariosRules";
-import { INDIRECTOS_START, validateIndirectosPercentage } from "./indirectosRules";
+import { validateIndirectosPercentage } from "./indirectosRules";
 import { calculateBudgetIndirectos, feeBudgetConvert } from "./indirectosBudget";
 import { deriveFeeConcepts, canonicalFeeConcepts, FEE_CONCEPT_CALCULATION_VERSION, type FeeConceptInput } from "./feeConceptRules";
 import { feeConceptInputValidator } from "./feeConceptValidators";
@@ -42,9 +42,7 @@ export function proposedFeeProject(project: Doc<"desarrollos">, proposal: FeePro
   return {
     ...project,
     ...Object.fromEntries(Object.entries(proposal).filter(([, value]) => value !== undefined)),
-    ...(proposal.indirectos_porcentaje !== undefined
-      ? { indirectos_fecha_inicio: project.indirectos_fecha_inicio || INDIRECTOS_START } : {}),
-    ...(proposal.fee_concepts !== undefined ? { fee_concepts: deriveFeeConcepts(proposal.fee_concepts, records?.partidas || [], project.fee_concepts, project._id) } : {}),
+    ...(proposal.fee_concepts !== undefined ? { fee_concepts: deriveFeeConcepts(proposal.fee_concepts, records?.partidas || [], project._id) } : {}),
   } as Doc<"desarrollos">;
 }
 
@@ -53,7 +51,6 @@ export function feeConfig(project: Doc<"desarrollos">) {
     honorarios_porcentaje: project.honorarios_porcentaje ?? null,
     honorarios_modo: getHonorariosModo(project.honorarios_modo),
     indirectos_porcentaje: project.indirectos_porcentaje ?? null,
-    indirectos_fecha_inicio: project.indirectos_fecha_inicio ?? null,
     excluded_partidas_honorarios: project.excluded_partidas_honorarios || [],
     fee_concepts: canonicalFeeConcepts(project.fee_concepts),
   };

@@ -253,15 +253,15 @@ export default function EditProyectoModal() {
           {partidas && <FeeConceptEditor value={feeConcepts} approved={baseline?.fee_concepts || []} partidas={partidas}
             currency={baseline?.moneda_principal || "MXN"} onChange={setFeeConcepts} />}
           <details open={feeConcepts.length === 0} className="space-y-3 border-t pt-4">
-          <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">Configuración anterior y periodos históricos</summary>
-          <p className="border-t pt-4 text-xs text-muted-foreground">La configuración anterior se conserva para periodos históricos y conceptos sin configurar. Cada concepto automático usa su propia tasa y exclusiones desde su fecha de inicio.</p>
+          <summary className="min-h-11 cursor-pointer py-2 text-sm font-medium">Configuración general para conceptos sin partida</summary>
+          <p className="border-t pt-4 text-xs text-muted-foreground">Esta configuración aplica a los conceptos sin partida automática. Todos los cálculos usan el historial completo del proyecto, sin fecha de inicio. Cada concepto configurado desde presupuesto usa su propia tasa y exclusiones.</p>
           <div className="space-y-2">
             <Label htmlFor="indirectos_porcentaje">Indirectos (%)</Label>
             <Input id="indirectos_porcentaje" type="number" min="0" max="100" step="0.01"
               placeholder="Sin activar" value={indirectosPorcentaje}
               onChange={e => setIndirectosPorcentaje(e.target.value)}
               required={baseline?.indirectos_porcentaje !== undefined} />
-            <p className="text-xs text-muted-foreground">Cargo automático sobre pagos elegibles con las mismas exclusiones que honorarios. Inicio: {baseline?.indirectos_fecha_inicio || "2026-10-01"}. Cambiar el porcentaje recalcula desde esa fecha. Captura los gastos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. 0% mantiene el esquema sin cargo.</p>
+            <p className="text-xs text-muted-foreground">Cargo automático sobre todos los pagos elegibles del historial, con las mismas exclusiones que honorarios. Cambiar el porcentaje recalcula todo el proyecto. Captura los gastos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. 0% mantiene el esquema sin cargo.</p>
             <Label htmlFor="honorarios_modo" className="text-sm font-medium">Cálculo de honorarios</Label>
             <Select value={honorariosModo} onValueChange={(value) => setHonorariosModo(value as "automatico" | "transacciones")}>
               <SelectTrigger id="honorarios_modo" className="rounded-none">

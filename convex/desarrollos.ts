@@ -1,6 +1,6 @@
 import { currentFeeConcepts, feeChargesAtRate, createFeeSourceLookup, isActiveFeeConcept, replacesIndirectIncomeCategory } from "./feeConceptRules";
 import { feeConceptInputValidator } from "./feeConceptValidators";
-import { INDIRECTOS_START, isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateIndirectosPercentage, getFeeExcludedPartidaIds, isEligibleFeePayment } from "./indirectosRules";
+import { isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateIndirectosPercentage, getFeeExcludedPartidaIds, isEligibleFeePayment } from "./indirectosRules";
 import { getBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
@@ -1130,7 +1130,7 @@ export const create = mutation({
                 month: "short",
                 year: "numeric",
             }),
-            ...(args.indirectos_porcentaje !== undefined ? { indirectos_porcentaje: args.indirectos_porcentaje, indirectos_fecha_inicio: INDIRECTOS_START } : {}),
+            ...(args.indirectos_porcentaje !== undefined ? { indirectos_porcentaje: args.indirectos_porcentaje } : {}),
             honorarios_porcentaje: args.honorarios_porcentaje || 0,
             honorarios_monto: 0, // Initial value, will be calculated by triggers
             ...(organizationId ? { organization_id: organizationId } : {}),
@@ -1294,9 +1294,6 @@ export const update = rawMutation({
             // another user applies it, possibly together with different settings.
             const scope = await feeImpactScope(existing, proposed, records!);
             if (scope !== expected_impact) throw new Error("El impacto cambió mientras lo revisabas. Revisa la actualización antes de guardar.");
-        }
-        if (args.indirectos_porcentaje !== undefined) {
-            updateData.indirectos_fecha_inicio = existing?.indirectos_fecha_inicio || INDIRECTOS_START;
         }
         if (args.fee_concepts !== undefined) updateData.fee_concepts = proposed.fee_concepts;
         await ctx.db.patch(id, updateData);

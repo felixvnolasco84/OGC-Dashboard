@@ -10,9 +10,9 @@
 - El guardado de configuración conserva la revisión Actual → Propuesto → Diferencia y el control de concurrencia. No requiere una aprobación posterior para recalcular las tasas ante cambios de presupuesto.
 - Cambiar solo las exclusiones de un concepto genera una nueva revisión financiera y se persiste al guardar. Las partidas seleccionadas como exclusiones deben retirarse de la configuración antes de eliminarse del presupuesto.
 - Las revisiones de configuración, pagos y presupuesto hechas antes de publicar esta fórmula se invalidan y deben actualizarse antes de guardar.
-- Indirectos, Viáticos y General Conditions configurados aplican los cargos a todas las líneas de pagos Pagado del acumulado completo del proyecto, incluidas las anteriores al 1 de octubre de 2026. Honorarios y los porcentajes globales anteriores conservan su fecha de inicio y su tratamiento previo. Los cargos generados no son pagos nuevos y no se añaden otra vez a la base; no hay dependencias entre conceptos.
+- Honorarios, Indirectos, Viáticos y General Conditions configurados aplican sus tasas vigentes a todas las líneas de pagos válidos Pagado del historial completo del proyecto, sin fecha de inicio. El porcentaje general de Indirectos tampoco tiene corte. Se ignoran fechas de inicio antiguas y no se crean en nuevas configuraciones. Honorarios configurado no suma el porcentaje anterior a los cargos históricos. Los cargos generados no son pagos nuevos y no se añaden otra vez a la base; no hay dependencias entre conceptos.
 - Los pagos manuales de los conceptos activados se sustituyen en sus totales, sin borrar sus registros. Sus importes registrados sí integran la base común de pagos. Los conceptos no configurados conservan su tratamiento anterior.
-- Configurar un concepto indirecto independiente reemplaza el porcentaje global de indirectos dentro de su alcance. Honorarios configurado reemplaza su configuración anterior desde su fecha de inicio. Los proyectos sin configurar mantienen sus reglas.
+- Configurar un concepto indirecto independiente reemplaza el porcentaje global de indirectos dentro de su alcance. Honorarios configurado reemplaza su porcentaje anterior para todo el historial válido. Los proyectos sin configurar mantienen sus modos y tasas generales.
 - Los porcentajes visibles tienen dos decimales; las tasas internas conservan su precisión completa. Avance en Presupuesto significa pagado visible / aprobado × 100 para cada nivel, usando los importes visibles de la consulta y sus filtros. Las tasas se muestran en configuración y revisión de impacto.
 
 ## Familias y subpartidas
@@ -32,13 +32,15 @@
 
 ## Validación y publicación
 
-Pruebas de base aprobada menos exclusiones, acumulado histórico de Viáticos y General Conditions sobre $6.5 millones, Honorarios sin cambios, periodos filtrados, sustitución de manuales históricos una vez, selecciones independientes, duplicados y exclusiones inválidas, guardado de cambios solo en exclusiones, autorrecálculo, cinco subpartidas, centavos, revisión/guardado, monedas y corte histórico. Las pruebas de UI verifican avance y dos decimales con datos sintéticos y generan capturas en output/indirectos-ui.
+Pruebas de base aprobada menos exclusiones, acumulado histórico de los cuatro conceptos, Honorarios con tasa vigente sin mezclar porcentajes anteriores, periodos filtrados, sustitución de manuales históricos una vez, selecciones independientes, duplicados y exclusiones inválidas, guardado de cambios solo en exclusiones, autorrecálculo, cinco subpartidas, centavos, revisión/guardado y monedas. Las pruebas de UI verifican avance y dos decimales con datos sintéticos y generan capturas en output/indirectos-ui.
 
 Backend y schema desplegados el 14 de octubre de 2026 en `dev:animated-walrus-612`. Los cambios de frontend se incluyen en `main`; su publicación depende del hosting configurado para esa rama. La corrección de acumulado y avance pasó 269 pruebas (2 omitidas), TypeScript, ESLint, build y pruebas visuales a 390 y 1440 px.
 
 No se activaron conceptos ni se migraron proyectos como parte del despliegue. Queda pendiente conciliar los importes con los presupuestos aprobados reales; los porcentajes de referencia de la reunión pueden cambiar con esta nueva fórmula.
 
 La corrección del acumulado incluye la reconstrucción de los totales derivados del proyecto afectado. Se verificó que no quedaran diferencias pendientes en una segunda simulación y que se conservaran los registros fuente de pagos y el total de Honorarios.
+
+El 15 de octubre de 2026 se publicó la versión 5 sin fechas de inicio para los cuatro conceptos ni el porcentaje general de Indirectos. Con autorización se revisaron las 11 obras y se actualizaron los derivados de Torre I y Lote 77, retirando seis fechas antiguas. Honorarios quedó en $10,916,442.77 y $1,011,745.06, respectivamente. Las huellas de presupuestos y pagos fuente permanecieron iguales; la segunda reconstrucción no encontró cambios pendientes y ambas revisiones desplegadas devolvieron `ready`. Validación: 301 pruebas aprobadas y una omitida, TypeScript, ESLint, build y UI a 390 y 1440 px. El detalle de cargos y comprobaciones está en `docs/indirectos-automaticos.md`.
 
 ## Ejemplo de la fórmula corregida
 

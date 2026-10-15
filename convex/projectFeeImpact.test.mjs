@@ -3,9 +3,10 @@ import { previewFeeImpact, update, getPnlSummary } from "./desarrollos";
 import { getByProyecto, getFilteredMetrics } from "./meticas_presupuesto";
 import { FEE_IMPACT_LIMIT, FEE_IMPACT_TRANSACTION_LIMIT } from "./projectFeeImpact";
 import { projectDraftPatch } from "../src/lib/project-fee-draft";
-import { deriveFeeConcepts, calculateFeeConceptPayments } from "./feeConceptRules";
+import { deriveFeeConcepts, calculateFeeConceptPayments, isActiveFeeConcept, canonicalFeeConcepts } from "./feeConceptRules";
 import { getPaymentsByDateRange } from "./pagos";
 import { mutation } from "./functions";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 
 // Indexed database double running the actual handlers and payment triggers.
 // Rollback models Convex transaction behavior; this is not a deployed-db test.
@@ -113,7 +114,7 @@ describe("reviewed project fee changes", () => {
     const payments = structuredClone(f.tables.pagos), movements = structuredClone(f.tables.ogc_movimientos);
     await f.save({ indirectos_porcentaje: 0 }, impact.expectedImpact);
     expect(f.tables.pagos).toEqual(payments); expect(f.tables.ogc_movimientos).toEqual(movements);
-    expect(f.tables.desarrollos[0].indirectos_fecha_inicio).toBe("2026-10-01");
+    expect(f.tables.desarrollos[0].indirectos_fecha_inicio).toBeUndefined();
   });
   it("retains signed refunds in budget while applying absolute converted payments in P&L and indirectos", async () => {
     const f = fixture();
@@ -139,15 +140,15 @@ describe("reviewed project fee changes", () => {
     await f.save({ honorarios_modo: "transacciones" }, manual.expectedImpact);
     expect(f.tables.desarrollos[0].honorarios_monto).toBe(5000);
   });
-  it("keeps pre-start amounts historical, monthly detail, invalid dates and fallback rates", async () => {
+  it("applies general indirectos to historical months while retaining date validation and exchange rates", async () => {
     const f = fixture();
     f.tables.transacciones[0].moneda = "EUR"; f.tables.transacciones[0].tipo_cambio = ""; f.tables.pagos[0].monto = .335;
     f.tables.transacciones.push({ _id: "transacciones:old", proyecto: "desarrollos:p", monto_total: 100, fecha: "2025-09-30", moneda: "MXN", status: "Pagado" }, { _id: "transacciones:bad", proyecto: "desarrollos:p", monto_total: 100, fecha: "31/09/2026", moneda: "MXN", status: "Pagado" });
     f.tables.pagos.push({ _id: "pagos:old", transaccion_id: "transacciones:old", partida_id: "partidas:work", monto: 100 }, { _id: "pagos:bad", transaccion_id: "transacciones:bad", partida_id: "partidas:work", monto: 100 });
     const impact = await f.preview({ indirectos_porcentaje: 10 });
     expect(impact.counts.invalidDates).toBe(1); expect(impact.period.start).toBe("2025-09-30");
-    expect(impact.afterPnl.indirectosAutomaticos).toBe(.62);
-    expect(impact.afterPnl.monthly["2025-9"].indirectosAutomaticos).toBe(0);
+    expect(impact.afterPnl.indirectosAutomaticos).toBe(10.62);
+    expect(impact.afterPnl.monthly["2025-9"].indirectosAutomaticos).toBe(10);
     expect(impact.afterPnl.baseHonorarios).toBeCloseTo(106.1975);
   });
   it.each(["payment", "transaction", "partida", "movement", "configuration"])("rejects stale %s input before any writes", async kind => {
@@ -592,7 +593,57 @@ describe("concept percentages over approved budget minus exclusions", () => {
     expect(f.tables.desarrollos[0].honorarios_monto).toBe(0);
   });
 
-  it("keeps pre-cutoff honorarios rules and ignores pending payments in the new period", async () => {
+  it.each(["honorarios", "indirectos", "general_conditions", "viaticos"])("%s ignores old start dates and does not generate a new date cutoff", kind => {
+    const config = { ...deriveFeeConcepts([input(kind, "fee")], roots())[0], fecha_inicio: "2099-01-01" };
+    expect(isActiveFeeConcept(config, "2020-01-01")).toBe(true);
+    expect(isActiveFeeConcept(config, "NaN/NaN/NaN")).toBe(false);
+    const current = deriveFeeConcepts([config], roots());
+    expect(current[0].fecha_inicio).toBeUndefined();
+    expect(canonicalFeeConcepts([config])[0]).not.toHaveProperty("fecha_inicio");
+    const result = calculateFeeConceptPayments({ configs: [config], partidas: roots(),
+      transactions: [{ _id: "old", fecha: "2020-01-01", status: "Pagado" }],
+      pagos: [{ transaccion_id: "old", partida_id: "partidas:work", monto: 100000 }] });
+    expect(result.concepts[0]).toMatchObject({ monto: 10000, basePagada: 100000 });
+  });
+
+  it("configured honorarios replace the previous percentage for all historical paid lines", async () => {
+    const f = fixture({ partidas: roots(), transacciones: [
+      { _id: "transacciones:old", proyecto: "desarrollos:p", fecha: "2020-01-01", status: "Pagado", monto_total: 100000, moneda: "MXN" },
+      { _id: "transacciones:oct", proyecto: "desarrollos:p", fecha: "2026-10-01", status: "Pagado", monto_total: 100000, moneda: "MXN" },
+      { _id: "transacciones:pending", proyecto: "desarrollos:p", fecha: "2020-01-01", status: "Por pagar", monto_total: 100000, moneda: "MXN" },
+      { _id: "transacciones:bad", proyecto: "desarrollos:p", fecha: "NaN/NaN/NaN", status: "Pagado", monto_total: 100000, moneda: "MXN" },
+    ], pagos: ["old", "oct", "pending", "bad"].map(id => ({ _id: `pagos:${id}`, transaccion_id: `transacciones:${id}`, partida_id: "partidas:work", monto: 100000 })) });
+    f.tables.desarrollos[0].honorarios_porcentaje = 80;
+    const change = { fee_concepts: [input("honorarios", "fee")] };
+    const impact = await f.preview(change);
+    expect(impact.afterBudget.honorarios).toBe(20000);
+    expect(impact.afterPnl.honorarios).toBe(20000);
+    await f.save(change, impact.expectedImpact);
+    const historical = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "desarrollos:p", start_date: "2020-01-01", end_date: "2020-12-31" });
+    expect(historical.honorarios).toBe(10000);
+    expect(f.tables.desarrollos[0].honorarios_monto).toBe(20000);
+    expect(f.tables.desarrollos[0].fee_concepts[0].fecha_inicio).toBeUndefined();
+    const pnl = await getPnlSummary._handler(f.ctx, { periodYear: 2020, cutoffMonth: 12 });
+    expect(pnl.totals.honorarios).toBe(10000);
+  });
+
+  it("removes obsolete start-date fields while rebuilding derived totals without changing budget sources", async () => {
+    const f = fixture({ partidas: roots() });
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts(proposal().fee_concepts, roots()).map(c => ({ ...c, fecha_inicio: "2099-01-01" }));
+    f.tables.desarrollos[0].indirectos_fecha_inicio = "2099-01-01";
+    const sources = f.tables.partidas.map(p => [p._id, p.presupuesto_original, p.presupuesto_aprobado]);
+    const preview = await repairProjectPaymentTotals(f.ctx, "desarrollos:p", true);
+    expect(preview.obsoleteStartDates).toBe(3);
+    expect(f.writes).toEqual([]);
+    await repairProjectPaymentTotals(f.ctx, "desarrollos:p");
+    expect(f.tables.desarrollos[0]).not.toHaveProperty("indirectos_fecha_inicio");
+    expect(f.tables.desarrollos[0].fee_concepts.every(c => !("fecha_inicio" in c))).toBe(true);
+    expect(f.tables.partidas.map(p => [p._id, p.presupuesto_original, p.presupuesto_aprobado])).toEqual(sources);
+    const verified = await repairProjectPaymentTotals(f.ctx, "desarrollos:p", true);
+    expect(verified).toMatchObject({ obsoleteStartDates: 0, partidasUpdated: 0 });
+  });
+
+  it("uses the same honorarios rate before and after October while ignoring pending payments", async () => {
     const f = fixture({ partidas: roots() });
     f.tables.transacciones.push({ _id: "transacciones:sep", proyecto: "desarrollos:p", fecha: "2026-09-30", status: "Pagado", monto_total: 100000, moneda: "MXN" }, { _id: "transacciones:pending", proyecto: "desarrollos:p", fecha: "2026-10-01", status: "Por pagar", monto_total: 100000, moneda: "MXN" });
     f.tables.pagos.push({ _id: "pagos:sep", transaccion_id: "transacciones:sep", partida_id: "partidas:work", monto: 100000 }, { _id: "pagos:pending", transaccion_id: "transacciones:pending", partida_id: "partidas:work", monto: 100000 });

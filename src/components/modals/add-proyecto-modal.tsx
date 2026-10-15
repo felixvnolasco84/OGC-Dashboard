@@ -479,7 +479,7 @@ export default function AddProyectoModal() {
               <Input id="indirectos_porcentaje" type="number" min="0" max="100" step="0.01"
                 placeholder="Sin activar" value={formData.indirectos_porcentaje ?? ''}
                 onChange={e => handleInputChange('indirectos_porcentaje', e.target.value)} />
-              <p className="text-xs text-muted-foreground">Cargo automático sobre pagos elegibles, con las mismas exclusiones que honorarios. Inicia el 1 de octubre de 2026. Captura los costos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. Vacío conserva la lógica anterior; 0% activa el esquema sin cargo.</p>
+              <p className="text-xs text-muted-foreground">Cargo automático sobre los pagos elegibles del historial completo del proyecto, con las mismas exclusiones que honorarios y sin fecha de inicio. Captura los costos reales en P&amp;L como costo de estructura, categoría INDIRECTOS. Vacío conserva la lógica anterior; 0% activa el esquema sin cargo.</p>
             </div>
             {/* Honorarios Percentage */}
             <div className="space-y-2">

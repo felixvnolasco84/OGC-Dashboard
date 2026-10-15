@@ -48,7 +48,7 @@ export default function FeeConceptEditor({ value, approved, partidas, currency, 
     <div className="space-y-1">
       <h3 className="text-base font-medium">Porcentajes sobre presupuesto aprobado</h3>
       <p className="text-xs text-muted-foreground">Porcentaje = monto original del concepto ÷ (presupuesto aprobado total del proyecto − aprobado de las partidas excluidas) × 100.</p>
-      <p className="text-xs text-muted-foreground">Al cambiar el presupuesto aprobado, los porcentajes y cargos se actualizan automáticamente. Indirectos, Viáticos y General Conditions usan todos los pagos Pagado acumulados del proyecto. Honorarios conserva su fecha de inicio.</p>
+      <p className="text-xs text-muted-foreground">Al cambiar el presupuesto aprobado, los porcentajes y cargos se actualizan automáticamente. Honorarios, Indirectos, Viáticos y General Conditions usan todos los pagos Pagado del historial del proyecto, sin fecha de inicio.</p>
       <p className="text-xs text-muted-foreground">El cargo se distribuye entre familias y subpartidas según sus montos originales; el total es la suma del desglose.</p>
     </div>
     {(Object.keys(FEE_CONCEPT_LABELS) as FeeConceptKind[]).map(kind => {
@@ -56,7 +56,7 @@ export default function FeeConceptEditor({ value, approved, partidas, currency, 
       const old = approved.find(c => c.concepto === kind);
       let calculation: FeeConceptConfig | undefined, error = "";
       if (current) {
-        try { calculation = deriveFeeConcepts([current], roots, approved)[0]; }
+        try { calculation = deriveFeeConcepts([current], roots)[0]; }
         catch (failure) { error = failure instanceof Error ? failure.message : "Revisa la base del concepto."; }
       }
       return <div key={kind} className="space-y-3 border p-3">

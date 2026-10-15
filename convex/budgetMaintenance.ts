@@ -51,18 +51,24 @@ export async function repairProjectPaymentTotals(
       porGastarBefore: before.por_gastar, porGastarAfter: partida.por_gastar }];
   });
   const metrics = calculatePresupuestoMetrics(updatedPartidas, honorariosMonto, indirectos);
+  const obsoleteStartDates = (project.indirectos_fecha_inicio !== undefined ? 1 : 0) +
+    (project.fee_concepts || []).filter(c => c.fecha_inicio !== undefined).length;
   if (!dryRun) {
     for (const change of changes) {
       await ctx.db.patch(change.id, { pagado: change.pagadoAfter, por_gastar: change.porGastarAfter });
     }
-    if (project.honorarios_monto !== honorariosMonto) await ctx.db.patch(projectId, { honorarios_monto: honorariosMonto });
-    if (JSON.stringify(canonicalFeeConcepts(project.fee_concepts)) !== JSON.stringify(canonicalFeeConcepts(effectiveProject.fee_concepts))) {
-      await ctx.db.patch(projectId, { fee_concepts: effectiveProject.fee_concepts });
+    const projectPatch: Partial<Doc<"desarrollos">> = {};
+    if (project.honorarios_monto !== honorariosMonto) projectPatch.honorarios_monto = honorariosMonto;
+    if (project.indirectos_fecha_inicio !== undefined) projectPatch.indirectos_fecha_inicio = undefined;
+    if ((project.fee_concepts || []).some(c => c.fecha_inicio !== undefined) ||
+        JSON.stringify(canonicalFeeConcepts(project.fee_concepts)) !== JSON.stringify(canonicalFeeConcepts(effectiveProject.fee_concepts))) {
+      projectPatch.fee_concepts = effectiveProject.fee_concepts;
     }
+    if (Object.keys(projectPatch).length) await ctx.db.patch(projectId, projectPatch);
     if (existingMetrics) await ctx.db.patch(existingMetrics._id, metrics);
     else await ctx.db.insert("meticas_presupuesto", { proyecto: projectId, ...metrics });
   }
-  return { projectId, nombre: project.nombre, dryRun, partidasUpdated: changes.length, changes,
+  return { projectId, nombre: project.nombre, dryRun, partidasUpdated: changes.length, changes, obsoleteStartDates,
     honorariosBefore: project.honorarios_monto ?? 0, honorariosAfter: honorariosMonto,
     metricsBefore: existingMetrics, metricsAfter: metrics };
 }
@@ -81,8 +87,8 @@ export function feeHierarchyPaymentTotals(
   for (const [id, amount] of Object.entries(indirectos.automaticosPorPartida)) direct.set(id, (direct.get(id) || 0) + amount);
   const totals = calculateHierarchyPaymentTotals(partidas, direct, honorariosPartidaId ? undefined : honorariosMonto);
   if (honorariosPartidaId) {
-    // Historic honorarios keep their previous calculation; the new component
-    // is distributed to descendants and appears only once in the root.
+    // The configured honorarios total is distributed to descendants and
+    // appears only once in the root.
     totals.set(honorariosPartidaId, honorariosMonto || 0);
   }
   return totals;

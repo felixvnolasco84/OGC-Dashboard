@@ -46,13 +46,12 @@ function feeImpact(args: FixtureProposal) {
   if (previewFailure) return { status: "error", message: "No se pudo calcular el impacto completo. Error de prueba." };
   const config = (p: Partial<FixtureProject>) => ({ honorarios_porcentaje: p.honorarios_porcentaje ?? null,
     indirectos_porcentaje: p.indirectos_porcentaje ?? null, honorarios_modo: p.honorarios_modo || "automatico",
-    indirectos_fecha_inicio: p.indirectos_fecha_inicio ?? null, excluded_partidas_honorarios: p.excluded_partidas_honorarios || [], fee_concepts: p.fee_concepts || [] });
+    excluded_partidas_honorarios: p.excluded_partidas_honorarios || [], fee_concepts: p.fee_concepts || [] });
   let concepts;
   try { concepts = args.fee_concepts === undefined ? undefined : deriveFeeConcepts(args.fee_concepts as FeeConceptInput[], partidas); }
   catch (error) { return { status: "error", message: error instanceof Error ? error.message : "Revisa los conceptos." }; }
   const beforeConfig = config(project), afterConfig = config({ ...project, ...args,
-    fee_concepts: concepts ?? project.fee_concepts,
-    ...(args.indirectos_porcentaje !== undefined ? { indirectos_fecha_inicio: "2026-10-01" } : {}) });
+    fee_concepts: concepts ?? project.fee_concepts });
   const scenario = (c: ReturnType<typeof config>) => {
     const base = c.excluded_partidas_honorarios.includes("work") ? 0 : paymentBase;
     const charges = feeChargesForPayment(c.fee_concepts, partidas[0], partidas, "2026-10-01", paymentBase);
