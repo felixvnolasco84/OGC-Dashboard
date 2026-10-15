@@ -17,6 +17,7 @@ export default defineConfig({
       "src/lib/bitacora-offline/**/*.test.ts",
       "convex/paymentAccounts.test.mjs",
       "convex/paymentEdit.test.mjs",
+      "convex/transactionDeletion.test.mjs",
       "convex/programaObraExecution.test.mjs",
       "convex/pnl.test.mjs",
       "convex/projectFeeImpact.test.mjs",

@@ -38,6 +38,7 @@ import {
 } from "./invoiceIntegrity";
 import { updateProviderStatsForTransactionChange } from "./providerStats";
 import { applyPaymentEdit, loadEditContext, preparePaymentEdit, paymentEditValidators } from "./paymentEdit";
+import { repairProjectPaymentTotals } from "./budgetMaintenance";
 
 export const getEditContext = query({
   args: { id: v.id("transacciones") },
@@ -1300,7 +1301,7 @@ export const syncProvidersFromExcel = baseMutation({
 });
 
 // Delete transaction and all its line items
-export const deleteTransaction = mutation({
+export const deleteTransaction = baseMutation({
   args: {
     id: v.id("transacciones"),
   },
@@ -1339,6 +1340,8 @@ export const deleteTransaction = mutation({
     // Delete the transaction
     await updateProviderStatsForTransactionChange(ctx, existingTransaction, null);
     await ctx.db.delete(args.id);
+    await updateProyectoMonedaPrincipal(ctx, existingTransaction.proyecto);
+    await repairProjectPaymentTotals(ctx, existingTransaction.proyecto);
   },
 });
 
