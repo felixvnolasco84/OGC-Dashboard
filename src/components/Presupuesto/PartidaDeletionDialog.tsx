@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatCurrency } from "@/lib/utils";
 import type { DeletionImpact } from "../../../convex/partidaDeletion";
+import { FEE_CONCEPT_LABELS } from "../../../convex/feeConceptRules";
 
 export type PartidaDeletionDialogProps = {
   open: boolean;
@@ -25,6 +26,10 @@ export function PartidaDeletionDialog({ open, name, nivel, currency, impact, err
   const label = nivel === 1 ? "partida" : nivel === 2 ? "familia" : "subpartida";
   const countLabel = (count: number, singular: string) => `${count} ${singular}${count === 1 ? "" : "s"}`;
   const canDelete = !loading && !error && impact?.canDelete && impact.verified;
+  const cleanupLabels = impact?.exclusionCleanup ? [
+    ...impact.exclusionCleanup.concepts.map(kind => FEE_CONCEPT_LABELS[kind]),
+    ...(impact.exclusionCleanup.shared ? ["Honorarios e Indirectos (configuración general)"] : []),
+  ] : [];
   return (
     <AlertDialog open={open} onOpenChange={value => { if (!value && !deleting) onClose(); }}>
       <AlertDialogContent onEscapeKeyDown={event => { if (deleting) event.preventDefault(); }}>
@@ -47,7 +52,10 @@ export function PartidaDeletionDialog({ open, name, nivel, currency, impact, err
                   {impact.verified && impact.budget && <>
                     <p>Presupuesto original del proyecto: {formatCurrency(impact.budget.before.presupuesto_original, currency)} → {formatCurrency(impact.budget.after.presupuesto_original, currency)}.</p>
                     <p>Presupuesto aprobado del proyecto: {formatCurrency(impact.budget.before.presupuesto_aprobado, currency)} → {formatCurrency(impact.budget.after.presupuesto_aprobado, currency)}.</p>
+                    <p>Gasto total del proyecto: {formatCurrency(impact.budget.before.gasto_total, currency)} → {formatCurrency(impact.budget.after.gasto_total, currency)}.</p>
+                    <p>Por gastar del proyecto: {formatCurrency(impact.budget.before.por_gastar, currency)} → {formatCurrency(impact.budget.after.por_gastar, currency)}.</p>
                   </>}
+                  {impact.canDelete && cleanupLabels.length > 0 && <p>Al confirmar, se retirará esta rama de las exclusiones de: {cleanupLabels.join(", ")}. Se recalcularán los conceptos con el presupuesto restante.</p>}
                   {impact.canDelete ? (
                     <p>Se eliminará toda la rama indicada y se recalcularán sus totales. Esta acción es definitiva y no se puede deshacer.</p>
                   ) : (

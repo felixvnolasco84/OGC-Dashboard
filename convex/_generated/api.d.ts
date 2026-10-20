@@ -47,6 +47,8 @@ import type * as invoiceAnalysis from "../invoiceAnalysis.js";
 import type * as invoiceIntegrity from "../invoiceIntegrity.js";
 import type * as invoiceProcessing from "../invoiceProcessing.js";
 import type * as invoiceRules from "../invoiceRules.js";
+import type * as laborImportHistory from "../laborImportHistory.js";
+import type * as laborImportValidators from "../laborImportValidators.js";
 import type * as laborPaymentImports from "../laborPaymentImports.js";
 import type * as laborWorkforceRules from "../laborWorkforceRules.js";
 import type * as meticas_presupuesto from "../meticas_presupuesto.js";
@@ -167,6 +169,8 @@ declare const fullApi: ApiFromModules<{
   invoiceIntegrity: typeof invoiceIntegrity;
   invoiceProcessing: typeof invoiceProcessing;
   invoiceRules: typeof invoiceRules;
+  laborImportHistory: typeof laborImportHistory;
+  laborImportValidators: typeof laborImportValidators;
   laborPaymentImports: typeof laborPaymentImports;
   laborWorkforceRules: typeof laborWorkforceRules;
   meticas_presupuesto: typeof meticas_presupuesto;

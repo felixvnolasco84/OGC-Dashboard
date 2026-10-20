@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { feeConceptConfigValidator } from "./feeConceptValidators";
+import { laborImportResultValidator, laborImportSourceValidator } from "./laborImportValidators";
 import {
   assistantAnswerValidator,
   assistantReferenceValidator,
@@ -603,6 +604,7 @@ export default defineSchema({
 
   labor_payment_imports: defineTable({
     proyecto: v.id("desarrollos"),
+    source_attempt_id: v.optional(v.id("labor_payment_import_attempts")),
     capture_date: v.string(),
     total_people: v.number(),
     roles: v.array(v.object({
@@ -628,6 +630,42 @@ export default defineSchema({
   }).index("by_proyecto_fecha_estado", { fields: ["proyecto", "capture_date", "status"] })
     .index("by_proyecto_estado_fecha", { fields: ["proyecto", "status", "capture_date"] })
     .index("by_proyecto_file_hash", { fields: ["proyecto", "source_file_hash"] }),
+
+  labor_payment_import_attempts: defineTable({
+    proyecto: v.id("desarrollos"),
+    request_id: v.string(),
+    source: laborImportSourceValidator,
+    dates: v.array(v.string()),
+    size: v.optional(v.number()),
+    content_type: v.optional(v.string()),
+    storage_id: v.optional(v.id("_storage")),
+    status: v.union(v.literal("processing"), v.literal("completed"), v.literal("unchanged"), v.literal("failed"), v.literal("legacy")),
+    imported_by: v.id("users"),
+    imported_by_name: v.string(),
+    created_at: v.number(),
+    completed_at: v.optional(v.number()),
+    result: v.optional(laborImportResultValidator),
+    error: v.optional(v.string()),
+  }).index("by_proyecto_created", { fields: ["proyecto", "created_at"] })
+    .index("by_proyecto_request", { fields: ["proyecto", "request_id"] })
+    .index("by_proyecto_hash", { fields: ["proyecto", "source.file_hash"] }),
+
+  labor_payment_import_attempt_items: defineTable({
+    proyecto: v.id("desarrollos"),
+    attempt_id: v.id("labor_payment_import_attempts"),
+    transaccion_id: v.id("transacciones"),
+    source_key: v.string(),
+    source_rows: v.array(v.number()),
+    factura: v.string(),
+    proveedor: v.string(),
+    fecha: v.string(),
+    moneda: v.string(),
+    monto_total: v.number(),
+    outcome: v.union(v.literal("created"), v.literal("updated"), v.literal("unchanged")),
+    imported_at: v.number(),
+  }).index("by_attempt", { fields: ["attempt_id"] })
+    .index("by_transaction", { fields: ["transaccion_id", "imported_at"] })
+    .index("by_proyecto", { fields: ["proyecto"] }),
   
   // Projected transactions from Excel upload (weekly cash flow projections)
   projected_transactions: defineTable({

@@ -25,6 +25,9 @@ function fixture(role = "admin", { authenticated = true, allowed = true } = {}) 
     requisiciones: [],
     payment_accounts: [],
     labor_payment_imports: [],
+    labor_payment_import_attempts: [{ _id: "attempt", proyecto: "project", imported_by: "actor", status: "processing",
+      created_at: Date.now(), storage_id: "original", size: 10, dates: ["2026-10-05"],
+      source: { file_name: "Pagos.xlsx", file_hash: "a".repeat(64), sheet_name: "Pagos", administration: "Obra", currency: "MXN", row_count: 1 } }],
     pagos: [],
   };
   const writes = [];
@@ -39,6 +42,7 @@ function fixture(role = "admin", { authenticated = true, allowed = true } = {}) 
       getUrl: async (id) => `https://storage.example.test/${id}`,
     },
     db: {
+      system: { get: async () => ({ sha256: "a".repeat(64), size: 10 }) },
       normalizeId(table, id) { return tables[table]?.some((row) => row._id === id) ? id : null; },
       async get(id) { return structuredClone(find(id) || null); },
       async insert(table, fields) {
@@ -85,8 +89,7 @@ const mutations = [
 
 function importArgs(providerName = "Nuevo") {
   return {
-    proyecto: "project",
-    source: { file_name: "Pagos.xlsx", file_hash: "a".repeat(64), sheet_name: "Pagos", administration: "Obra", currency: "MXN", row_count: 1 },
+    attempt_id: "attempt",
     weeks: [{
       date: "2026-10-05", total_people: 1, roles: [{ key: "oficial", label: "Oficial", count: 1 }], row_count: 1, amount_total: 100, warnings: [],
       transactions: [{ source_key: "row-2", monto_total: 100, tipo_pago: "efectivo", moneda: "MXN", categoria: "Mano de obra", factura: "Factura", proveedor: providerName,

@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
-import { useConvex, useMutation, useQuery } from "convex/react";
+import { useCallback, useRef, useState } from "react";
+import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { hasProviderManagementAccess } from "../../../convex/providerRules";
 import type { Id } from "../../../convex/_generated/dataModel";
+import type { LaborImportResult } from "../../../convex/laborImportValidators";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 import {
   Dialog,
@@ -90,6 +91,8 @@ export default function UploadProjectTransactionsModal() {
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
   const [uploadReport, setUploadReport] = useState<UploadReport | null>(null);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const requestIdRef = useRef<string | null>(null);
+  const processingRef = useRef(false);
 
   const project = useQuery(
     api.desarrollos.getById,
@@ -103,11 +106,13 @@ export default function UploadProjectTransactionsModal() {
     api.laborPaymentImports.getActiveLaborImports,
     proyectoId ? { proyecto: proyectoId } : "skip",
   );
-  const replaceLaborPaymentImport = useMutation(
-    api.laborPaymentImports.replaceLaborPaymentImport,
-  );
+  const startAttempt = useMutation(api.laborImportHistory.startAttempt);
+  const attachFile = useMutation(api.laborImportHistory.attachFile);
+  const failAttempt = useMutation(api.laborImportHistory.failAttempt);
+  const confirmImport = useAction(api.laborPaymentImports.confirmLaborPaymentImport);
 
   const resetSelectedFile = (selectedFile: File | null) => {
+    requestIdRef.current = null;
     setFile(selectedFile);
     setFileErrors([]);
     setValidationReport(null);
@@ -123,9 +128,9 @@ export default function UploadProjectTransactionsModal() {
       });
       return false;
     }
-    if (selectedFile.size > LABOR_IMPORT_MAX_FILE_SIZE) {
-      toast.error("Archivo demasiado grande", {
-        description: "El límite de carga es 10 MB.",
+    if (!selectedFile.size || selectedFile.size > LABOR_IMPORT_MAX_FILE_SIZE) {
+      toast.error("Tamaño de archivo inválido", {
+        description: "El archivo debe contener datos y no superar 10 MB.",
       });
       return false;
     }
@@ -254,16 +259,28 @@ export default function UploadProjectTransactionsModal() {
     }
   };
 
+  const showUploadResult = (response: LaborImportResult) => {
+    setUploadReport({
+      status: response.status, dates: response.dates,
+      transactionCount: response.transaction_count, rowCount: response.row_count,
+      amountTotal: response.amount_total, totalPeople: response.total_people,
+      replacedDates: response.replaced_dates, providersCreated: response.providers_created, providersReused: response.providers_reused,
+    });
+    setCurrentStep("result");
+  };
+
   const handleConfirmUpload = async () => {
-    if (!proyectoId || !file || !validationReport) return;
+    if (!proyectoId || !file || !validationReport || processingRef.current) return;
     if (validationReport.transactions.some((transaction) => transaction.errors.length)) return;
+    processingRef.current = true;
     setIsProcessing(true);
+    let attemptId: Id<"labor_payment_import_attempts"> | null = null;
+    let importSubmitted = false;
     try {
-      const providerBySourceKey = new Map(
-        validationReport.transactions.map((transaction) => [transaction.sourceKey, transaction.providerId]),
-      );
-      const response = await replaceLaborPaymentImport({
+      requestIdRef.current ||= crypto.randomUUID();
+      const started = await startAttempt({
         proyecto: proyectoId,
+        request_id: requestIdRef.current,
         source: {
           file_name: file.name,
           file_hash: validationReport.fileHash,
@@ -272,6 +289,29 @@ export default function UploadProjectTransactionsModal() {
           currency: validationReport.parsed.currency,
           row_count: validationReport.parsed.rowCount,
         },
+        size: file.size,
+        content_type: file.type || (file.name.toLowerCase().endsWith(".xlsx")
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/vnd.ms-excel"),
+        dates: validationReport.parsed.weeks.map(week => week.date),
+      });
+      attemptId = started.attempt_id;
+      if (started.status === "failed") throw new Error("El intento anterior falló. Confirma de nuevo para crear otra carga.");
+      if (started.upload_url) {
+        const uploaded = await fetch(started.upload_url, {
+          method: "POST", body: file,
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+        });
+        if (!uploaded.ok) throw new Error("No fue posible guardar el Excel original. No se importaron pagos.");
+        const { storageId } = await uploaded.json();
+        if (typeof storageId !== "string") throw new Error("El almacenamiento no devolvió la referencia del archivo.");
+        await attachFile({ attempt_id: attemptId, storage_id: storageId as Id<"_storage"> });
+      }
+      const providerBySourceKey = new Map(
+        validationReport.transactions.map((transaction) => [transaction.sourceKey, transaction.providerId]),
+      );
+      importSubmitted = true;
+      const response = started.result || await confirmImport({
+        attempt_id: attemptId,
         weeks: validationReport.parsed.weeks.map((week) => ({
           date: week.date,
           total_people: week.total_people,
@@ -295,32 +335,35 @@ export default function UploadProjectTransactionsModal() {
           })),
         })),
       });
-      setUploadReport({
-        status: response.status,
-        dates: response.dates,
-        transactionCount: response.transaction_count,
-        rowCount: response.row_count,
-        amountTotal: response.amount_total,
-        totalPeople: response.total_people,
-        replacedDates: "replaced_dates" in response && typeof response.replaced_dates === "number"
-          ? response.replaced_dates
-          : 0,
-        providersCreated: response.providers_created,
-        providersReused: response.providers_reused,
-      });
-      setCurrentStep("result");
+      showUploadResult(response);
       if (response.status === "unchanged") {
-        toast.info("Los pagos del archivo ya están registrados; no se realizaron cambios.");
+        toast.info("Los pagos ya están registrados. El intento y el Excel quedaron en el historial.");
       } else {
         toast.success(response.status === "replaced" ? "Carga actualizada" : "Carga completada", {
           description: `${response.transaction_count} pagos, ${response.providers_created} proveedores creados y ${response.providers_reused} reutilizados.`,
         });
       }
     } catch (error) {
-      toast.error("No se realizó ningún cambio", {
-        description: error instanceof Error ? error.message : "La importación falló.",
+      const message = error instanceof Error ? error.message : "La importación falló.";
+      if (attemptId) {
+        try {
+          if (!importSubmitted) await failAttempt({ attempt_id: attemptId, error: message });
+          const attempt = await convex.query(api.laborImportHistory.getAttempt, { attempt_id: attemptId });
+          if (attempt.result) {
+            showUploadResult(attempt.result);
+            toast.success("La carga ya quedó registrada. El Excel está disponible en el historial.");
+            return;
+          }
+          if (attempt.status !== "processing") requestIdRef.current = null;
+        } catch {
+          // Keep the request ID for a safe retry; the server expires abandoned attempts.
+        }
+      }
+      toast.error("No se pudo completar la carga", {
+        description: `${message}${attemptId ? " Consulta el resultado en Historial de cargas." : ""}`,
       });
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -337,7 +380,7 @@ export default function UploadProjectTransactionsModal() {
           <DialogTitle variant="upload">Subir pagos y fuerza laboral</DialogTitle>
           <DialogDescription>
             {proyectoNombre ? `Proyecto: ${proyectoNombre}. ` : ""}
-            El archivo se procesa localmente y la carga completa se confirma en una sola operación.
+            El Excel original se guarda al confirmar y queda disponible en el historial de cargas.
             La columna ADMINISTRACIÓN puede ser un alias (por ejemplo TORRE_G) y se asociará a este proyecto.
           </DialogDescription>
         </DialogHeader>

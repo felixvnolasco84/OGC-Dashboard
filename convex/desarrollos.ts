@@ -4,6 +4,7 @@ import { isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateI
 import { getBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
+import { deleteProjectImportHistory } from "./laborImportHistory";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { mutation } from "./functions";
@@ -1570,6 +1571,8 @@ export const deleteProject = rawMutation({
                 .withIndex("by_proyecto", (q) => q.eq("proyecto", args.id))
                 .take(BATCH_SIZE);
         }
+
+        await deleteProjectImportHistory(ctx, args.id);
 
         // 9. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);

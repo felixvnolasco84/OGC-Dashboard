@@ -10,7 +10,7 @@ Las exclusiones restan importes aprobados del denominador. El numerador sigue si
 
 Guardar conserva una revisión Actual → Propuesto → Diferencia de Presupuesto y P&L. Cambiar el aprobado después del guardado actualiza las tasas y cargos automáticamente. No se requiere un botón de recalcular ni otra aprobación de la tasa. La edición de presupuesto conserva su revisión de impacto y revalida el cambio al guardar.
 
-Cambiar solo las exclusiones también requiere revisar y guardar el impacto. Cambiar el aprobado de una partida excluida conserva la base neta y la tasa; cambiar el aprobado de una incluida actualiza ambos. Una partida usada como exclusión debe retirarse de la configuración antes de eliminarla.
+Cambiar solo las exclusiones también requiere revisar y guardar el impacto. Cambiar el aprobado de una partida excluida conserva la base neta y la tasa; cambiar el aprobado de una incluida actualiza ambos. Al eliminar una partida sin dependencias, la confirmación muestra las exclusiones que se retirarán del proyecto y los totales antes y después. El guardado limpia esas referencias y recalcula los conceptos en la misma transacción. Una partida que todavía sea origen de un concepto automático requiere desactivar ese cálculo o cambiar su origen en Editar proyecto. Las referencias desde otros proyectos siguen bloqueando la eliminación.
 
 ## Cargos y desglose
 

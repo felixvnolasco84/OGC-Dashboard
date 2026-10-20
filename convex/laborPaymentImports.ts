@@ -1,8 +1,9 @@
-import { mutation, query } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { updateProviderStatsForTransactionChange } from "./providerStats";
-import { v, type Infer } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { repairProjectPaymentTotals } from "./budgetMaintenance";
 import {
   assertCanWrite,
@@ -21,6 +22,8 @@ import { classifyProjectMatch } from "./projectMatchUtils";
 import { assertProviderManagementRole, hasProviderManagementAccess } from "./providerRules";
 import { markInvoicesStaleForTransaction } from "./invoiceIntegrity";
 import { summarizeLaborWorkforce } from "./laborWorkforceRules";
+import { assertAttemptFile, writableAttempt } from "./laborImportHistory";
+import { LABOR_IMPORT_ATTEMPT_TIMEOUT, type LaborImportResult } from "./laborImportValidators";
 
 const MAX_ROWS = 1_000;
 const MONEY_TOLERANCE = 0.01;
@@ -65,6 +68,23 @@ const weekValidator = v.object({
 
 type ImportTransaction = Infer<typeof transactionValidator>;
 type ImportLine = Infer<typeof lineItemValidator>;
+
+async function recordImportItem(
+  ctx: MutationCtx, attempt: Doc<"labor_payment_import_attempts">, transactionId: Id<"transacciones">,
+  input: ImportTransaction, date: string, outcome: "created" | "updated" | "unchanged",
+) {
+  await ctx.db.insert("labor_payment_import_attempt_items", {
+    proyecto: attempt.proyecto, attempt_id: attempt._id, transaccion_id: transactionId,
+    source_key: input.source_key, source_rows: input.line_items.map(item => item.source_row),
+    factura: input.factura, proveedor: input.proveedor, fecha: date, moneda: input.moneda,
+    monto_total: input.monto_total, outcome, imported_at: attempt.created_at,
+  });
+}
+
+async function finishAttempt(ctx: MutationCtx, attempt: Doc<"labor_payment_import_attempts">, result: LaborImportResult) {
+  await ctx.db.patch(attempt._id, { status: result.status === "unchanged" ? "unchanged" : "completed", result, completed_at: Date.now() });
+  return result;
+}
 
 function invoiceKey(transaction: { factura?: string; tipo_pago: string; moneda: string }, providerKey: string) {
   // Keep invoice punctuation: two distinct folios must never overwrite each other.
@@ -200,18 +220,19 @@ export const getActiveLaborImports = query({
 
 export const replaceLaborPaymentImport = mutation({
   args: {
-    proyecto: v.id("desarrollos"),
-    source: v.object({
-      file_name: v.string(),
-      file_hash: v.string(),
-      sheet_name: v.string(),
-      administration: v.string(),
-      currency: v.string(),
-      row_count: v.number(),
-    }),
+    attempt_id: v.id("labor_payment_import_attempts"),
     weeks: v.array(weekValidator),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, input): Promise<LaborImportResult> => {
+    const attempt = await writableAttempt(ctx, input.attempt_id);
+    if (attempt.result) return attempt.result;
+    if (attempt.status !== "processing") throw new Error(attempt.error || "El intento ya terminó.");
+    if (Date.now() >= attempt.created_at + LABOR_IMPORT_ATTEMPT_TIMEOUT) throw new Error("El intento de carga expiró.");
+    await assertAttemptFile(ctx, attempt);
+    const args = { proyecto: attempt.proyecto, source: attempt.source, weeks: input.weeks };
+    if (JSON.stringify([...new Set(input.weeks.map(week => week.date))].sort()) !== JSON.stringify(attempt.dates)) {
+      throw new Error("Los cortes no coinciden con el archivo confirmado.");
+    }
     const user = await assertCanWrite(ctx);
     if (!(await checkDesarrolloAccess(ctx, args.proyecto))) {
       throw new Error("No tienes acceso para importar en este proyecto.");
@@ -389,7 +410,12 @@ export const replaceLaborPaymentImport = mutation({
       total_people: [...plans].sort((left, right) => left.week.date.localeCompare(right.week.date)).at(-1)?.workforce.totalPeople || 0,
     };
     if (plans.every(plan => !plan.changed)) {
-      return { status: "unchanged" as const, ...resultSummary, providers_created: 0, providers_reused: 0 };
+      for (const plan of plans) {
+        for (const transaction of plan.transactions) {
+          await recordImportItem(ctx, attempt, transaction.existing!._id, transaction.input, plan.week.date, "unchanged");
+        }
+      }
+      return finishAttempt(ctx, attempt, { status: "unchanged", ...resultSummary, replaced_dates: 0, providers_created: 0, providers_reused: 0 });
     }
 
     const now = Date.now();
@@ -398,10 +424,16 @@ export const replaceLaborPaymentImport = mutation({
     const createdProviderIds = new Set<Id<"proveedores">>();
     const reusedProviderIds = new Set<Id<"proveedores">>();
     for (const plan of plans) {
-      if (!plan.changed) continue;
+      if (!plan.changed) {
+        for (const transaction of plan.transactions) {
+          await recordImportItem(ctx, attempt, transaction.existing!._id, transaction.input, plan.week.date, "unchanged");
+        }
+        continue;
+      }
       const { week } = plan;
       const newImportId = await ctx.db.insert("labor_payment_imports", {
         proyecto: args.proyecto, capture_date: week.date,
+        source_attempt_id: attempt._id,
         total_people: plan.workforce.totalPeople, roles: plan.workforce.roles,
         source_file_name: args.source.file_name.trim(), source_file_hash: args.source.file_hash.toLowerCase(),
         source_sheet_name: args.source.sheet_name.trim(), source_administration: args.source.administration.trim(),
@@ -423,6 +455,7 @@ export const replaceLaborPaymentImport = mutation({
         const { input, existing, concepts } = transaction;
         if (!transaction.changed && existing) {
           await ctx.db.patch(existing._id, { labor_import_id: newImportId });
+          await recordImportItem(ctx, attempt, existing._id, input, week.date, "unchanged");
           continue;
         }
         const key = normalizeProviderName(input.proveedor);
@@ -462,6 +495,7 @@ export const replaceLaborPaymentImport = mutation({
           if (previous) await ctx.db.patch(previous._id, paymentFields);
           else await ctx.db.insert("pagos", paymentFields);
         }
+        await recordImportItem(ctx, attempt, transactionId, input, week.date, existing ? "updated" : "created");
       }
     }
 
@@ -473,10 +507,25 @@ export const replaceLaborPaymentImport = mutation({
     // Keep this in the same mutation so a failure rolls back the entire import.
     await repairProjectPaymentTotals(ctx, args.proyecto);
 
-    return {
+    return finishAttempt(ctx, attempt, {
       status: replacedDates ? "replaced" as const : "created" as const,
       ...resultSummary, replaced_dates: replacedDates,
       providers_created: createdProviderIds.size, providers_reused: reusedProviderIds.size,
-    };
+    });
+  },
+});
+
+// Persist failure outside the atomic financial mutation, which rolls back on error.
+export const confirmLaborPaymentImport = action({
+  args: { attempt_id: v.id("labor_payment_import_attempts"), weeks: v.array(weekValidator) },
+  handler: async (ctx, args): Promise<LaborImportResult> => {
+    try {
+      return await ctx.runMutation(api.laborPaymentImports.replaceLaborPaymentImport, args);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "La importación falló.";
+      const committed = await ctx.runMutation(api.laborImportHistory.failAttempt, { attempt_id: args.attempt_id, error: message });
+      if (committed) return committed;
+      throw new ConvexError(message);
+    }
   },
 });

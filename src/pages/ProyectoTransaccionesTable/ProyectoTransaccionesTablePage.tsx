@@ -32,6 +32,7 @@ import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
 import { InvoiceBackfillDialog } from "@/components/invoices/InvoiceBackfillDialog";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
+import { LaborImportHistoryDialog } from "@/components/transactions/LaborImportHistory";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
@@ -538,6 +539,7 @@ export default function ProyectoTransaccionesTablePage() {
                                 onUploadInvoice={() => setInvoiceOpen(true)}
                             />
                             <InvoiceBackfillDialog projectId={proyectoId as Id<"desarrollos">} />
+                            <LaborImportHistoryDialog key={proyecto._id} projectId={proyecto._id} />
                             <Button
                                 onClick={handleSync}
                                 disabled={isSyncing}

@@ -51,16 +51,109 @@ function fixture() {
 }
 
 describe("complete budget deletion", () => {
-  it("blocks removing an excluded root until its concept configuration is changed", async () => {
+  it("removes an unused excluded root and cleans its concept references on confirmation", async () => {
     const f = fixture();
     f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS", presupuesto_original: 20, presupuesto_aprobado: 20 });
     f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: ["root"] }], f.tables.partidas);
     const impact = await f.impact();
-    expect(impact.canDelete).toBe(false);
-    expect(impact.blockers.join(" ")).toContain("excluida de la base");
-    await expect(f.remove()).rejects.toThrow(); expect(f.writes).toEqual([]);
-    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: [] }], f.tables.partidas);
-    expect((await f.impact()).canDelete).toBe(true);
+    expect(impact).toMatchObject({ canDelete: true, counts: { exclusiones: 0 }, exclusionCleanup: { concepts: ["honorarios"], shared: false } });
+    expect(impact.budget.before.gasto_total).toBe(impact.budget.after.gasto_total);
+    expect(f.writes).toEqual([]);
+    await executePartidaDeletion(f.ctx, "root", "project", impact.expectedScope);
+    expect(f.find("root")).toBeUndefined();
+    expect(f.tables.desarrollos[0].fee_concepts[0]).toMatchObject({ excluded_partidas: [], porcentaje: 100, base_aprobada: 20 });
+  });
+
+  it("deletes General Conditions after disabling its calculation while retaining exclusions in other concepts", async () => {
+    const f = fixture();
+    for (const row of f.tables.partidas) { row.nombre = "GENERAL CONDITIONS"; if (row.nivel > 1) row.partida_nombre = row.nombre; }
+    f.tables.partidas.push(
+      { ...f.find("root"), _id: "fee", nombre: "HONORARIOS", presupuesto_original: 20, presupuesto_aprobado: 20 },
+      { ...f.find("root"), _id: "indirect", nombre: "INDIRECTOS", presupuesto_original: 10, presupuesto_aprobado: 10 },
+      { ...f.find("root"), _id: "other", nombre: "OTRA", presupuesto_aprobado: 180, pagado: 100 },
+    );
+    const inputs = [
+      { concepto: "general_conditions", partida_id: "root", excluded_partidas: ["root"] },
+      { concepto: "honorarios", partida_id: "fee", excluded_partidas: ["root"] },
+      { concepto: "indirectos", partida_id: "indirect", excluded_partidas: ["root", "fee"] },
+    ];
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts(inputs, f.tables.partidas);
+    expect((await f.impact()).blockers.join()).toContain("origen de un concepto automático: General Conditions");
+    expect(f.writes).toEqual([]);
+    // The user has saved Editar proyecto with General Conditions disabled.
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts(inputs.slice(1), f.tables.partidas);
+    f.tables.desarrollos[0].excluded_partidas_honorarios = ["root", "other"];
+    f.tables.transacciones = [{ _id: "tx", proyecto: "project", monto_total: 100, status: "Pagado", fecha: "2026-09-01", moneda: "MXN" }];
+    f.tables.pagos = [{ _id: "pay", transaccion_id: "tx", partida_id: "other", monto: 100 }];
+    const beforePayments = structuredClone(f.tables.pagos);
+    const preview = await f.impact();
+    expect(preview).toMatchObject({ canDelete: true, exclusionCleanup: { concepts: ["honorarios", "indirectos"], shared: true } });
+    expect(preview.budget.after.gasto_total).toBe(preview.budget.before.gasto_total);
+    expect(preview.budget.after.presupuesto_aprobado).toBe(210);
+    expect(f.writes).toEqual([]);
+    const rates = f.tables.desarrollos[0].fee_concepts.map(c => c.porcentaje);
+    await executePartidaDeletion(f.ctx, "root", "project", preview.expectedScope);
+    expect(f.tables.desarrollos[0].fee_concepts.map(c => c.excluded_partidas)).toEqual([[], ["fee"]]);
+    expect(f.tables.desarrollos[0].fee_concepts.map(c => c.porcentaje)).toEqual(rates);
+    expect(f.tables.desarrollos[0].excluded_partidas_honorarios).toEqual(["other"]);
+    expect(f.find("fee").pagado).toBe(9.52);
+    expect(f.find("indirect").pagado).toBe(5.26);
+    expect(f.tables.meticas_presupuesto[0]).toMatchObject(preview.budget.after);
+    expect(f.tables.pagos).toEqual(beforePayments);
+    expect(f.tables.partidas).toHaveLength(3);
+  });
+
+  it("cleans legacy shared exclusions without requiring a configured budget concept", async () => {
+    const f = fixture();
+    f.tables.desarrollos[0].excluded_partidas_honorarios = ["root"];
+    const preview = await f.impact();
+    expect(preview).toMatchObject({ canDelete: true, exclusionCleanup: { concepts: [], shared: true } });
+    await f.remove();
+    expect(f.tables.desarrollos[0].excluded_partidas_honorarios).toEqual([]);
+    expect(f.tables.meticas_presupuesto[0].gasto_total).toBe(0);
+  });
+
+  it.each(["payment", "foreign-exclusion", "foreign-source"])("keeps %s as a blocker without cleaning any exclusions", async reference => {
+    const f = fixture();
+    f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS" });
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: ["root"] }], f.tables.partidas);
+    if (reference === "payment") f.tables.pagos = [{ _id: "pay", partida_id: "leaf", monto: 1 }];
+    if (reference === "foreign-exclusion") f.tables.desarrollos.push({ _id: "foreign", fee_concepts: [{ concepto: "indirectos", partida_id: "foreign-fee", excluded_partidas: ["root"] }] });
+    if (reference === "foreign-source") f.tables.desarrollos.push({ _id: "foreign", fee_concepts: [{ concepto: "indirectos", partida_id: "root", excluded_partidas: [] }] });
+    expect((await f.impact()).canDelete).toBe(false);
+    await expect(f.remove()).rejects.toThrow();
+    expect(f.writes).toEqual([]);
+    expect(f.tables.desarrollos[0].fee_concepts[0].excluded_partidas).toEqual(["root"]);
+  });
+
+  it.each(["fee_concepts", "excluded_partidas_honorarios", "honorarios_modo", "honorarios_porcentaje", "indirectos_porcentaje", "moneda_principal"])("rejects concurrent changes to %s before cleaning references", async field => {
+    const f = fixture();
+    f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS" });
+    const preview = await f.impact();
+    f.tables.desarrollos[0][field] = {
+      fee_concepts: deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: ["root"] }], f.tables.partidas),
+      excluded_partidas_honorarios: ["root"], honorarios_modo: "transacciones", honorarios_porcentaje: 5,
+      indirectos_porcentaje: 3, moneda_principal: "USD",
+    }[field];
+    await expect(executePartidaDeletion(f.ctx, "root", "project", preview.expectedScope)).rejects.toThrow("cambió");
+    expect(f.writes).toEqual([]);
+  });
+
+  it("uses a compact confirmation for complete financial snapshots larger than 512 KiB and reuses the inspected records", async () => {
+    const f = fixture();
+    f.tables.partidas.push({ ...f.find("root"), _id: "fee", nombre: "HONORARIOS" },
+      { ...f.find("root"), _id: "other", nombre: "OTRA", pagado: 100 });
+    f.tables.desarrollos[0].fee_concepts = deriveFeeConcepts([{ concepto: "honorarios", partida_id: "fee", excluded_partidas: ["root"] }], f.tables.partidas);
+    f.tables.transacciones = [{ _id: "tx", proyecto: "project", monto_total: 100, status: "Pagado", fecha: "2026-09-01", descripcion: "x".repeat(600000) }];
+    f.tables.pagos = [{ _id: "pay", transaccion_id: "tx", partida_id: "other", monto: 100 }];
+    const preview = await f.impact();
+    expect(preview.canDelete).toBe(true);
+    expect(preview.expectedScope).toMatch(/^sha256:[0-9a-f]{64}$/);
+    f.reads.length = 0;
+    await executePartidaDeletion(f.ctx, "root", "project", preview.expectedScope);
+    expect(f.reads.filter(([table, method]) => table === "transacciones" && method === "stream")).toHaveLength(1);
+    expect(f.reads.filter(([table, method]) => table === "transacciones" && method === "take")).toHaveLength(0);
+    expect(f.tables.meticas_presupuesto[0]).toMatchObject(preview.budget.after);
   });
   it("deleting an unused branch recalculates configured rates over the remaining approved total", async () => {
     const f = fixture();

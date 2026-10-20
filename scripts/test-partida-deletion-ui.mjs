@@ -32,6 +32,18 @@ try {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     assert.equal(await page.evaluate(() => window.deletionRecorded.mutations.length), 0);
+    await open(page, "excluded");
+    await expect(page.getByText(/Al confirmar, se retirará esta rama de las exclusiones de: Honorarios, Indirectos/)).toBeVisible();
+    await expect(page.getByText(/Gasto total del proyecto:/)).toBeVisible();
+    await expect(page.getByText(/Por gastar del proyecto:/)).toBeVisible();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Excluded dialog overflow at ${width}px`);
+    await page.screenshot({ path: `${root}/output/partida-deletion/excluded-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.deletionRecorded.mutations.length), 0);
+    await open(page, "excluded");
+    await page.getByRole("button", { name: "Eliminar definitivamente" }).click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    assert.equal(await page.evaluate(() => window.deletionRecorded.mutations.length), 1);
     await open(page, "blocked");
     await expect(page.getByText("2 pagos", { exact: true })).toBeVisible();
     assert.equal(await page.getByRole("button", { name: "Eliminar definitivamente" }).count(), 0);

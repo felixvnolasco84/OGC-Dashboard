@@ -39,6 +39,7 @@ const client = {
       nivel, scope: { partidas: nivel === 1 ? 2 : 0, familias: nivel <= 2 ? 1 : 0, subpartidas: nivel === 3 ? 1 : 2, total: nivel === 1 ? 5 : nivel === 2 ? 3 : 1, duplicates: nivel === 1 ? 1 : 0 },
       counts: { ...counts, pagos: blocked ? 2 : 0 }, blockers: scenario === "limit" ? ["El volumen de datos excede el límite de verificación segura."] : scenario === "honorarios" ? ["La rama HONORARIOS está protegida."] : blocked ? ["2 pagos", "1 concepto de factura"] : [],
       expectedScope: `snapshot-${recorded.previews}`, hasEquivalentSibling: false,
+      exclusionCleanup: { concepts: scenario === "excluded" ? ["honorarios", "indirectos"] : [], shared: scenario === "excluded" },
       budget: { before: { presupuesto_original: 100, presupuesto_aprobado: 120, gasto_total: 0, por_gastar: 120 }, after: { presupuesto_original: 0, presupuesto_aprobado: 0, gasto_total: 0, por_gastar: 0 } },
     };
     return result;

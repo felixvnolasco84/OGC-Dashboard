@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
+import { TransactionImportSources } from "@/components/transactions/LaborImportHistory";
 
 type Partida = {
   _id: Id<"partidas">;
@@ -295,6 +296,8 @@ export default function TransactionDetailsModal() {
                 </Link>
               )}
             </section>
+
+            <TransactionImportSources key={transaction._id} transactionId={transaction._id} />
 
             <section className="border-t border-border">
               <div className="flex items-center justify-between gap-3 px-6 py-5">
