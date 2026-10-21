@@ -8,7 +8,13 @@ import { getByProyecto } from "./meticas_presupuesto";
 
 const period = { periodYear: 2026, cutoffMonth: 2, usdToMxn: 17, eurToMxn: 18.5 };
 
-function database(input = {}) {
+function database(input = {}, { documentLimit = Infinity } = {}) {
+  const reads = { documents: 0 };
+  const recordRead = (documents) => {
+    reads.documents += documents.length;
+    if (reads.documents > documentLimit) throw new Error("Too many documents read in a single function execution");
+    return documents;
+  };
   const tables = structuredClone({
     desarrollos: [{ _id: "project", nombre: "Obra", ubicacion: "Los Cabos", status: "Activo", honorarios_porcentaje: 10 }],
     partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA" }],
@@ -22,7 +28,7 @@ function database(input = {}) {
   const ctx = {
     auth: { getUserIdentity: async () => ({ subject: "pnl-test-user" }) },
     db: {
-      async get(id) { return Object.values(tables).flat().find(doc => doc._id === id) || null; },
+      async get(id) { return recordRead(Object.values(tables).flat().filter(doc => doc._id === id))[0] || null; },
       query(table) {
         const filters = [];
         const query = {
@@ -31,14 +37,14 @@ function database(input = {}) {
             predicate?.(builder);
             return query;
           },
-          async collect() { return (tables[table] || []).filter(doc => filters.every(([key, value]) => doc[key] === value)); },
-          async first() { return (await query.collect())[0] || null; },
+          async collect() { return recordRead((tables[table] || []).filter(doc => filters.every(([key, value]) => doc[key] === value))); },
+          async first() { return recordRead((tables[table] || []).filter(doc => filters.every(([key, value]) => doc[key] === value)).slice(0, 1))[0] || null; },
         };
         return query;
       },
     },
   };
-  return { ctx, tables };
+  return { ctx, tables, reads };
 }
 
 const movement = (patch = {}) => ({
@@ -216,6 +222,50 @@ function automaticDatabase(patch = {}) {
   });
 }
 const october = { ...period, cutoffMonth: 10 };
+
+it("loads profitability within the document limit for a portfolio with 15,000 historical payments", async () => {
+  const desarrollos = Array.from({ length: 5 }, (_, index) => ({
+    _id: `project-${index}`, nombre: `Obra ${index}`, honorarios_porcentaje: 15, indirectos_porcentaje: 10,
+  }));
+  const partidas = desarrollos.flatMap(project => Array.from({ length: 30 }, (_, index) => ({
+    _id: `${project._id}-work-${index}`, proyecto: project._id, nivel: 1, nombre: `OBRA ${index}`, pagado: 10000,
+  })));
+  const transacciones = desarrollos.flatMap(project => Array.from({ length: 150 }, (_, index) => ({
+    _id: `${project._id}-transaction-${index}`, proyecto: project._id, fecha: "2026-10-01", status: "Pagado", monto_total: 2000, moneda: "MXN",
+  })));
+  // Legacy payments intentionally have no proyecto_id; load them through their transaction.
+  const pagos = transacciones.flatMap(transaction => Array.from({ length: 20 }, (_, index) => ({
+    _id: `${transaction._id}-payment-${index}`, transaccion_id: transaction._id,
+    partida_id: `${transaction.proyecto}-work-${index}`, monto: 100,
+  })));
+  const f = database({ desarrollos, partidas, transacciones, pagos, meticas_presupuesto: [] }, { documentLimit: 32000 });
+  const result = await getProfitabilitySummary._handler(f.ctx, october);
+  expect(result.projects).toHaveLength(5);
+  expect(result.totals).toMatchObject({ honorarios: 225000, indirectos: 150000 });
+  expect(result.totals.wip.costoReal).toBe(1650000);
+  expect(f.reads.documents).toBeLessThan(17000);
+});
+
+it("keeps lifetime WIP costs and cutoff expenses while limiting P&L charges to the selected year", async () => {
+  const f = automaticDatabase({
+    desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 15, indirectos_porcentaje: 10, honorarios_monto: 0 }],
+    partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA", pagado: 6000 }],
+    transacciones: [
+      { _id: "old", proyecto: "project", fecha: "2025-12-01", status: "Pagado", monto_total: 1000, moneda: "MXN" },
+      { _id: "current", proyecto: "project", fecha: "2026-10-01", status: "Pagado", monto_total: 2000, moneda: "MXN" },
+      { _id: "future", proyecto: "project", fecha: "2026-11-01", status: "Pagado", monto_total: 3000, moneda: "MXN" },
+    ],
+    pagos: [
+      { transaccion_id: "old", partida_id: "work", monto: 1000 },
+      { transaccion_id: "current", partida_id: "work", monto: 2000 },
+      { transaccion_id: "future", partida_id: "work", monto: 3000 },
+    ],
+    ogc_movimientos: [],
+  });
+  const result = await getProfitabilitySummary._handler(f.ctx, october);
+  expect(result.totals).toMatchObject({ honorarios: 300, indirectos: 200 });
+  expect(result.projects[0].wip).toMatchObject({ costoReal: 6600, averageMonthlyExpense: 1500 });
+});
 
 describe.each([["P&L", getPnlSummary], ["Profitability", getProfitabilitySummary]])("Automatic indirectos: %s", (_name, query) => {
   it("charges 10% and subtracts only actual costs, once", async () => {

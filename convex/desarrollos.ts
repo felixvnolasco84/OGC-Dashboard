@@ -426,17 +426,11 @@ const getControlPhysicalProgressPercent = async (ctx: QueryCtx, proyectoId: Doc<
     return physicalProgressPercent / 100;
 };
 
-const getAverageMonthlyExpense = async (
-    ctx: QueryCtx,
-    proyectoId: Doc<"desarrollos">["_id"],
+const calculateAverageMonthlyExpense = (
+    transactions: Doc<"transacciones">[],
     period: PnlPeriod,
     rates: ExchangeRates
 ) => {
-    const transactions = await ctx.db
-        .query("transacciones")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto", proyectoId))
-        .collect();
-
     const monthlyExpenses = transactions
         .filter((transaction) => transaction.status === "Pagado")
         .reduce((totals, transaction) => {
@@ -521,12 +515,16 @@ const getProjectCollectedIncomeBreakdown = async (
     };
 };
 
-const summarizeProjectPayments = async (
+type ProjectPaymentRecords = Pick<FeeImpactRecords, "partidas" | "transactions" | "pagos"> & {
+    metrics: Doc<"meticas_presupuesto"> | null;
+};
+
+const loadProjectPaymentRecords = async (
     ctx: QueryCtx,
     proyecto: Doc<"desarrollos">,
     period: PnlPeriod,
-    rates: ExchangeRates
-) => {
+    includeAllPayments = false,
+): Promise<ProjectPaymentRecords> => {
     const [metrics, partidas, transactions] = await Promise.all([
         ctx.db
             .query("meticas_presupuesto")
@@ -542,15 +540,18 @@ const summarizeProjectPayments = async (
             .collect(),
     ]);
 
-    const periodTransactions = transactions.filter(t => isDateWithinPeriod(parseReportDate(t.fecha), period));
-    const pagos = (await Promise.all(periodTransactions.map(t => ctx.db.query("pagos")
+    // WIP budget costs need lifetime payments; P&L charges remain period-based.
+    const paymentTransactions = includeAllPayments
+        ? transactions
+        : transactions.filter(t => isDateWithinPeriod(parseReportDate(t.fecha), period));
+    const pagos = (await Promise.all(paymentTransactions.map(t => ctx.db.query("pagos")
         .withIndex("by_transaccion", q => q.eq("transaccion_id", t._id)).collect()))).flat();
-    return summarizeProjectPaymentRecords(proyecto, period, rates, { metrics, partidas, transactions, pagos });
+    return { metrics, partidas, transactions, pagos };
 };
 
 export const summarizeProjectPaymentRecords = (
     proyecto: Doc<"desarrollos">, period: PnlPeriod, rates: ExchangeRates,
-    records: Omit<FeeImpactRecords, "movements"> & { metrics: Doc<"meticas_presupuesto"> | null },
+    records: ProjectPaymentRecords,
 ) => {
     const pagosByTransaction = new Map<string, Doc<"pagos">[]>();
     for (const pago of records.pagos) {
@@ -668,9 +669,12 @@ const getOgcFormulaTotals = async (
     proyecto: Doc<"desarrollos">,
     period: PnlPeriod,
     rates: ExchangeRates,
-    ogcMovements: OgcMovement[] = []
+    ogcMovements: OgcMovement[] = [],
+    records?: ProjectPaymentRecords,
 ) => {
-    const projectPaymentSummary = await summarizeProjectPayments(ctx, proyecto, period, rates);
+    const projectPaymentSummary = summarizeProjectPaymentRecords(
+        proyecto, period, rates, records ?? await loadProjectPaymentRecords(ctx, proyecto, period),
+    );
     return calculateOgcFormulaTotals(proyecto, period, rates, ogcMovements, projectPaymentSummary);
 };
 
@@ -730,13 +734,13 @@ const getWipFormulaTotals = async (
     formulaTotals: Awaited<ReturnType<typeof getOgcFormulaTotals>>,
     period: PnlPeriod,
     rates: ExchangeRates,
-    ogcMovements: OgcMovement[] = []
+    ogcMovements: OgcMovement[],
+    records: ProjectPaymentRecords,
 ) => {
     const presupuesto = formulaTotals.metrics?.presupuesto_aprobado || 0;
     let costoReal = formulaTotals.metrics?.gasto_total || 0;
     if ((proyecto.indirectos_porcentaje !== undefined || proyecto.fee_concepts?.length)) {
-        const roots = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", proyecto._id)).collect();
-        costoReal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto)).gasto_total;
+        costoReal = calculatePresupuestoMetrics(records.partidas, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto, records)).gasto_total;
     }
     const collectedIncome = await getProjectCollectedIncomeBreakdown(ctx, proyecto._id, period, rates, ogcMovements);
     const pagado = collectedIncome.total;
@@ -747,7 +751,7 @@ const getWipFormulaTotals = async (
     const eac = cpi > 0 ? (costoReal + restante) / cpi : 0;
     const varianza = eac > 0 ? presupuesto - eac : 0;
     const saldo = pagado - costoReal;
-    const averageMonthlyExpense = await getAverageMonthlyExpense(ctx, proyecto._id, period, rates);
+    const averageMonthlyExpense = calculateAverageMonthlyExpense(records.transactions, period, rates);
     const averageWeeklyExpense = averageMonthlyExpense * 12 / 52;
     const runway = saldo > 0 && averageWeeklyExpense > 0 ? saldo / averageWeeklyExpense : 0;
 
@@ -940,14 +944,19 @@ export const getProfitabilitySummary = query({
     const projects = await Promise.all(
         proyectos.map(async (proyecto) => {
             const projectOgcMovements = ogcMovements.filter((movement) => movement.proyecto === proyecto._id);
+            const records = await loadProjectPaymentRecords(
+                ctx, proyecto, period,
+                proyecto.indirectos_porcentaje !== undefined || Boolean(proyecto.fee_concepts?.length),
+            );
             const formulaTotals = await getOgcFormulaTotals(
                 ctx,
                 proyecto,
                 period,
                 rates,
-                projectOgcMovements
+                projectOgcMovements,
+                records,
             );
-            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, period, rates, projectOgcMovements);
+            const wip = await getWipFormulaTotals(ctx, proyecto, formulaTotals, period, rates, projectOgcMovements, records);
             const ingresosOgc = formulaTotals.ingresosOgc;
             // Compare charged income against actual assigned OGC costs and the
             // legacy indirect cost, without treating automatic charges as expenses.

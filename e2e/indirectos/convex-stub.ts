@@ -25,8 +25,11 @@ let previewFailure = false;
 let mutationFailure = false;
 let delayedMutation = false;
 let paymentBase = 100000;
+let reportLoading = new URLSearchParams(location.search).get("reportLoading");
+const reportQueries: string[] = [];
 Object.assign(window, {
-  feeFixtureChange: (change: { project?: Record<string, unknown>; approvedWork?: number; gcOriginal?: number; paymentBase?: number; previewFailure?: boolean; mutationFailure?: boolean; delayedMutation?: boolean }) => {
+  pnlFixtureQueries: reportQueries,
+  feeFixtureChange: (change: { project?: Record<string, unknown>; approvedWork?: number; gcOriginal?: number; paymentBase?: number; previewFailure?: boolean; mutationFailure?: boolean; delayedMutation?: boolean; reportLoading?: "pnl" | "profitability" | null }) => {
     Object.assign(project, change.project || {});
     if (change.paymentBase !== undefined) paymentBase = change.paymentBase;
     if (change.approvedWork !== undefined) partidas[0].presupuesto_aprobado = change.approvedWork;
@@ -34,6 +37,7 @@ Object.assign(window, {
     if (change.previewFailure !== undefined) previewFailure = change.previewFailure;
     if (change.mutationFailure !== undefined) mutationFailure = change.mutationFailure;
     if (change.delayedMutation !== undefined) delayedMutation = change.delayedMutation;
+    if (change.reportLoading !== undefined) reportLoading = change.reportLoading;
     revision++; window.dispatchEvent(new Event("fee-fixture-change"));
   },
 });
@@ -106,8 +110,14 @@ function queryResult(name: string, args?: unknown): unknown {
       honorarios: result.concepts.find(c => c.concepto === "honorarios")?.monto ?? p.honorarios_monto,
       indirectos: result.concepts.filter(c => c.concepto !== "honorarios").reduce((sum,c) => sum + c.monto, 0) };
   }
-  if (name === "desarrollos:getPnlSummary") return pnl;
-  if (name === "desarrollos:getProfitabilitySummary") return profitability;
+  if (name === "desarrollos:getPnlSummary") {
+    reportQueries.push(name);
+    return reportLoading === "pnl" ? undefined : pnl;
+  }
+  if (name === "desarrollos:getProfitabilitySummary") {
+    reportQueries.push(name);
+    return reportLoading === "profitability" ? undefined : profitability;
+  }
   if (name === "ogc_movimientos:getAll") return [];
   throw new Error(`Unexpected fixture query: ${name}`);
 }

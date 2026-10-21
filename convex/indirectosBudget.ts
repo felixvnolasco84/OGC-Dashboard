@@ -4,15 +4,19 @@ import { calculateIndirectosFromRecords } from "./indirectosRules";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
 
 // Budget amounts use the project's display currency; P&L converts to MXN.
-export async function getBudgetIndirectos(ctx: Pick<QueryCtx, "db">, project: Doc<"desarrollos"> | null) {
+export async function getBudgetIndirectos(
+  ctx: Pick<QueryCtx, "db">,
+  project: Doc<"desarrollos"> | null,
+  records?: { partidas: Doc<"partidas">[]; transactions: Doc<"transacciones">[]; pagos: Doc<"pagos">[] },
+) {
   if (!project || (project.indirectos_porcentaje === undefined && !project.fee_concepts?.length)) {
     return { automaticos: 0, manualesSustituidos: 0, sustituidosPorPartida: {} as Record<string, number>, automaticosPorPartida: {} as Record<string, number>, porcentajesPorPartida: {} as Record<string, number>, concepts: [], honorariosPartidaId: undefined, honorariosMontoActual: undefined };
   }
-  const [partidas, transactions] = await Promise.all([
+  const [partidas, transactions] = records ? [records.partidas, records.transactions] : await Promise.all([
     ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).collect(),
     ctx.db.query("transacciones").withIndex("by_proyecto", q => q.eq("proyecto", project._id)).collect(),
   ]);
-  const pagos = (await Promise.all(transactions.map(t => ctx.db.query("pagos")
+  const pagos = records?.pagos ?? (await Promise.all(transactions.map(t => ctx.db.query("pagos")
     .withIndex("by_transaccion", q => q.eq("transaccion_id", t._id)).collect()))).flat();
   const honorariosMontoActual = project.fee_concepts?.some(c => c.concepto === "honorarios")
     ? calculateHonorariosFromRecords({ proyectoId: String(project._id), modo: project.honorarios_modo,

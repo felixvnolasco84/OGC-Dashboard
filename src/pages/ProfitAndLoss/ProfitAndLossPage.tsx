@@ -2219,8 +2219,14 @@ export default function ProfitAndLossPage() {
   );
   const ogcExchangeRates = useMemo(() => ({ USD: usdToMxn, EUR: eurToMxn }), [usdToMxn, eurToMxn]);
 
-  const pnlSummary = useQuery(api.desarrollos.getPnlSummary, pnlQueryParams) as PnlSummary | undefined;
-  const profitabilitySummary = useQuery(api.desarrollos.getProfitabilitySummary, pnlQueryParams) as ProfitabilitySummary | undefined;
+  const pnlSummary = useQuery(
+    api.desarrollos.getPnlSummary,
+    activeTab === "pnl" ? pnlQueryParams : "skip",
+  ) as PnlSummary | undefined;
+  const profitabilitySummary = useQuery(
+    api.desarrollos.getProfitabilitySummary,
+    activeTab === "pnl" ? "skip" : pnlQueryParams,
+  ) as ProfitabilitySummary | undefined;
   const ogcMovements = useQuery(api.ogc_movimientos.getAll, { includeInactive: true }) as OgcLedgerMovement[] | undefined;
   const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
   const projectLocations = useQuery(api.project_locations.list);
@@ -2275,8 +2281,6 @@ export default function ProfitAndLossPage() {
   };
 
   if (
-    pnlSummary === undefined ||
-    profitabilitySummary === undefined ||
     ogcMovements === undefined ||
     proyectos === undefined ||
     projectLocations === undefined
@@ -2366,7 +2370,9 @@ export default function ProfitAndLossPage() {
         </div>
 
         {activeTab === "pnl" ? (
-          <>
+          pnlSummary === undefined ? (
+            <p className="py-12 text-muted-foreground">Cargando datos...</p>
+          ) : <>
             <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
               <div className="space-y-2 text-left">
                 <p className="text-sm text-muted-foreground">Ingresos OGC YTD</p>
@@ -2406,6 +2412,8 @@ export default function ProfitAndLossPage() {
               <AnnualPnlSummaryTables totals={pnlSummary.totals} periodLabel={periodLabel} />
             </div>
           </>
+        ) : profitabilitySummary === undefined ? (
+          <p className="py-12 text-muted-foreground">Cargando datos...</p>
         ) : activeTab === "wip" ? (
           <WorkInProgressView
             summary={profitabilitySummary}
