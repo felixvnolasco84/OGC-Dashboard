@@ -122,6 +122,7 @@ import type * as tareas from "../tareas.js";
 import type * as taskEmailTemplates from "../taskEmailTemplates.js";
 import type * as taskNotifications from "../taskNotifications.js";
 import type * as transacciones from "../transacciones.js";
+import type * as transactionConcept from "../transactionConcept.js";
 import type * as users from "../users.js";
 import type * as weekly_avance_real from "../weekly_avance_real.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
@@ -244,6 +245,7 @@ declare const fullApi: ApiFromModules<{
   taskEmailTemplates: typeof taskEmailTemplates;
   taskNotifications: typeof taskNotifications;
   transacciones: typeof transacciones;
+  transactionConcept: typeof transactionConcept;
   users: typeof users;
   weekly_avance_real: typeof weekly_avance_real;
   weekly_projected_totals: typeof weekly_projected_totals;

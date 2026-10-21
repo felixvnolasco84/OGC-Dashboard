@@ -24,12 +24,13 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Card overflow at ${width}`);
     await page.screenshot({ path: `${screenshotDir}/card-${width}.png`, fullPage: true });
     await page.getByRole("button", { name: "Ver desglose", exact: true }).click();
-    assert.deepEqual(await page.getByRole("columnheader").allTextContents(), ["#", "Partida", "Familia", "Subpartida", "Concepto", "Monto"]);
-    await expect(page.getByRole("cell", { name: "Entrega original", exact: true })).toBeVisible();
+    assert.deepEqual(await page.getByRole("columnheader").allTextContents(), ["#", "Partida", "Familia", "Subpartida", "Monto"]);
+    await expect(page.getByRole("dialog").getByText("Entrega original", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     for (const button of ["Crear con subpartida", "Crear directo a familia"]) {
       await page.getByRole("button", { name: button, exact: true }).click();
       const concept = page.getByLabel("Concepto (opcional)", { exact: true });
+      await expect(concept).toHaveCount(1);
       await expect(concept).toHaveValue("");
       await concept.fill("  Entrega manual de octubre  ");
       await page.getByRole("combobox", { name: "Categoría", exact: true }).click();
@@ -41,7 +42,8 @@ try {
       await page.getByRole("button", { name: "Guardar 1 pago(s)", exact: true }).click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       const saved = await page.evaluate(() => window.paymentEditRecorded.mutations.filter(c => c.name === "transacciones:createTransaction").at(-1));
-      assert.equal(saved.args.lineItems[0].concepto_adicional, "Entrega manual de octubre");
+      assert.equal(saved.args.concepto_adicional, "Entrega manual de octubre");
+      assert.equal(saved.args.lineItems[0].concepto_adicional, undefined);
       assert.equal(saved.args.lineItems[0].sub_partida, button.includes("directo") ? "" : "VARILLA");
     }
     await page.close();

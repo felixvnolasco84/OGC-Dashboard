@@ -7,7 +7,7 @@ const subscribe = (listener: () => void) => { listeners.add(listener); return ()
 export const recorded = { mutations: [] as unknown[] };
 Object.assign(window, { paymentEditRecorded: recorded });
 window.addEventListener("payment-edit-change", () => { version++; listeners.forEach(l => l()); });
-const transaction = { _id: "tx", _creationTime: 0, proyecto: "project", proveedor_id: "provider", monto_total: 1000,
+const transaction = { _id: "tx", _creationTime: 0, proyecto: "project", proveedor_id: "provider", monto_total: 1000, concepto_adicional: "Entrega original",
   fecha: "05/10/2026", tipo_pago: "TRANSFERENCIA", moneda: "MXN", tipo_cambio: "1", status: "Pagado", banco: "Banco histórico", numero_cuenta: "0012345678" };
 const partida = { _id: "leaf", nombre: "OBRA", partida_nombre: "OBRA", nivel: 3, familia: "ACERO", sub_partida: "VARILLA", proyecto: "project" };
 const items = [ { _id: "a", _creationTime: 0, transaccion_id: "tx", partida_id: "leaf", monto: 300, concepto_adicional: "Entrega original", label: "OBRA › ACERO › VARILLA", partida },
@@ -19,11 +19,7 @@ function review(args: any) {
   if (scenario === "preview-error") return { status: "error", message: "No se pudo consultar el impacto. Conservamos tu borrador." };
   if (args.expectedSource !== `source-${version}`) return { status: "conflict", message: "La transacción cambió" };
   const before = { ...bankDefaults, ...transaction, codigo_referencia: version ? "Cambio externo" : undefined };
-  const concepts = items.map(p => {
-    const edit = args.conceptos?.find((c: any) => c.id === p._id);
-    return { id: p._id, label: p.label, before: p.monto, after: args.amounts.find((a: any) => a.id === p._id)?.monto ?? p.monto,
-      conceptoBefore: p.concepto_adicional || "", conceptoAfter: edit ? edit.concepto_adicional || "" : p.concepto_adicional || "" };
-  });
+  const concepts = items.map(p => ({ id: p._id, label: p.label, before: p.monto, after: args.amounts.find((a: any) => a.id === p._id)?.monto ?? p.monto }));
   const after = { ...before, ...args.fields, monto_total: concepts.reduce((sum, p) => sum + p.after, 0) };
   const paid = after.status === "Pagado";
   const budget = (total: number, eligible: boolean) => ({ presupuesto_original: 4000, presupuesto_aprobado: 4000,
@@ -31,7 +27,7 @@ function review(args: any) {
   const pnl = (t: typeof transaction) => ({ totalPagado: t.status === "Pagado" ? t.monto_total : 0, honorarios: t.status === "Pagado" ? t.monto_total * .1 : 0,
     indirectos: t.status === "Pagado" ? t.monto_total * .05 : 0, costosDirectosObra: t.status === "Pagado" ? t.monto_total : 0, monthly: t.status === "Pagado" ? { "2026-10": { honorarios: t.monto_total * .1, indirectos: t.monto_total * .05, costosDirectosObra: t.monto_total } } : {} });
   return { status: "ready", expectedScope: JSON.stringify([args, version]), source: args.expectedSource, before, after, concepts,
-    hasChanges: args.amounts.length > 0 || Boolean(args.conceptos?.length) || Object.keys(args.fields).length > 0,
+    hasChanges: args.amounts.length > 0 || Object.keys(args.fields).length > 0,
     hierarchy: [{ id: "root", label: "OBRA", pagadoBefore: 1000, pagadoAfter: paid ? after.monto_total : 0, remainingBefore: 1000, remainingAfter: 2000 - (paid ? after.monto_total : 0) }],
     beforeBudget: budget(1000, true), afterBudget: budget(after.monto_total, paid), beforeBudgetCurrency: "MXN", afterBudgetCurrency: "MXN",
     beforePnl: pnl(before), afterPnl: pnl(after), invoiceCount: 1, providerBefore: "Proveedor de prueba", providerAfter: "Proveedor de prueba", rateBefore: 1, rateAfter: 1, warnings: [] };
@@ -66,7 +62,7 @@ export function useMutation(query: any) {
     if (scenario === "lost-response" || scenario === "lost-response-drift") {
       const saved = review(args);
       recoveredContext = { ...initial, transaction: { ...saved.after, ...(scenario === "lost-response-drift" ? { banco: "Cambio posterior" } : {}) },
-        lineItems: items.map(p => ({ ...p, monto: saved.concepts.find((c: any) => c.id === p._id).after, concepto_adicional: saved.concepts.find((c: any) => c.id === p._id).conceptoAfter || undefined })) };
+        lineItems: items.map(p => ({ ...p, monto: saved.concepts.find((c: any) => c.id === p._id).after })) };
       throw new Error("Se perdió la respuesta de guardado. Tu borrador se conserva.");
     }
     return { id: "tx", changed: true };

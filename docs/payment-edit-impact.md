@@ -1,12 +1,16 @@
 # Edición de pagos y transacciones de Obra
 
-Implementación local verificada el 13 de octubre de 2026.
+Implementación local actualizada el 21 de octubre de 2026.
 
 ## Comportamiento
 
-Los dos editores de Obra comparten el flujo **editar → revisar cambios → confirmar actualización**. Desde una familia o partida, la transacción muestra todos sus conceptos y destaca el contexto de origen. El total global siempre incluye todos los conceptos. La edición individual limita el borrador al monto seleccionado y muestra los datos de la transacción como contexto.
+Los dos editores de Obra comparten el flujo **editar → revisar cambios → confirmar actualización**. Desde una familia o partida, la transacción muestra todos sus conceptos y destaca el contexto de origen. El total global siempre incluye todos los conceptos. La edición individual limita los importes al monto seleccionado y permite editar el concepto general de la transacción.
 
-La revisión compara total global, subtotal de origen, conceptos modificados, estado, fecha, moneda, tipo de cambio, proveedor y datos bancarios. Incluye los efectos en jerarquías, presupuesto, honorarios, indirectos, contribución a P&L por periodo y análisis de factura que requerirán revisión.
+El campo opcional `concepto_adicional` pertenece a la transacción. Los textos históricos por pago se combinan sin repetir valores cuando aún no existe un concepto general. Guardar el campo vacío lo mantiene vacío, incluso si quedan textos históricos. En Excel, los conceptos distintos de las filas agrupadas se combinan en un solo texto; una recarga sin concepto conserva el registrado. Cambiar únicamente este texto no altera importes, partidas, métricas ni el análisis de facturas.
+
+La tabla de transacciones del proyecto muestra Concepto por defecto junto a Factura y permite buscar por ese texto, incluyendo los valores históricos mientras no exista un concepto general que los sustituya.
+
+La revisión compara concepto general, total global, subtotal de origen, conceptos modificados, estado, fecha, moneda, tipo de cambio, proveedor y datos bancarios. Incluye los efectos en jerarquías, presupuesto, honorarios, indirectos, contribución a P&L por periodo y análisis de factura que requerirán revisión.
 
 Cancelar un borrador modificado requiere elegir entre continuar y descartar. Reabrir un editor inicia una sesión nueva. Los errores conservan el borrador. Si cambian datos mientras se revisan, la confirmación se bloquea y exige actualizar la base y revisar de nuevo. Los cambios propios se conservan durante esa actualización; los campos no editados toman los valores actuales.
 
@@ -50,3 +54,5 @@ Sales y la asignación individual/masiva de proveedor desde tablas siguen fuera 
 La revisión completa limita la carga del proyecto a 2,500 registros combinados de partidas, transacciones y conceptos; limita igualmente los vínculos de factura y la firma de impacto a 512 KiB. Si se excede la capacidad, muestra un error y bloquea el guardado; no calcula ni guarda sobre un conjunto truncado. Ampliar este límite requiere revisar el coste y los límites de ejecución de Convex.
 
 Las verificaciones se realizaron localmente con datos aislados. No se ejecutaron cambios financieros reales ni un despliegue de producción.
+
+El esquema y las funciones del concepto general se desplegaron el 21 de octubre de 2026 en `dev:animated-walrus-612`, con validación de esquema y tipos de Convex. El despliegue conserva los textos históricos sin una migración de datos.

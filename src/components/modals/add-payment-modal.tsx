@@ -60,6 +60,7 @@ export default function AddPaymentModal() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const submitLock = useRef(false);
     const [status, setStatus] = useState<"Pagado" | "Por pagar">("Pagado");
+    const [concepto, setConcepto] = useState("");
     const [categoria, setCategoria] = useState("");
     const [tipoPago, setTipoPago] = useState("");
     const [moneda, setMoneda] = useState("MXN");
@@ -82,6 +83,7 @@ export default function AddPaymentModal() {
     const closeModal = () => {
         setStatus("Pagado");
         setCategoria("");
+        setConcepto("");
         setTipoPago("");
         setMoneda("MXN");
         setFecha(todayString());
@@ -243,6 +245,7 @@ export default function AddPaymentModal() {
                 factura: isFactura ? documentName : undefined,
                 comprobante: isComprobante ? documentName : undefined,
                 presupuesto_archivo: documentType === "presupuesto" && documentName ? documentName : undefined,
+                concepto_adicional: concepto.trim() || undefined,
                 lineItems,
             });
 
@@ -516,13 +519,6 @@ export default function AddPaymentModal() {
                                                         <>
                                                             {!familiaHasSubPartidas(partida.partida, familia.familia) ? (
                                                                 <div className="ml-4 space-y-2">
-                                                                    <label htmlFor={`familia-concepto-${familia.id}`} className="block text-xs text-muted-foreground">Concepto (opcional)</label>
-                                                                    <Input
-                                                                        id={`familia-concepto-${familia.id}`}
-                                                                        placeholder="Concepto"
-                                                                        value={familia.concepto_adicional || ""}
-                                                                        onChange={(event) => updateFamiliaDirectPayment(partida.id, familia.id, { concepto_adicional: event.target.value })}
-                                                                    />
                                                                     <label htmlFor={`familia-monto-${familia.id}`} className="text-xs text-muted-foreground">Monto de la familia</label>
                                                                     <div className="flex-1">
                                                                         <MoneyInput
@@ -540,7 +536,7 @@ export default function AddPaymentModal() {
                                                                 /* Family with sub-items */
                                                                 <div className="space-y-2 ml-4">
                                                                     {familia.subPartidas.map((subPartida) => (
-                                                                        <div key={subPartida.id} className="grid min-w-0 grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_8rem_auto]">
+                                                                        <div key={subPartida.id} className="grid min-w-0 grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_auto]">
                                                                             <Select
                                                                                 value={subPartida.sub_partida}
                                                                                 onValueChange={(value) =>
@@ -565,16 +561,6 @@ export default function AddPaymentModal() {
                                                                                     ))}
                                                                                 </SelectContent>
                                                                             </Select>
-                                                                            <div className="min-w-0 space-y-1">
-                                                                                <label htmlFor={`subpartida-concepto-${subPartida.id}`} className="block text-xs text-muted-foreground">Concepto (opcional)</label>
-                                                                                <Input
-                                                                                    id={`subpartida-concepto-${subPartida.id}`}
-                                                                                    className="h-9"
-                                                                                    placeholder="Concepto"
-                                                                                    value={subPartida.concepto_adicional || ""}
-                                                                                    onChange={(event) => updateSubPartida(partida.id, familia.id, subPartida.id, { concepto_adicional: event.target.value })}
-                                                                                />
-                                                                            </div>
                                                                             <div className="min-w-0">
                                                                                 <MoneyInput
                                                                                     aria-label={`Monto de ${subPartida.sub_partida || "sub-partida"}`}
@@ -641,6 +627,9 @@ export default function AddPaymentModal() {
                     {/* Payment Details */}
                     <div className="space-y-3 pt-2">
                         <h3 className="font-medium text-foreground">Datos del pago</h3>
+                        <div className="space-y-2"><label htmlFor="transaction-concepto" className="block text-sm font-medium">Concepto (opcional)</label>
+                          <Input id="transaction-concepto" value={concepto} onChange={event => setConcepto(event.target.value)} placeholder="Descripción general de la transacción" />
+                        </div>
                         <div className="space-y-1">
                             <span className="block text-xs text-muted-foreground">Categoría</span>
                             <Select value={categoria} onValueChange={setCategoria}>

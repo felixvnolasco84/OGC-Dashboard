@@ -311,13 +311,16 @@ for (const position of [0, 4, headers.length]) {
   });
   const result = parse(withConcept);
   const items = result.weeks.flatMap(week => week.transactions.flatMap(transaction => transaction.line_items));
-  assert.equal(items.find(item => item.source_row === 2).concepto_adicional, "Cuadrilla norte");
+  assert.equal(result.weeks.flatMap(w => w.transactions).find(t => t.line_items.some(i => i.source_row === 2)).concepto_adicional, "Cuadrilla norte");
+  assert.equal(items.find(item => item.source_row === 2).concepto_adicional, undefined);
   assert.equal(items.find(item => item.source_row === 3).concepto_adicional, undefined);
 }
 assert.equal(parsed.weeks[0].transactions[0].line_items[0].concepto_adicional, undefined);
 const repeatedConceptHeaders = [...headers.slice(0, 4), "CONCEPTO", ...headers.slice(4)];
 const describedRow = concept => { const cells = row("OFICIAL ALBAÑIL", 100, "DISPERSIÓN", "FACTURA", "TRANSFERENCIA", 1); cells.splice(4, 0, concept); return cells; };
-assert.equal(parse([repeatedConceptHeaders, describedRow("Frente A"), describedRow("Frente B")]).rowCount, 2);
+const grouped = parse([repeatedConceptHeaders, describedRow("Frente A"), describedRow("Frente B")]);
+assert.equal(grouped.rowCount, 2);
+assert.equal(grouped.weeks[0].transactions[0].concepto_adicional, "Frente A · Frente B");
 expectFailure(() => parse([repeatedConceptHeaders, describedRow("Frente A"), describedRow(" Frente A ")]), /duplicados exactos/);
 
 console.log("Labor payment import rules: OK");

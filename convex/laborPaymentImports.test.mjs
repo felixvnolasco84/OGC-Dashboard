@@ -613,84 +613,68 @@ describe("original Excel backups and import audit", () => {
 });
 
 
-describe("additional concepts in Excel imports", () => {
-  it("persists trimmed text and accepts missing or blank values", async () => {
+describe("general concepts in Excel imports", () => {
+  it("stores trimmed text once for a transaction with several payments", async () => {
     const f = await fixture(), input = f.args("a", [3]);
-    const items = input.weeks[0].transactions[0].line_items;
-    items[0].concepto_adicional = "  Cuadrilla norte  ";
-    items[1].concepto_adicional = "  ";
+    input.weeks[0].transactions[0].concepto_adicional = "  Cuadrilla norte  ";
     await f.upload(input);
-    const state = await f.snapshot();
-    const imported = state.pagos.filter(p => p.source_row);
+    const state = await f.snapshot(), imported = state.pagos.filter(p => p.source_row);
     expect(imported).toHaveLength(3);
-    expect(imported.find(p => p.source_row === 2)).toMatchObject({ concepto_adicional: "Cuadrilla norte", concepto: "OFICIO 0" });
-    expect(imported.find(p => p.source_row === 3).concepto_adicional).toBeUndefined();
-    expect(imported.find(p => p.source_row === 4).concepto_adicional).toBeUndefined();
+    expect(imported.every(p => p.concepto_adicional === undefined)).toBe(true);
+    expect(state.transacciones.find(t => t._id === imported[0].transaccion_id).concepto_adicional).toBe("Cuadrilla norte");
   });
 
-  it("updates text alone on the same payment and preserves classification, metrics and invoice analysis", async () => {
-    const f = await fixture(), input = f.args("a", [1]);
-    input.weeks[0].transactions[0].line_items[0].concepto_adicional = "Frente A";
+  it("updates general text alone and preserves payment IDs, metrics and invoice analysis", async () => {
+    const f = await fixture(), input = f.args("a", [2]);
+    input.weeks[0].transactions[0].concepto_adicional = "Frente A";
     await f.upload(input);
     const before = await f.snapshot(), payment = before.pagos.find(p => p.source_row);
     const invoice = await f.test.run(ctx => ctx.db.insert("invoice_records", { proyecto: f.ids.project,
       source_document_ids: [], source_transaction_ids: [payment.transaccion_id], primary_transaction_id: payment.transaccion_id,
       source_kind: "pdf", status: "approved", revision: 0, created_by: f.ids.user, created_at: 0, updated_at: 0 }));
-    const reload = structuredClone(input);
-    reload.weeks[0].transactions[0].line_items[0].concepto_adicional = "  Frente B  ";
+    const reload = structuredClone(input); reload.weeks[0].transactions[0].concepto_adicional = "  Frente B  ";
     const repair = vi.spyOn(budgetMaintenance, "repairProjectPaymentTotals");
     expect(await f.upload(reload)).toMatchObject({ status: "replaced" });
     const after = await f.snapshot();
-    expect(after.pagos).toEqual(before.pagos.map(p => p._id === payment._id ? { ...p, concepto_adicional: "Frente B" } : p));
-    for (const table of ["partidas", "meticas_presupuesto", "desarrollos", "proveedores", "provider_project_stats"]) expect(after[table]).toEqual(before[table]);
+    expect(after.transacciones.find(t => t._id === payment.transaccion_id).concepto_adicional).toBe("Frente B");
+    for (const table of ["pagos", "partidas", "meticas_presupuesto", "desarrollos", "proveedores", "provider_project_stats"]) expect(after[table]).toEqual(before[table]);
     expect((await f.test.run(ctx => ctx.db.get(invoice))).status).toBe("approved");
     expect(repair).not.toHaveBeenCalled();
     const saved = await f.snapshot();
-    expect(await f.upload(reload)).toMatchObject({ status: "unchanged" });
-    expect(await f.snapshot()).toEqual(saved);
-    for (const value of [undefined, "", "  "]) {
-      reload.weeks[0].transactions[0].line_items[0].concepto_adicional = value;
+    for (const value of ["Frente B", undefined, "", "  "]) {
+      reload.weeks[0].transactions[0].concepto_adicional = value;
       expect(await f.upload(reload)).toMatchObject({ status: "unchanged" });
       expect(await f.snapshot()).toEqual(saved);
     }
   });
 
-  it("preserves text when a reload changes the amount but omits the concept", async () => {
+  it("preserves general text when the reload changes an amount but omits the concept", async () => {
     const f = await fixture(), input = f.args("a", [1]);
-    input.weeks[0].transactions[0].line_items[0].concepto_adicional = "Conservar";
+    input.weeks[0].transactions[0].concepto_adicional = "Conservar";
     await f.upload(input);
-    const before = await f.snapshot(), payment = before.pagos.find(p => p.source_row);
-    const reload = f.args("b", [1]);
+    const before = await f.snapshot(), payment = before.pagos.find(p => p.source_row), reload = f.args("b", [1]);
     reload.weeks[0].transactions[0].line_items[0].monto = 120;
-    reload.weeks[0].transactions[0].monto_total = 120;
-    reload.weeks[0].amount_total = 120;
+    reload.weeks[0].transactions[0].monto_total = 120; reload.weeks[0].amount_total = 120;
     await f.upload(reload);
-    expect(await f.test.run(ctx => ctx.db.get(payment._id))).toMatchObject({ monto: 120, concepto_adicional: "Conservar" });
+    expect(await f.test.run(ctx => ctx.db.get(payment._id))).toMatchObject({ monto: 120 });
+    expect((await f.test.run(ctx => ctx.db.get(payment.transaccion_id))).concepto_adicional).toBe("Conservar");
   });
 
-  it("matches repeated subpartidas before blank descriptions even when reordered", async () => {
-    const f = await fixture(), input = f.args("a", [3]);
-    const lines = input.weeks[0].transactions[0].line_items;
-    for (const [index, item] of lines.entries()) {
-      item.partida_id = f.ids.leaves[0]; item.sub_partida = "OFICIO 0";
-      item.concepto_adicional = ["A", "B", "C"][index];
-    }
+  it("retains legacy line descriptions on reload and honors a cleared general concept", async () => {
+    const f = await fixture(), input = f.args("a", [2]);
     await f.upload(input);
-    const before = await f.snapshot();
-    const reload = structuredClone(input);
-    reload.weeks[0].transactions[0].line_items = [
-      { ...lines[2], source_row: 2, concepto_adicional: "" },
-      { ...lines[0], source_row: 3 },
-      { ...lines[1], source_row: 4 },
-    ];
-    expect(await f.upload(reload)).toMatchObject({ status: "unchanged" });
-    expect(await f.snapshot()).toEqual(before);
-    // Keep B/C exact matches while updating the remaining A on its original ID.
-    reload.weeks[0].transactions[0].line_items = [
-      { ...lines[1], source_row: 2 }, { ...lines[2], source_row: 3 }, { ...lines[0], source_row: 4, concepto_adicional: "A corregido" },
-    ];
-    await f.upload(reload);
-    const after = await f.snapshot();
-    expect(after.pagos).toEqual(before.pagos.map(p => p.concepto_adicional === "A" ? { ...p, concepto_adicional: "A corregido" } : p));
+    const state = await f.snapshot(), payments = state.pagos.filter(p => p.source_row), transactionId = payments[0].transaccion_id;
+    await f.test.run(async ctx => {
+      await ctx.db.patch(payments[0]._id, { concepto_adicional: "Anterior A" });
+      await ctx.db.patch(payments[1]._id, { concepto_adicional: "Anterior B" });
+    });
+    expect(await f.upload(input)).toMatchObject({ status: "unchanged" });
+    input.weeks[0].transactions[0].line_items[0].monto += 20;
+    input.weeks[0].transactions[0].monto_total += 20; input.weeks[0].amount_total += 20;
+    await f.upload(input);
+    expect((await f.test.run(ctx => ctx.db.get(transactionId))).concepto_adicional).toBe("Anterior A · Anterior B");
+    await f.test.run(ctx => ctx.db.patch(transactionId, { concepto_adicional: "" }));
+    expect(await f.upload(input)).toMatchObject({ status: "unchanged" });
+    expect((await f.test.run(ctx => ctx.db.get(transactionId))).concepto_adicional).toBe("");
   });
 });

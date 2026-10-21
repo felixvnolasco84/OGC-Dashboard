@@ -24,9 +24,8 @@ function ConceptsPreview() {
   };
   return <main className="min-h-screen bg-background p-2 text-foreground sm:p-6">
     <div data-testid="transaction-card" className="max-w-2xl border">
-      <TransactionCard transaction={initial.transaction as any} index={0} formatCurrency={value => `$${Number(value).toFixed(2)}`} lineItems={initial.lineItems.map((p, i) => ({ ...p,
+      <TransactionCard transaction={{ ...initial.transaction, concepto_adicional: "Entrega de acero para losa en frente norte · " + "detalle".repeat(25) } as any} index={0} formatCurrency={value => `$${Number(value).toFixed(2)}`} lineItems={initial.lineItems.map((p, i) => ({ ...p,
         partida: "OBRA", familia: i ? "CONCRETO" : "ACERO", sub_partida: i ? "" : "VARILLA",
-        concepto_adicional: i ? undefined : "Entrega de acero para losa en frente norte · " + "detalle".repeat(25),
       })) as any} />
     </div>
     <div className="mt-4 flex flex-wrap gap-2">

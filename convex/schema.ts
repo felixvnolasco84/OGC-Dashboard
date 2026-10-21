@@ -131,6 +131,8 @@ export default defineSchema({
     clabe: v.optional(v.string()),
     payment_account_id: v.optional(v.id("payment_accounts")),
     numero_transferencia: v.optional(v.string()),
+    // General description shared by all payments in this transaction.
+    concepto_adicional: v.optional(v.string()),
     // Reference and documents
     codigo_referencia: v.optional(v.string()),
     factura: v.optional(v.string()),
@@ -180,7 +182,7 @@ export default defineSchema({
     partida_id: v.optional(v.id("partidas")),
     proyecto_id: v.optional(v.id("desarrollos")),
     concepto: v.optional(v.string()),
-    concepto_adicional: v.optional(v.string()),
+    concepto_adicional: v.optional(v.string()), // Legacy line descriptions; new concepts belong to transacciones.
     concepto_normalizado: v.optional(v.string()),
     partida_nombre_snapshot: v.optional(v.string()),
     familia_snapshot: v.optional(v.string()),

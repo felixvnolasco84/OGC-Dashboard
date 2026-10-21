@@ -6,7 +6,6 @@ export type PaymentLineItem = {
   partida: string;
   familia: string;
   sub_partida: string;
-  concepto_adicional?: string;
   monto: number;
 };
 
@@ -19,7 +18,7 @@ export function buildPaymentDraft(
 
   for (const partida of partidas) {
     const hasStartedFamily = partida.familias.some((familia) =>
-      Boolean(familia.familia || familia.monto || familia.concepto_adicional?.trim() || familia.subPartidas.some((sub) => sub.sub_partida || sub.monto || sub.concepto_adicional?.trim())),
+      Boolean(familia.familia || familia.monto || familia.subPartidas.some((sub) => sub.sub_partida || sub.monto)),
     );
     if (!partida.partida) {
       if (hasStartedFamily) incompleteCount++;
@@ -29,7 +28,7 @@ export function buildPaymentDraft(
     let hasSelectedFamily = false;
     for (const familia of partida.familias) {
       if (!familia.familia) {
-        if (familia.monto || familia.concepto_adicional?.trim() || familia.subPartidas.some((sub) => sub.sub_partida || sub.monto || sub.concepto_adicional?.trim())) incompleteCount++;
+        if (familia.monto || familia.subPartidas.some((sub) => sub.sub_partida || sub.monto)) incompleteCount++;
         continue;
       }
       hasSelectedFamily = true;
@@ -41,7 +40,6 @@ export function buildPaymentDraft(
             partida: partida.partida,
             familia: familia.familia,
             sub_partida: "",
-            concepto_adicional: familia.concepto_adicional?.trim() || undefined,
             monto: familia.monto!,
           });
         } else {
@@ -52,7 +50,7 @@ export function buildPaymentDraft(
 
       let hasStartedSubPartida = false;
       for (const sub of familia.subPartidas) {
-        if (!sub.sub_partida && !sub.monto && !sub.concepto_adicional?.trim()) continue;
+        if (!sub.sub_partida && !sub.monto) continue;
         hasStartedSubPartida = true;
         if (sub.partida_id && sub.sub_partida && Number.isFinite(sub.monto) && sub.monto > 0) {
           lineItems.push({
@@ -60,7 +58,6 @@ export function buildPaymentDraft(
             partida: partida.partida,
             familia: familia.familia,
             sub_partida: sub.sub_partida,
-            concepto_adicional: sub.concepto_adicional?.trim() || undefined,
             monto: sub.monto,
           });
         } else {

@@ -36,6 +36,7 @@ type ModalStep = "upload" | "preview" | "result";
 
 type PreviewTransaction = {
   sourceKey: string;
+  concepto?: string;
   factura: string;
   fecha: string;
   monto: number;
@@ -221,6 +222,7 @@ export default function UploadProjectTransactionsModal() {
             monto: transaction.monto_total,
             itemCount: transaction.line_items.length,
             lineItems: transaction.line_items,
+            concepto: transaction.concepto_adicional,
             providerName: transaction.proveedor,
             providerStatus: status,
             providerType: match?.tipo,
@@ -324,6 +326,7 @@ export default function UploadProjectTransactionsModal() {
           warnings: week.warnings,
           transactions: week.transactions.map((transaction) => ({
             source_key: transaction.source_key,
+            concepto_adicional: transaction.concepto_adicional,
             monto_total: transaction.monto_total,
             tipo_pago: transaction.tipo_pago,
             moneda: transaction.moneda,
@@ -523,7 +526,7 @@ export default function UploadProjectTransactionsModal() {
                 ))}
               </div>
 
-              <p className="text-xs text-muted-foreground">Concepto es opcional. Al recargar, las celdas vacías conservan el concepto registrado.</p>
+              <p className="text-xs text-muted-foreground">Concepto es general por transacción y opcional. Los textos distintos de sus filas se combinan. Al recargar, las celdas vacías conservan el concepto registrado.</p>
               <div className="border rounded-none overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-background">
@@ -531,6 +534,7 @@ export default function UploadProjectTransactionsModal() {
                       <th className="text-left p-2">Factura</th>
                       <th className="text-left p-2">Proveedor</th>
                       <th className="text-left p-2">Corte</th>
+                      <th className="text-left p-2">Concepto</th>
                       <th className="text-right p-2">Monto</th>
                       <th className="text-center p-2">Conceptos</th>
                       <th className="text-left p-2">Estado</th>
@@ -551,6 +555,7 @@ export default function UploadProjectTransactionsModal() {
                           </span>
                         </td>
                         <td className="p-2">{formatDate(transaction.fecha)}</td>
+                        <td className="min-w-40 max-w-72 whitespace-normal break-words p-2">{transaction.concepto || "—"}</td>
                         <td className="p-2 text-right font-mono">{formatCurrency(transaction.monto, validationReport.parsed.currency)}</td>
                         <td className="p-2 text-center">{transaction.itemCount}</td>
                         <td className="p-2">
@@ -562,17 +567,16 @@ export default function UploadProjectTransactionsModal() {
                         </td>
                       </tr>
                       <tr>
-                        <td colSpan={6} className="px-2 pb-3">
+                        <td colSpan={7} className="px-2 pb-3">
                           <details>
                             <summary className="cursor-pointer text-xs text-muted-foreground">Ver desglose de {transaction.factura}</summary>
                             <div className="mt-2 overflow-x-auto">
                               <table className="w-full min-w-[680px] text-left text-xs">
                                 <thead><tr className="bg-muted/40">
-                                  <th className="p-2">Partida</th><th className="p-2">Familia</th><th className="p-2">Subpartida</th><th className="p-2">Concepto</th><th className="p-2 text-right">Monto</th>
+                                  <th className="p-2">Partida</th><th className="p-2">Familia</th><th className="p-2">Subpartida</th><th className="p-2 text-right">Monto</th>
                                 </tr></thead>
                                 <tbody>{transaction.lineItems.map(item => <tr key={item.source_row} className="border-t border-border">
                                   <td className="p-2">{item.partida}</td><td className="p-2">{item.familia}</td><td className="p-2">{item.sub_partida || "—"}</td>
-                                  <td className="min-w-40 max-w-72 whitespace-normal break-words p-2">{item.concepto_adicional || "—"}</td>
                                   <td className="whitespace-nowrap p-2 text-right font-mono">{formatCurrency(item.monto, validationReport.parsed.currency)}</td>
                                 </tr>)}</tbody>
                               </table>

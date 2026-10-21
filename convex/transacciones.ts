@@ -1,3 +1,4 @@
+import { getTransactionConcept } from "./transactionConcept";
 import { query, mutation as baseMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, updatePagadoForHierarchy, updateMeticasPresupuesto, updateHonorariosMonto, updateProyectoMonedaPrincipal } from "./functions";
@@ -70,7 +71,6 @@ type TransactionLineItemInput = {
   partida: string;
   familia: string;
   sub_partida: string;
-  concepto_adicional?: string;
   monto: number;
 };
 
@@ -698,7 +698,6 @@ async function prepareTransactionLineItems(
     });
     return {
       ...item,
-      concepto_adicional: item.concepto_adicional?.trim() || undefined,
       // Derive hierarchy labels from Convex. Client labels are display-only and
       // are intentionally ignored for persistence and rollup updates.
       partida: partidaNombre,
@@ -753,6 +752,7 @@ export const createTransaction = mutation({
     import_source_key: v.optional(v.string()),
     import_signature: v.optional(v.string()),
     allow_duplicate_signature: v.optional(v.boolean()),
+    concepto_adicional: v.optional(v.string()),
     monto_total: v.number(),
     fecha: v.string(),
     tipo_pago: v.string(),
@@ -777,7 +777,6 @@ export const createTransaction = mutation({
         partida: v.string(),
         familia: v.string(),
         sub_partida: v.string(),
-        concepto_adicional: v.optional(v.string()),
         monto: v.number(),
       })
     ),
@@ -785,6 +784,7 @@ export const createTransaction = mutation({
   handler: async (ctx, args) => {
     await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id);
     const { lineItems, allow_duplicate_signature, ...transactionData } = args;
+    transactionData.concepto_adicional = transactionData.concepto_adicional?.trim() || undefined;
     if (transactionData.payment_account_id) {
       const account = await resolveAccountForTransaction(ctx, {
         projectId: args.proyecto, providerId: args.proveedor_id,
@@ -841,7 +841,6 @@ export const createTransaction = mutation({
         partida_id: item.partida_id,
         proyecto_id: args.proyecto,
         concepto: item.concepto,
-        concepto_adicional: item.concepto_adicional,
         concepto_normalizado: normalizeCostText(item.concepto),
         partida_nombre_snapshot: item.partida_nombre_snapshot,
         familia_snapshot: item.familia_snapshot,
@@ -887,6 +886,7 @@ export const createTransactionBulk = baseMutation({
     import_source_key: v.optional(v.string()),
     import_signature: v.optional(v.string()),
     allow_duplicate_signature: v.optional(v.boolean()),
+    concepto_adicional: v.optional(v.string()),
     monto_total: v.number(),
     fecha: v.string(),
     tipo_pago: v.string(),
@@ -909,7 +909,6 @@ export const createTransactionBulk = baseMutation({
         partida: v.string(),
         familia: v.string(),
         sub_partida: v.string(),
-        concepto_adicional: v.optional(v.string()),
         monto: v.number(),
       })
     ),
@@ -917,6 +916,7 @@ export const createTransactionBulk = baseMutation({
   handler: async (ctx, args) => {
     await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id);
     const { lineItems, allow_duplicate_signature, ...transactionData } = args;
+    transactionData.concepto_adicional = transactionData.concepto_adicional?.trim() || undefined;
 
     if (transactionData.import_batch_id && transactionData.import_source_key) {
       const existing = await ctx.db
@@ -966,7 +966,6 @@ export const createTransactionBulk = baseMutation({
         partida_id: item.partida_id,
         proyecto_id: args.proyecto,
         concepto: item.concepto,
-        concepto_adicional: item.concepto_adicional,
         concepto_normalizado: normalizeCostText(item.concepto),
         partida_nombre_snapshot: item.partida_nombre_snapshot,
         familia_snapshot: item.familia_snapshot,
@@ -1572,6 +1571,7 @@ export const getTransactionById = query({
 
     return {
       ...transaction,
+      concepto_adicional: getTransactionConcept(transaction, pagos),
       proveedor,
       lineItems,
       documents,
@@ -1607,6 +1607,7 @@ export const getTransactionDetailsById = query({
 
     return {
       ...transaction,
+      concepto_adicional: getTransactionConcept(transaction, lineItems),
       proveedor,
       lineItemsCount: lineItems.length,
       documentsCount: documents.length,
@@ -1655,6 +1656,7 @@ export const getTransactionConceptosById = query({
 
     return {
       ...transaction,
+      concepto_adicional: getTransactionConcept(transaction, pagos),
       lineItems,
     };
   },
@@ -1827,6 +1829,7 @@ async function collectRelatedSearchMatchIds(
   proyectoId: Id<"desarrollos">,
   transactionIds: Array<Id<"transacciones">>,
   search: string,
+  legacyConceptTransactionIds: ReadonlySet<Id<"transacciones">>,
 ) {
   const matchIds = new Set<string>();
   const [projectPayments, partidas, invoices] = await Promise.all([
@@ -1869,6 +1872,7 @@ async function collectRelatedSearchMatchIds(
 
   for (const pago of pagos) {
     const matchesText =
+      (legacyConceptTransactionIds.has(pago.transaccion_id) && includesSearch(pago.concepto_adicional, search)) ||
       includesSearch(pago.concepto, search) ||
       includesSearch(pago.source_description_snapshot, search) ||
       includesSearch(pago.sub_partida_snapshot, search) ||
@@ -1947,6 +1951,7 @@ async function listFilteredProjectTransactions(
         args.proyecto_id,
         transactions.map((transaction) => transaction._id),
         search,
+        new Set(transactions.filter(transaction => transaction.concepto_adicional === undefined).map(transaction => transaction._id)),
       )
     : null;
   const documentCounts = args.missingDocuments !== undefined
@@ -1977,6 +1982,7 @@ async function listFilteredProjectTransactions(
         ? providerSummaries.get(transaction.proveedor_id)?.razon_social
         : undefined;
       const matchesText =
+        includesSearch(transaction.concepto_adicional, search) ||
         includesSearch(transaction.factura, search) ||
         includesSearch(transaction.codigo_referencia, search) ||
         includesSearch(transaction.tipo_pago, search) ||
@@ -2065,8 +2071,8 @@ export const getTotalsByProyecto = query({
   },
 });
 
-// Lightweight paginated table query. Concepts, documents, and invoice analysis
-// stay out of this result and are loaded by the transaction modals on demand.
+// Paginated table rows include the general concept. Legacy payment descriptions
+// are read only for visible rows without a general concept; line details stay in the modals.
 export const listTableByProyecto = query({
   args: {
     ...tableListFilterValidator,
@@ -2106,13 +2112,18 @@ export const listTableByProyecto = query({
         );
 
     const items = await Promise.all(pageRows.map(async (transaction) => {
-      const documents = await ctx.db
-        .query("documentos")
-        .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
-        .collect();
+      const [documents, legacyPayments] = await Promise.all([
+        ctx.db.query("documentos")
+          .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id)).collect(),
+        transaction.concepto_adicional === undefined
+          ? ctx.db.query("pagos")
+            .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id)).collect()
+          : [],
+      ]);
 
       return {
         ...transaction,
+        concepto_adicional: getTransactionConcept(transaction, legacyPayments),
         proveedor: transaction.proveedor_id
           ? pageProviderSummaries.get(transaction.proveedor_id) ?? null
           : null,

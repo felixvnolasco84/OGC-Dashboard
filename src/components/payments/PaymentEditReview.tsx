@@ -1,7 +1,7 @@
 import type { PaymentEditReview as Review } from "../../../convex/paymentEdit";
 import { formatMoney } from "@/lib/money";
 
-const fieldLabels: Record<string, string> = { fecha: "Fecha", status: "Estado", moneda: "Moneda", tipo_cambio: "Tipo de cambio",
+const fieldLabels: Record<string, string> = { concepto_adicional: "Concepto", fecha: "Fecha", status: "Estado", moneda: "Moneda", tipo_cambio: "Tipo de cambio",
   tipo_pago: "Método de pago", categoria: "Categoría", banco: "Banco", numero_cuenta: "Cuenta", clabe: "CLABE", tarjeta: "Tarjeta",
   numero_transferencia: "Número de transferencia", codigo_referencia: "Referencia", factura: "Factura", comprobante: "Comprobante" };
 const money = (value: number, currency: string) => `${formatMoney(value, currency)} ${currency}`;
@@ -13,8 +13,7 @@ function Comparison({ label, before, after }: { label: string; before: string; a
   </div>;
 }
 export default function PaymentEditReview({ review, contextIds }: { review: Review; contextIds: string[] }) {
-  const changedAmounts = review.concepts.filter(p => p.before !== p.after);
-  const changed = review.concepts.filter(p => p.before !== p.after || p.conceptoBefore !== p.conceptoAfter);
+  const changed = review.concepts.filter(p => p.before !== p.after);
   const beforeCurrency = review.before.moneda, afterCurrency = review.after.moneda;
   const subtotal = (after: boolean) => review.concepts.filter(p => contextIds.includes(p.id)).reduce((sum, p) => sum + (after ? p.after : p.before), 0);
   return <section aria-label="Comparación de impacto" className="space-y-6">
@@ -29,11 +28,10 @@ export default function PaymentEditReview({ review, contextIds }: { review: Revi
     <section>
       <h3 className="font-semibold">Conceptos modificados · {changed.length}</h3>
       {changed.map(p => <div key={p.id} className="mt-3"><p className="text-sm font-medium">{p.label}</p>
-        {p.conceptoBefore !== p.conceptoAfter && <Comparison label="Concepto" before={p.conceptoBefore || ""} after={p.conceptoAfter || ""} />}
         {p.before !== p.after && <><Comparison label="Monto" before={money(p.before, beforeCurrency)} after={money(p.after, afterCurrency)} />
           {beforeCurrency === afterCurrency && <p className="mt-1 text-xs text-muted-foreground">Diferencia: {money(p.after - p.before, afterCurrency)}</p>}</>}
       </div>)}
-      <p className="mt-3 text-sm text-muted-foreground">{review.concepts.length - changedAmounts.length} concepto{review.concepts.length - changedAmounts.length === 1 ? " conserva su monto" : "s conservan sus montos"}. Las partidas asignadas se conservan.</p>
+      <p className="mt-3 text-sm text-muted-foreground">{review.concepts.length - changed.length} concepto{review.concepts.length - changed.length === 1 ? " conserva su monto" : "s conservan sus montos"}. Las partidas asignadas se conservan.</p>
     </section>
     <section><h3 className="font-semibold">Datos de la transacción</h3>
       {Object.entries(fieldLabels).filter(([key]) => review.before[key as keyof Review["before"]] !== review.after[key as keyof Review["after"]]).map(([key, label]) =>

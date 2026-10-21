@@ -1,3 +1,4 @@
+import { getTransactionConcept } from "./transactionConcept";
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
@@ -39,13 +40,13 @@ const lineItemValidator = v.object({
   partida: v.string(),
   familia: v.string(),
   sub_partida: v.string(),
-  concepto_adicional: v.optional(v.string()),
   monto: v.number(),
   numero_personas_origen: v.optional(v.number()),
   source_row: v.number(),
 });
 
 const transactionValidator = v.object({
+  concepto_adicional: v.optional(v.string()),
   source_key: v.string(),
   monto_total: v.number(),
   tipo_pago: v.string(),
@@ -104,8 +105,7 @@ function mergePaymentConcepts(existing: Doc<"pagos">[], incoming: ImportLine[]) 
     const before = existing.filter(item => String(item.partida_id) === partidaId)
       .sort((a, b) => (a.source_row ?? a._creationTime) - (b.source_row ?? b._creationTime) || a._id.localeCompare(b._id));
     const after = incoming.filter(item => String(item.partida_id) === partidaId)
-      .sort((a, b) => a.source_row - b.source_row)
-      .map(item => ({ ...item, concepto_adicional: item.concepto_adicional?.trim() || undefined }));
+      .sort((a, b) => a.source_row - b.source_row);
     if (before.length > after.length) {
       throw new Error("La recarga contiene menos filas de un concepto ya registrado en esa factura. Revisa el pago desde Editar antes de reducir sus filas.");
     }
@@ -115,19 +115,12 @@ function mergePaymentConcepts(existing: Doc<"pagos">[], incoming: ImportLine[]) 
       const previous = [...remaining].find(predicate);
       if (previous) { matches.set(item, previous); remaining.delete(previous); }
     };
-    // Match explicit descriptions before unspecified ones so blank cells cannot
-    // consume another row's exact match when repeated subpartidas are reordered.
-    for (const item of after) if (item.concepto_adicional) {
-      match(item, previous => sameValues(previous, item) && previous.concepto_adicional === item.concepto_adicional);
-    }
-    for (const item of after) if (!item.concepto_adicional) {
-      match(item, previous => sameValues(previous, item));
-    }
+    for (const item of after) match(item, previous => sameValues(previous, item));
     for (const item of after) if (!matches.has(item)) match(item, () => true);
     for (const incomingItem of after) {
       const previous = matches.get(incomingItem);
-      const item = { ...incomingItem, concepto_adicional: incomingItem.concepto_adicional || previous?.concepto_adicional };
-      if (previous && sameValues(previous, item) && previous.concepto_adicional === item.concepto_adicional) preserved.push(previous);
+      const item = incomingItem;
+      if (previous && sameValues(previous, item)) preserved.push(previous);
       else writes.push({ item, previous });
     }
   }
@@ -396,9 +389,10 @@ export const replaceLaborPaymentImport = mutation({
           throw new Error(`Los conceptos de ${input.factura} no coinciden con su total registrado. Revisa el pago antes de importar.`);
         }
         const concepts = mergePaymentConcepts(previousPayments, input.line_items);
-        const changed = !existing || concepts.writes.length > 0 || existing.monto_total !== concepts.amount ||
+        const concepto = input.concepto_adicional?.trim() || (existing ? getTransactionConcept(existing, previousPayments) : "");
+        const changed = !existing || concepto !== getTransactionConcept(existing, previousPayments) || concepts.writes.length > 0 || existing.monto_total !== concepts.amount ||
           existing.status !== "Pagado" || normalizeText(existing.categoria) !== normalizeText(input.categoria);
-        return { input, existing, concepts, changed };
+        return { input, existing, concepts, concepto, changed };
       });
       const changed = transactions.some(transaction => transaction.changed);
       const matchedIds = new Set(transactions.flatMap(transaction => transaction.existing ? [transaction.existing._id] : []));
@@ -471,7 +465,7 @@ export const replaceLaborPaymentImport = mutation({
         await ctx.db.patch(transaction._id, { labor_import_id: newImportId });
       }
       for (const transaction of plan.transactions) {
-        const { input, existing, concepts } = transaction;
+        const { input, existing, concepts, concepto } = transaction;
         if (!transaction.changed && existing) {
           await ctx.db.patch(existing._id, { labor_import_id: newImportId });
           await recordImportItem(ctx, attempt, existing._id, input, week.date, "unchanged");
@@ -488,6 +482,7 @@ export const replaceLaborPaymentImport = mutation({
           proyecto: args.proyecto, proveedor_id: provider.providerId, proveedor: input.proveedor.trim(),
           labor_import_id: newImportId, import_source_key: input.source_key,
           import_signature: `${args.source.file_hash.toLowerCase()}:${input.source_key}`,
+          concepto_adicional: concepto || (existing?.concepto_adicional === "" ? "" : undefined),
           monto_total: concepts.amount, fecha: displayDate(week.date), tipo_pago: input.tipo_pago.trim(),
           moneda: sourceCurrency, tipo_cambio: "1", status: "Pagado", categoria: input.categoria.trim(), factura: input.factura.trim(),
         };
@@ -503,10 +498,6 @@ export const replaceLaborPaymentImport = mutation({
           await updateProviderStatsForTransactionChange(ctx, existing || null, fields);
         }
         for (const { item, previous } of concepts.writes) {
-          if (previous && previous.monto === item.monto && previous.numero_personas_origen === item.numero_personas_origen) {
-            await ctx.db.patch(previous._id, { concepto_adicional: item.concepto_adicional });
-            continue;
-          }
           const partida = partidaDocs.get(String(item.partida_id));
           if (!partida) throw new Error("Una partida de la importación ya no existe.");
           const partidaNombre = String(partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre || "").trim();
@@ -515,7 +506,6 @@ export const replaceLaborPaymentImport = mutation({
           const concepto = mostSpecificCostLabel({ sub_partida: subPartida, familia, partida: partidaNombre, nombre: partida.nombre });
           const paymentFields = {
             transaccion_id: transactionId, partida_id: item.partida_id, proyecto_id: args.proyecto,
-            concepto_adicional: item.concepto_adicional,
             concepto, concepto_normalizado: normalizeCostText(concepto), partida_nombre_snapshot: partidaNombre,
             familia_snapshot: familia, sub_partida_snapshot: subPartida, classification_status: "mapped" as const,
             monto: Math.round(item.monto * 100) / 100, numero_personas_origen: item.numero_personas_origen, source_row: item.source_row,

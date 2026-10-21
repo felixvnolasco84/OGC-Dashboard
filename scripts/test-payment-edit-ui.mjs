@@ -108,14 +108,14 @@ try {
     await overflowCheck(page, width);
     await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.conceptos), [{ id: "a", concepto_adicional: "Entrega adicional para frente norte y revisión de octubre" }]);
+    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.fields), { concepto_adicional: "Entrega adicional para frente norte y revisión de octubre" });
     assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.amounts), []);
     await open(page, "lost-response");
     await page.getByLabel("Concepto (opcional)", { exact: true }).first().fill("");
     await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();
     await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
     await expect(page.getByText("Los cambios ya están guardados", { exact: true })).toBeVisible();
-    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.conceptos), [{ id: "a", concepto_adicional: null }]);
+    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.fields), { concepto_adicional: "" });
     await open(page, "lost-response-drift");
     await page.getByLabel("Concepto (opcional)", { exact: true }).first().fill("Mi borrador");
     await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();

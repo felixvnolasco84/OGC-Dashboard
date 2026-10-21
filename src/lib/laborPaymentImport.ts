@@ -1,3 +1,4 @@
+import { combineTransactionConcepts } from "../../convex/transactionConcept.ts";
 import { classifyProjectMatch } from "../../convex/projectMatchUtils.ts";
 import { summarizeLaborWorkforce } from "../../convex/laborWorkforceRules.ts";
 
@@ -59,13 +60,13 @@ export type LaborPaymentLineItem = {
   partida: string;
   familia: string;
   sub_partida: string;
-  concepto_adicional?: string;
   monto: number;
   numero_personas_origen?: number;
   source_row: number;
 };
 
 export type LaborPaymentTransaction = {
+  concepto_adicional?: string;
   source_key: string;
   fecha: string;
   monto_total: number;
@@ -488,6 +489,7 @@ export function parseLaborPaymentRows(
       }
       transactions.push({
         source_key: sourceKey,
+        concepto_adicional: combineTransactionConcepts(transactionRows.map(row => row.conceptoAdicional)) || undefined,
         fecha: date,
         monto_total: roundMoney(transactionRows.reduce((sum, row) => sum + row.monto, 0)),
         tipo_pago: transactionRows[0].tipoPago,
@@ -502,7 +504,6 @@ export function parseLaborPaymentRows(
           partida: row.partida,
           familia: row.familia,
           sub_partida: row.subpartida,
-          concepto_adicional: row.conceptoAdicional,
           monto: row.monto,
           numero_personas_origen: row.numeroPersonas,
           source_row: row.sourceRow,

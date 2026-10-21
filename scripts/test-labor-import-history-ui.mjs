@@ -85,7 +85,7 @@ try {
       await page.getByText("Ver desglose de FACTURA-100", { exact: true }).click();
       await expect(page.getByRole("cell", { name: "Entrega de acero frente norte", exact: true })).toBeVisible();
       const headers = await page.locator("details table th").allTextContents();
-      assert.deepEqual(headers, ["Partida", "Familia", "Subpartida", "Concepto", "Monto"]);
+      assert.deepEqual(headers, ["Partida", "Familia", "Subpartida", "Monto"]);
       await overflow();
       await page.getByRole("button", { name: "Confirmar carga (1)", exact: true }).click();
       if (["success", "lost-response"].includes(scenario)) {
@@ -96,7 +96,7 @@ try {
         assert.equal(recorded.mutations[0].args.source.file_name, originalName);
         assert.equal(recorded.mutations[0].args.source.file_hash, createHash("sha256").update(bytes).digest("hex"));
         assert.equal(recorded.actions.length, 1);
-        assert.equal(recorded.actions[0].args.weeks[0].transactions[0].line_items[0].concepto_adicional, "Entrega de acero frente norte");
+        assert.equal(recorded.actions[0].args.weeks[0].transactions[0].concepto_adicional, "Entrega de acero frente norte");
         await page.getByRole("button", { name: "Cerrar", exact: true }).click();
       } else {
         await expect(page.getByText("No se pudo completar la carga", { exact: true })).toBeVisible();

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { PaymentEditContext, PaymentEditDraft, PaymentEditReview as Review } from "../../../convex/paymentEdit";
-import { buildEditDraft, editableFields, editForm, rebaseEditForm, rebaseConceptEdits, type EditField } from "@/lib/payment-edit-draft";
+import { buildEditDraft, editableFields, editForm, rebaseEditForm, type EditField } from "@/lib/payment-edit-draft";
 import { formatMoney } from "@/lib/money";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -35,7 +35,6 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
   const [base, setBase] = useState(initial);
   const [form, setForm] = useState(() => editForm(initial.transaction));
   const [amounts, setAmounts] = useState<Record<string, string>>({});
-  const [conceptos, setConceptos] = useState<Record<string, string>>({});
   const [reviewing, setReviewing] = useState(false);
   const [accepted, setAccepted] = useState<Review | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,10 +47,10 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
   const providers = useQuery(api.proveedores.getAll, paymentId ? "skip" : {});
   let invalid = "";
   let draft: PaymentEditDraft | undefined;
-  try { draft = buildEditDraft(base, form, amounts, paymentId, conceptos); } catch (e) { invalid = (e as Error).message; }
-  const changed = Boolean(draft && (draft.amounts.length || draft.conceptos?.length || Object.keys(draft.fields).length));
+  try { draft = buildEditDraft(base, form, amounts, paymentId); } catch (e) { invalid = (e as Error).message; }
+  const changed = Boolean(draft && (draft.amounts.length || Object.keys(draft.fields).length));
   const dirty = changed || Boolean(invalid);
-  const orphanEdits = [...new Set([...Object.keys(amounts), ...Object.keys(conceptos)])].filter(id => !base.lineItems.some(p => p._id === id));
+  const orphanEdits = Object.keys(amounts).filter(id => !base.lineItems.some(p => p._id === id));
   const preview = useQuery(api.transacciones.previewEdit, reviewing && draft && !invalid ? { ...draft, expectedSource: base.source } : "skip");
   useEffect(() => { if (preview?.status === "ready" && !accepted) setAccepted(preview); }, [preview, accepted]);
   useEffect(() => { if (reviewing) titleRef.current?.focus(); }, [reviewing]);
@@ -65,7 +64,6 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
   };
   const requestClose = () => { if (pending.current) return; if (dirty) setDiscardOpen(true); else onClose(); };
   const refresh = () => {
-    setConceptos(old => rebaseConceptEdits(base, old));
     setForm(rebaseEditForm(base, current, form)); setBase(current); setAccepted(null); setError("");
     if (preview?.status === "ready" && current.source === base.source) setAccepted(preview);
   };
@@ -83,7 +81,7 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
         if (latest.status === "ready") {
           const after = accepted.after;
           const matchesFields = editableFields.every(key => latest.context.transaction[key] === after[key]);
-          const matchesLineItems = latest.context.lineItems.length === accepted.concepts.length && accepted.concepts.every(a => latest.context.lineItems.some(p => p._id === a.id && p.monto === a.after && (p.concepto_adicional || "") === (a.conceptoAfter || "")));
+          const matchesLineItems = latest.context.lineItems.length === accepted.concepts.length && accepted.concepts.every(a => latest.context.lineItems.some(p => p._id === a.id && p.monto === a.after));
           if (matchesFields && matchesLineItems && latest.context.transaction.monto_total === after.monto_total) {
             toast.success("Los cambios ya están guardados"); onClose(); return;
           }
@@ -109,13 +107,12 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
   return <Sheet open onOpenChange={open => !open && requestClose()}>
     <SheetContent data-square-modal="" className="w-full overflow-hidden sm:w-[680px] sm:max-w-[680px]" onEscapeKeyDown={e => { if (busy) e.preventDefault(); }} onInteractOutside={e => { if (busy) e.preventDefault(); }}>
       <SheetHeader><SheetTitle ref={titleRef} tabIndex={-1} className="focus:outline-none">{reviewing ? "Revisar cambios" : paymentId ? "Editar concepto de pago" : "Editar transacción"}</SheetTitle>
-        <SheetDescription>{paymentId ? "Modifica el concepto y el monto del renglón seleccionado; revisa su efecto sobre la transacción completa." : "Edita la transacción completa. Los conceptos del contexto de origen están destacados."}</SheetDescription></SheetHeader>
+        <SheetDescription>{paymentId ? "Modifica el monto del renglón seleccionado y el concepto general de la transacción." : "Edita la transacción completa. Los conceptos del contexto de origen están destacados."}</SheetDescription></SheetHeader>
       <div className="mt-5 space-y-5 pb-4">
         {error && <Message>{error}</Message>}
         {accessError && <Message>{accessError} Tu borrador se conserva.</Message>}
         {orphanEdits.length > 0 && <Message>Hay conceptos eliminados por otra edición. <Button variant="outline" className="mt-2" onClick={() => {
           setAmounts(old => Object.fromEntries(Object.entries(old).filter(([id]) => !orphanEdits.includes(id))));
-          setConceptos(old => Object.fromEntries(Object.entries(old).filter(([id]) => !orphanEdits.includes(id))));
         }}>Descartar cambios de conceptos eliminados</Button></Message>}
         {stale && <Message>Los datos cambiaron mientras editabas. Tu borrador se conserva. <Button className="mt-2" variant="outline" disabled={busy} onClick={refresh}>Actualizar base y revisión</Button></Message>}
         {reviewing ? <>
@@ -149,16 +146,12 @@ function EditSession({ initial, current, paymentId, contextIds, onClose, accessE
             {input("codigo_referencia", "Referencia o notas")}
             <div className="grid gap-4 sm:grid-cols-2">{input("factura", "Factura")}{input("comprobante", "Comprobante")}</div>
           </>}
+          <div className="space-y-2">{input("concepto_adicional", "Concepto (opcional)")}<p className="text-xs text-muted-foreground">Se aplica a toda la transacción.</p></div>
           <section className="space-y-3"><h3 className="font-semibold">{paymentId ? "Concepto seleccionado" : "Conceptos de la transacción"}</h3>
             {visible.length === 0 && <Message>El concepto seleccionado ya no existe.</Message>}
             {visible.map(p => <div key={p._id} className="space-y-2 border p-3">
               <label htmlFor={`amount-${p._id}`} className="block text-sm font-medium">{p.label}</label>
               {!paymentId && contextIds.includes(p._id) && <span className="text-xs text-muted-foreground">Contexto de origen</span>}
-              <div className="space-y-2">
-                <label htmlFor={`concepto-${p._id}`} className="block text-sm font-medium">Concepto (opcional)</label>
-                <Input id={`concepto-${p._id}`} value={conceptos[p._id] ?? p.concepto_adicional ?? ""} placeholder="Concepto"
-                  onChange={e => { setConceptos(old => ({ ...old, [p._id]: e.target.value })); setAccepted(null); setError(""); }} />
-              </div>
               <div className="flex items-center gap-3"><Input id={`amount-${p._id}`} inputMode="decimal" type="text" value={amounts[p._id] ?? String(p.monto)}
                 onChange={e => { setAmounts(old => ({ ...old, [p._id]: e.target.value })); setError(""); }} className="min-w-0 flex-1 text-right" /><span className="text-sm">{form.moneda}</span></div>
               <p className="text-xs text-muted-foreground">Antes: {formatMoney(p.monto, base.transaction.moneda)} {base.transaction.moneda}</p>

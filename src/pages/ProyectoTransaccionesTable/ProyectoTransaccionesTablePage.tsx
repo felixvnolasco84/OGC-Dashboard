@@ -438,7 +438,7 @@ export default function ProyectoTransaccionesTablePage() {
     const hiddenSelectedCount = selectedTransactionIds.size - visibleSelectedCount;
     const allVisibleSelected = visibleTransactionIds.length > 0 &&
         visibleTransactionIds.every((id) => selectedTransactionIds.has(id));
-    const tableColSpan = 7 + extraColumns.visibleCount;
+    const tableColSpan = 8 + extraColumns.visibleCount;
     const allFilteredSelected = hasActiveFilters && matchedCount > 0 && selectedTransactionIds.size === matchedCount;
     const showSelectAllFiltered = hasActiveFilters &&
         allVisibleSelected &&
@@ -595,7 +595,7 @@ export default function ProyectoTransaccionesTablePage() {
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-disabled-foreground h-5 w-5" />
                             <Input
                                 type="text"
-                                placeholder="Buscar por factura, código, tipo de pago, categoría, banco..."
+                                placeholder="Buscar por concepto, factura, código, tipo de pago, categoría, banco..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-12 pr-24 rounded-none border-border-strong h-12"
@@ -894,7 +894,7 @@ export default function ProyectoTransaccionesTablePage() {
                     <Table mobileSummary={[]}
                         className={cn(
                             "w-full border-separate border-spacing-0",
-                            extraColumns.visibleCount > 0 ? "min-w-[80rem]" : "min-w-[56rem]",
+                            extraColumns.visibleCount > 0 ? "min-w-[94rem]" : "min-w-[70rem]",
                         )}
                     >
                         <thead className="sticky top-0 z-20 bg-card">
@@ -908,6 +908,9 @@ export default function ProyectoTransaccionesTablePage() {
                                 </th>
                                 <th className="sticky left-12 z-30 min-w-56 w-56 bg-card px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     Factura
+                                </th>
+                                <th className="min-w-56 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
+                                    Concepto
                                 </th>
                                 <th className="min-w-44 px-6 py-4 text-left text-sm font-normal text-muted-foreground border-b border-r border-border">
                                     <span className="inline-flex items-center">
@@ -1014,6 +1017,11 @@ export default function ProyectoTransaccionesTablePage() {
                                             ) : (
                                                 <span className="text-sm text-disabled-foreground">-</span>
                                             )}
+                                        </td>
+                                        <td className="min-w-56 px-6 py-4 text-sm text-foreground border-b border-r border-border">
+                                            <div className="max-w-80 whitespace-normal break-words">
+                                                {transaccion.concepto_adicional || "—"}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 border-b border-r border-border">
                                             <div className="text-left">
