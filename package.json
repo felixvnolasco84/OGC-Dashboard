@@ -15,7 +15,7 @@
     "test:comments-ui": "node scripts/test-comments-ui.mjs",
     "test:e2e:bitacora": "playwright test --config playwright.bitacora.config.ts",
     "typecheck:convex-saas": "tsc -p convex-SAAS/tsconfig.json --noEmit",
-    "test:reports": "node --experimental-strip-types scripts/test-reporting-rules.mjs",
+    "test:reports": "vitest run --config vitest.config.ts --configLoader runner --no-isolate convex/reportLogbook.test.mjs convex/reportingRules.test.mjs",
     "test:pnl": "vitest run --config vitest.config.ts --configLoader runner convex/pnl.test.mjs",
     "test:pnl-ui": "node scripts/test-pnl-ui.mjs",
     "test:payment-edits": "vitest run --config vitest.config.ts --configLoader runner convex/paymentEdit.test.mjs",

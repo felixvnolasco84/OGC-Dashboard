@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import type {
   ReportInsights,
+  ReportLogbookEntry,
   ReportLogbookPhoto,
   ReportLogbookSection,
   ReportProgramActivity,
@@ -638,12 +639,10 @@ async function loadImageAsset(url: string): Promise<ImageAsset | null> {
   }
 }
 
-async function loadLogbookAssets(snapshot: ReportSnapshotV1) {
-  const urls = [...new Set((snapshot.logbook.sections || [])
-    .flatMap((section) => section.photos.slice(0, 4))
+async function loadLogbookAssets(photos: ReportLogbookPhoto[]) {
+  const urls = [...new Set(photos
     .map((photo) => photo.url)
-    .filter((url): url is string => Boolean(url)))]
-    .slice(0, 24);
+    .filter((url): url is string => Boolean(url)))];
   const pairs = await Promise.all(urls.map(async (url) => [url, await loadImageAsset(url)] as const));
   return new Map(pairs.filter((pair): pair is readonly [string, ImageAsset] => Boolean(pair[1])));
 }
@@ -1769,52 +1768,174 @@ function drawImageCover(
   }
 }
 
-function drawEvidencePage(
-  doc: jsPDF,
-  section: ReportLogbookSection,
-  assets: Map<string, ImageAsset>,
-) {
-  paintWhitePage(doc, true);
-  portraitSectionTitle(doc, section.title, 27.5);
-  const sourceBullets = section.bullets.length
-    ? section.bullets.slice(0, 4)
-    : ["Sin avances narrativos registrados en el periodo."];
-  const bullets = section.incident
-    ? [...sourceBullets.slice(0, 3), `Incidencia reportada: ${section.incident}`]
-    : sourceBullets;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.4);
-  const wrapped = bullets.map((bullet) => doc.splitTextToSize(bullet, CONTENT_WIDTH - 20).slice(0, 3));
-  const lineHeight = 4.05;
-  const textHeight = Math.max(49, wrapped.reduce((sum, lines) => sum + Math.max(1, lines.length) * lineHeight + 1.4, 0) + 8);
-  outlineCard(doc, MARGIN, 32.5, CONTENT_WIDTH, textHeight);
-  let textY = 40;
-  wrapped.forEach((lines) => {
-    doc.setFillColor(...COLORS.secondary);
-    doc.circle(MARGIN + 3.7, textY - 1.25, 0.42, "F");
-    doc.setTextColor(...COLORS.secondary);
-    doc.text(lines, MARGIN + 9.5, textY, { lineHeightFactor: 1.08 });
-    textY += Math.max(1, lines.length) * lineHeight + 1.4;
-  });
+type EvidenceTextLine = { text: string; bold?: boolean; bullet?: boolean };
 
-  const imageGap = 2.5;
-  const imageWidth = (CONTENT_WIDTH - imageGap) / 2;
-  const imageHeight = 62;
-  const firstImageY = 32.5 + textHeight + 9;
-  for (let index = 0; index < 4; index += 1) {
-    const photo = section.photos[index];
-    const asset = photo?.url ? assets.get(photo.url) : undefined;
-    const column = index % 2;
-    const row = Math.floor(index / 2);
-    drawImageCover(
-      doc,
-      asset,
-      photo,
-      MARGIN + column * (imageWidth + imageGap),
-      firstImageY + row * (imageHeight + imageGap),
-      imageWidth,
-      imageHeight,
-    );
+function evidenceTextLines(doc: jsPDF, text: string, width: number, bold = false, bullet = false): EvidenceTextLine[] {
+  doc.setFont("helvetica", bold ? "bold" : "normal");
+  doc.setFontSize(7.5);
+  return (doc.splitTextToSize(text, width) as string[])
+    .map((line, index) => ({ text: line, bold, bullet: bullet && index === 0 }));
+}
+
+function evidencePhotoLines(doc: jsPDF, photo: ReportLogbookPhoto, width: number, number: number) {
+  const lines = evidenceTextLines(doc, `Foto ${number} · ${formatDate(photo.date)} · ${photo.author}`, width, true);
+  const notes = photo.notes ?? (photo.caption ? [{ text: photo.caption, source: "description" as const }] : []);
+  for (const note of notes) {
+    const label = note.source === "description" ? "Descripción" : `Comentario${note.author ? ` · ${note.author}` : ""}`;
+    lines.push(...evidenceTextLines(doc, label, width, true));
+    // Preserve paragraphs and all wrapped lines, including very long comments.
+    for (const paragraph of note.text.split(/\r?\n/).filter(Boolean)) {
+      lines.push(...evidenceTextLines(doc, paragraph, width));
+    }
+  }
+  return lines;
+}
+
+async function drawEvidencePages(doc: jsPDF, section: ReportLogbookSection) {
+  const bottom = PAGE_HEIGHT - MARGIN;
+  const lineHeight = 4.05;
+  const padding = 5;
+  const photoGap = 4;
+  const photoWidth = (CONTENT_WIDTH - photoGap) / 2;
+  const imageHeight = 55;
+  const photoById = new Map(section.photos.map((photo, index) => [photo.id, { photo, number: index + 1 }]));
+  // Old artifacts have category summaries rather than dated entries.
+  const entries: ReportLogbookEntry[] = section.entries ?? [{
+    id: section.id, date: "", author: section.author,
+    progress: section.bullets, incident: section.incident,
+    photo_ids: section.photos.map((photo) => photo.id),
+  }];
+  let y = 0;
+  let started = false;
+  let currentEntry: ReportLogbookEntry;
+
+  const drawLines = (lines: EvidenceTextLine[], x: number, top: number) => {
+    for (const [index, line] of lines.entries()) {
+      doc.setFont("helvetica", line.bold ? "bold" : "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...(line.bold ? COLORS.text : COLORS.secondary));
+      const baseline = top + index * lineHeight;
+      if (line.bullet) {
+        doc.setFillColor(...COLORS.secondary);
+        doc.circle(x - 2.4, baseline - 0.9, 0.35, "F");
+      }
+      doc.text(line.text, x, baseline);
+    }
+  };
+  const drawEntryHeading = (continued = false) => {
+    const date = currentEntry.date ? formatDate(currentEntry.date)
+      : `${formatDate(section.period_start)} - ${formatDate(section.period_end)}`;
+    const heading = `${date} · ${currentEntry.author}${continued ? " · continuación" : ""}`;
+    const lines = evidenceTextLines(doc, heading, CONTENT_WIDTH, true);
+    drawLines(lines, MARGIN, y + 3);
+    y += lines.length * lineHeight + 5;
+  };
+  const startPage = (continued = false) => {
+    paintWhitePage(doc, true);
+    portraitSectionTitle(doc, section.title, 27.5);
+    y = 35;
+    started = true;
+    drawEntryHeading(continued);
+  };
+  const narrative = (entry: ReportLogbookEntry) => {
+    const width = CONTENT_WIDTH - padding * 2 - 3;
+    const lines = evidenceTextLines(doc, "Avance general", width, true);
+    const progress = entry.progress.length ? entry.progress : ["Sin avance general registrado."];
+    for (const item of progress) {
+      const heading = /:\s*$/.test(item);
+      lines.push(...evidenceTextLines(doc, item, width, heading, !heading));
+    }
+    if (entry.incident) {
+      lines.push(...evidenceTextLines(doc, "Retos / Incidencias", width, true));
+      lines.push(...evidenceTextLines(doc, entry.incident, width));
+    }
+    let offset = 0;
+    while (offset < lines.length) {
+      let capacity = Math.floor((bottom - y - padding * 2) / lineHeight);
+      if (capacity < Math.min(3, lines.length - offset)) {
+        startPage(true);
+        capacity = Math.floor((bottom - y - padding * 2) / lineHeight);
+      }
+      const chunk = lines.slice(offset, offset + capacity);
+      const height = chunk.length * lineHeight + padding * 2;
+      outlineCard(doc, MARGIN, y, CONTENT_WIDTH, height);
+      drawLines(chunk, MARGIN + padding + 3, y + padding + 2.5);
+      y += height + 5;
+      offset += chunk.length;
+    }
+  };
+
+  for (const entry of entries) {
+    currentEntry = entry;
+    // Reserve room for the entry heading and the beginning of its narrative.
+    const headingLines = evidenceTextLines(doc, `${formatDate(entry.date)} · ${entry.author}`, CONTENT_WIDTH, true).length;
+    if (!started || bottom - y < headingLines * lineHeight + 37) startPage();
+    else drawEntryHeading();
+    narrative(entry);
+    const photos = entry.photo_ids.flatMap((id) => {
+      const item = photoById.get(id);
+      return item ? [item] : [];
+    });
+    for (let offset = 0; offset < photos.length; offset += 2) {
+      const row = photos.slice(offset, offset + 2);
+      // Fetch only the upcoming row instead of loading/capping the entire report.
+      const assets = await loadLogbookAssets(row.map((item) => item.photo));
+      let columns = row.map(({ photo, number }) => ({
+        photo, number, lines: evidencePhotoLines(doc, photo, photoWidth - padding * 2, number), offset: 0,
+      }));
+      let first = true;
+      let expanded = false;
+      while (columns.some((column) => column.offset < column.lines.length)) {
+        // A long comment may outlive its neighboring photo. Use the full page
+        // width for that continuation rather than leaving a column empty.
+        if (!first && !expanded) {
+          const remainingColumns = columns.filter((column) => column.offset < column.lines.length);
+          if (remainingColumns.length === 1) {
+            const column = remainingColumns[0];
+            const remainingLines = column.lines.slice(column.offset);
+            const reflowed: EvidenceTextLine[] = [];
+            let paragraph = "";
+            let bold = remainingLines[0].bold;
+            for (const line of remainingLines) {
+              if (line.bold !== bold) {
+                reflowed.push(...evidenceTextLines(doc, paragraph, CONTENT_WIDTH - padding * 2, bold));
+                paragraph = "";
+                bold = line.bold;
+              }
+              paragraph += `${paragraph ? " " : ""}${line.text}`;
+            }
+            reflowed.push(...evidenceTextLines(doc, paragraph, CONTENT_WIDTH - padding * 2, bold));
+            columns = [{ ...column, lines: reflowed, offset: 0 }];
+            expanded = true;
+          }
+        }
+        const cardWidth = !first && columns.length === 1 ? CONTENT_WIDTH : photoWidth;
+        const imageSpace = first ? imageHeight + 2 : 6;
+        const remaining = Math.max(...columns.map((column) => column.lines.length - column.offset));
+        const minimum = imageSpace + padding * 2 + Math.min(4, remaining) * lineHeight;
+        if (bottom - y < minimum) startPage(true);
+        const capacity = Math.floor((bottom - y - imageSpace - padding * 2) / lineHeight);
+        const count = Math.min(capacity, remaining);
+        const height = imageSpace + count * lineHeight + padding * 2;
+        columns.forEach((column, index) => {
+          if (!first && column.offset >= column.lines.length) return;
+          const x = MARGIN + index * (photoWidth + photoGap);
+          outlineCard(doc, x, y, cardWidth, height);
+          if (first) {
+            drawImageCover(doc, column.photo.url ? assets.get(column.photo.url) : undefined,
+              column.photo, x + 0.5, y + 0.5, photoWidth - 1, imageHeight);
+          } else {
+            drawLines([{ text: `Foto ${column.number} · continuación`, bold: true }], x + padding, y + 5);
+          }
+          const chunk = column.lines.slice(column.offset, column.offset + count);
+          drawLines(chunk, x + padding, y + imageSpace + padding + 2.5);
+          column.offset += chunk.length;
+        });
+        y += height + 5;
+        first = false;
+      }
+    }
+    y += 3;
   }
 }
 
@@ -1924,7 +2045,6 @@ export async function renderReportPdf(
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter", compress: true });
   const activities = snapshot.program.activities || [];
   const logbookSections = snapshot.logbook.sections || [];
-  const assets = selected(sections, "logbook") ? await loadLogbookAssets(snapshot) : new Map<string, ImageAsset>();
 
   paintWhitePage(doc);
   drawCoverMark(doc);
@@ -1949,7 +2069,7 @@ export async function renderReportPdf(
 
   if (selected(sections, "logbook")) {
     if (logbookSections.length) {
-      logbookSections.forEach((section) => drawEvidencePage(doc, section, assets));
+      for (const section of logbookSections) await drawEvidencePages(doc, section);
     } else {
       paintWhitePage(doc, true);
       portraitSectionTitle(doc, "Bitácora y evidencia fotográfica", 28);

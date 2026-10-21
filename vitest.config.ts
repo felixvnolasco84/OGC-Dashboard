@@ -20,6 +20,8 @@ export default defineConfig({
       "convex/paymentEdit.test.mjs",
       "convex/transactionDeletion.test.mjs",
       "convex/programaObraExecution.test.mjs",
+      "convex/reportLogbook.test.mjs",
+      "convex/reportingRules.test.mjs",
       "convex/pnl.test.mjs",
       "convex/projectFeeImpact.test.mjs",
       "convex/presupuesto.test.mjs",

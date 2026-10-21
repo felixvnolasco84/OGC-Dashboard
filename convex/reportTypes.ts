@@ -151,6 +151,22 @@ export type ReportLogbookPhoto = {
   caption: string;
   author: string;
   date: string;
+  // Absent in older snapshots, whose single caption is still supported.
+  notes?: Array<{
+    text: string;
+    source: "description" | "comment";
+    author?: string;
+    created_at?: number;
+  }>;
+};
+
+export type ReportLogbookEntry = {
+  id: string;
+  date: string;
+  author: string;
+  progress: string[];
+  incident?: string;
+  photo_ids: string[];
 };
 
 export type ReportLogbookSection = {
@@ -162,6 +178,8 @@ export type ReportLogbookSection = {
   bullets: string[];
   incident?: string;
   photos: ReportLogbookPhoto[];
+  // Optional so saved ReportSnapshotV1 artifacts can still be rendered.
+  entries?: ReportLogbookEntry[];
 };
 
 export type ReportDataQualityIssue = {

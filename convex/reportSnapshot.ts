@@ -19,6 +19,7 @@ import {
 } from "./reportingUtils";
 
 import { executionContext } from "./programaObraExecution";
+import { buildReportLogbook } from "./reportLogbook";
 import type { Id } from "./_generated/dataModel";
 import { projectProgramDates, summarizeProgram } from "../src/lib/programa-obra-rules";
 
@@ -620,68 +621,7 @@ export async function buildReportSnapshot(
       row.status !== "Cancelado";
   }).length;
 
-  const periodLogs = logs.filter((row: any) =>
-    isDateInRange(parseProjectDate(row.fecha), args.periodStart, args.periodEnd));
-  const incidentLogs = periodLogs.filter((row: any) => {
-    const status = String(row.status || "").toLocaleLowerCase("es-MX");
-    return Boolean(row.comentarios) || status.includes("retras") || status.includes("proble");
-  });
-
-  const photosByLog = new Map<string, any[]>();
-  for (const document of documents) {
-    if (document.type !== "bitacora_foto" || !document.bitacora_id) continue;
-    const key = String(document.bitacora_id);
-    const values = photosByLog.get(key) || [];
-    values.push(document);
-    photosByLog.set(key, values);
-  }
-  const logsByCategory = new Map<string, any[]>();
-  for (const log of periodLogs) {
-    const category = sanitizeReportText(log.categoria || "Generales", 60) || "Generales";
-    const values = logsByCategory.get(category) || [];
-    values.push(log);
-    logsByCategory.set(category, values);
-  }
-  const logbookSections = await Promise.all(
-    [...logsByCategory.entries()].map(async ([title, categoryLogs]) => {
-      const sortedLogs = [...categoryLogs].sort((left, right) =>
-        compareIsoDates(parseProjectDate(left.fecha) || "", parseProjectDate(right.fecha) || ""));
-      const dates = sortedLogs.map((row) => parseProjectDate(row.fecha)).filter(Boolean) as string[];
-      const authors = [...new Set(sortedLogs
-        .map((row) => sanitizeReportText(row.responsable, 60))
-        .filter(Boolean))];
-      const bullets = sortedLogs
-        .flatMap((row) => String(row.avance_dia || "").split(/\r?\n|[•]+/))
-        .map((item) => sanitizeReportText(item, 190))
-        .filter(Boolean)
-        .slice(0, 6);
-      const incident = sortedLogs
-        .map((row) => sanitizeReportText(row.comentarios, 220))
-        .find(Boolean);
-      const photoRecords = sortedLogs
-        .flatMap((log) => (photosByLog.get(String(log._id)) || []).map((photo) => ({ log, photo })))
-        .slice(0, 6);
-      const photos = await Promise.all(photoRecords.map(async ({ log, photo }) => ({
-        id: String(photo._id),
-        url: photo.storage_id && ctx.storage
-          ? await ctx.storage.getUrl(photo.storage_id)
-          : null,
-        caption: sanitizeReportText(photo.comment || photo.descripcion || "Evidencia fotográfica", 120),
-        author: sanitizeReportText(log.responsable || "Equipo de obra", 60),
-        date: parseProjectDate(log.fecha) || args.periodEnd,
-      })));
-      return {
-        id: normalizeLabel(title).replace(/\s+/g, "-") || "general",
-        title,
-        author: authors.length > 1 ? "Equipo de obra" : authors[0] || "Equipo de obra",
-        period_start: dates.at(0) || args.periodStart,
-        period_end: dates.at(-1) || args.periodEnd,
-        bullets,
-        incident,
-        photos,
-      };
-    }),
-  );
+  const logbook = await buildReportLogbook(ctx, logs, documents, args.periodStart, args.periodEnd);
 
   const invalidTransactionDates = transactions.filter(
     (row: any) => row.fecha && !parseProjectDate(row.fecha),
@@ -891,15 +831,7 @@ export async function buildReportSnapshot(
         })),
       },
     },
-    logbook: {
-      entries_in_period: periodLogs.length,
-      incidents_in_period: incidentLogs.length,
-      incident_summaries: incidentLogs
-        .map((row: any) => sanitizeReportText(row.comentarios || row.avance_dia))
-        .filter(Boolean)
-        .slice(0, 8),
-      sections: logbookSections,
-    },
+    logbook,
     data_quality: {
       score: Math.max(0, 100 - qualityIssues.reduce((sum, issue) => sum + Math.min(25, issue.count * 5), 0)),
       issues: qualityIssues,
