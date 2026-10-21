@@ -19,6 +19,7 @@
     "test:pnl": "vitest run --config vitest.config.ts --configLoader runner convex/pnl.test.mjs",
     "test:payment-edits": "vitest run --config vitest.config.ts --configLoader runner convex/paymentEdit.test.mjs",
     "test:payment-edits-ui": "node scripts/test-payment-edit-ui.mjs",
+    "test:transaction-concepts-ui": "node scripts/test-transaction-concepts-ui.mjs",
     "test:project-fees": "vitest run --config vitest.config.ts --configLoader runner convex/projectFeeImpact.test.mjs",
     "test:indirectos-ui": "node scripts/test-indirectos-ui.mjs",
     "test:providers": "node --experimental-strip-types scripts/test-provider-transaction-rules.mjs",

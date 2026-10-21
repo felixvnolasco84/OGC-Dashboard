@@ -61,6 +61,7 @@ export default function TransactionCard({
         transaccion_id: item.transaccion_id,
         partida_id: item.partida_id,
         monto: item.monto,
+        concepto_adicional: item.concepto_adicional,
         partida: item.partida_id && item.partida && item.familia && item.sub_partida ? {
           _id: item.partida_id,
           nombre: item.partida,
@@ -152,17 +153,23 @@ export default function TransactionCard({
         {lineItemsCount > 0 && (
           <div className="mt-4 pt-3 border-t border-border">
             <p className="text-xs font-medium text-muted-foreground mb-2">Conceptos incluidos:</p>
-            <div className="space-y-1">
-              {lineItems.map((item, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground truncate">
+            <div className="space-y-1 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:gap-x-3 sm:gap-y-1 sm:space-y-0">
+              <div className="hidden sm:contents">
+                <span className="text-xs text-muted-foreground">Subpartida</span><span className="text-xs text-muted-foreground">Concepto</span><span className="text-right text-xs text-muted-foreground">Monto</span>
+              </div>
+              {lineItems.map(item => (
+                <div key={item._id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 sm:contents">
+                  <span className="min-w-0 break-words text-sm text-muted-foreground">
                     {item.partida && item.familia && item.sub_partida
                       ? `${item.partida} › ${item.familia} › ${item.sub_partida}`
                       : item.partida && item.familia
                         ? `${item.partida} › ${item.familia}`
                         : item.partida || 'Concepto'}
                   </span>
-                  <span className="text-foreground ml-2 whitespace-nowrap">
+                  <span className="col-span-2 col-start-1 row-start-2 min-w-0 break-words text-sm text-muted-foreground sm:col-span-1 sm:col-start-auto sm:row-start-auto">
+                    <span className="text-xs sm:hidden">Concepto: </span>{item.concepto_adicional || "—"}
+                  </span>
+                  <span className="col-start-2 row-start-1 text-right text-sm text-foreground whitespace-nowrap sm:col-start-auto sm:row-start-auto">
                     {formatCurrency(item.monto)}
                   </span>
                 </div>

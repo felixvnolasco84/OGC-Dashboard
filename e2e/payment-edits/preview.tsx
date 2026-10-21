@@ -7,6 +7,36 @@ import EditTransactionModal from "@/components/modals/edit-transaction-modal";
 import { useEditPaymentModal } from "@/hooks/edit-payment-modal";
 import { useEditTransactionModal } from "@/hooks/edit-transaction-modal";
 import { initial } from "./convex-stub";
+import TransactionCard from "@/components/Cards/TransactionCard";
+import AddPaymentModal from "@/components/modals/add-payment-modal";
+import TransactionConceptosModal from "@/components/modals/transaction-conceptos-modal";
+import { useAddPaymentModal } from "@/hooks/add-payment-modal";
+import { useTransactionConceptosModal } from "@/hooks/transaction-conceptos-modal";
+
+function ConceptsPreview() {
+  const add = useAddPaymentModal(), concepts = useTransactionConceptosModal();
+  const start = (direct: boolean) => {
+    add.onOpen({ projectId: "project" } as any);
+    useAddPaymentModal.setState({ partidas: [{ id: "part", partida: "OBRA", isExpanded: true, familias: [{
+      id: "family", familia: direct ? "CONCRETO" : "ACERO", isExpanded: true, monto: direct ? 100 : 0,
+      partida_id: direct ? "family-direct" : "", subPartidas: [{ id: "sub", partida_id: direct ? "" : "leaf", sub_partida: direct ? "" : "VARILLA", monto: direct ? 0 : 100 }],
+    }] }] } as any);
+  };
+  return <main className="min-h-screen bg-background p-2 text-foreground sm:p-6">
+    <div data-testid="transaction-card" className="max-w-2xl border">
+      <TransactionCard transaction={initial.transaction as any} index={0} formatCurrency={value => `$${Number(value).toFixed(2)}`} lineItems={initial.lineItems.map((p, i) => ({ ...p,
+        partida: "OBRA", familia: i ? "CONCRETO" : "ACERO", sub_partida: i ? "" : "VARILLA",
+        concepto_adicional: i ? undefined : "Entrega de acero para losa en frente norte · " + "detalle".repeat(25),
+      })) as any} />
+    </div>
+    <div className="mt-4 flex flex-wrap gap-2">
+      <Button onClick={() => start(false)}>Crear con subpartida</Button>
+      <Button onClick={() => start(true)}>Crear directo a familia</Button>
+      <Button onClick={() => concepts.onOpen("tx" as any)}>Ver desglose</Button>
+    </div>
+    <AddPaymentModal /><TransactionConceptosModal /><EditTransactionModal /><Toaster />
+  </main>;
+}
 import "@/index.css";
 
 function Preview() {
@@ -19,4 +49,4 @@ function Preview() {
     <EditPaymentModal /><EditTransactionModal /><Toaster />
   </main>;
 }
-createRoot(document.getElementById("root")!).render(<Preview />);
+createRoot(document.getElementById("root")!).render(new URLSearchParams(location.search).get("case") === "concepts" ? <ConceptsPreview /> : <Preview />);

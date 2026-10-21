@@ -70,6 +70,7 @@ type TransactionLineItemInput = {
   partida: string;
   familia: string;
   sub_partida: string;
+  concepto_adicional?: string;
   monto: number;
 };
 
@@ -697,6 +698,7 @@ async function prepareTransactionLineItems(
     });
     return {
       ...item,
+      concepto_adicional: item.concepto_adicional?.trim() || undefined,
       // Derive hierarchy labels from Convex. Client labels are display-only and
       // are intentionally ignored for persistence and rollup updates.
       partida: partidaNombre,
@@ -775,6 +777,7 @@ export const createTransaction = mutation({
         partida: v.string(),
         familia: v.string(),
         sub_partida: v.string(),
+        concepto_adicional: v.optional(v.string()),
         monto: v.number(),
       })
     ),
@@ -838,6 +841,7 @@ export const createTransaction = mutation({
         partida_id: item.partida_id,
         proyecto_id: args.proyecto,
         concepto: item.concepto,
+        concepto_adicional: item.concepto_adicional,
         concepto_normalizado: normalizeCostText(item.concepto),
         partida_nombre_snapshot: item.partida_nombre_snapshot,
         familia_snapshot: item.familia_snapshot,
@@ -905,6 +909,7 @@ export const createTransactionBulk = baseMutation({
         partida: v.string(),
         familia: v.string(),
         sub_partida: v.string(),
+        concepto_adicional: v.optional(v.string()),
         monto: v.number(),
       })
     ),
@@ -961,6 +966,7 @@ export const createTransactionBulk = baseMutation({
         partida_id: item.partida_id,
         proyecto_id: args.proyecto,
         concepto: item.concepto,
+        concepto_adicional: item.concepto_adicional,
         concepto_normalizado: normalizeCostText(item.concepto),
         partida_nombre_snapshot: item.partida_nombre_snapshot,
         familia_snapshot: item.familia_snapshot,

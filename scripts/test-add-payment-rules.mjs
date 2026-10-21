@@ -42,4 +42,16 @@ assert.equal(parseMoneyInput("1234,50", "MXN"), 1234.5);
 assert.equal(parseMoneyInput("1.234,56 €", "EUR", "de-DE"), 1234.56);
 assert.equal(parseMoneyInput("12abc", "MXN"), null);
 
+
+const withConcepts = buildPaymentDraft([
+  part({ familias: [family({ familia: "Cimentación", partida_id: "family-id", monto: 100, concepto_adicional: "  Anticipo  " })] }),
+], () => false);
+assert.equal(withConcepts.lineItems[0].concepto_adicional, "Anticipo");
+const subConcepts = buildPaymentDraft([
+  part({ familias: [family({ familia: "Acero", subPartidas: [sub({ sub_partida: "Varilla", partida_id: "sub-id", monto: 10, concepto_adicional: "  Entrega  " }), sub({ concepto_adicional: "Incompleto" })] })] }),
+], () => true);
+assert.equal(subConcepts.lineItems[0].concepto_adicional, "Entrega");
+assert.equal(subConcepts.incompleteCount, 1);
+assert.equal(direct.lineItems[0].concepto_adicional, undefined);
+
 console.log("Payment draft and money rules OK");

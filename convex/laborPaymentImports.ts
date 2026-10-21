@@ -20,7 +20,7 @@ import {
 import { mostSpecificCostLabel, normalizeCostText } from "./costRules";
 import { classifyProjectMatch } from "./projectMatchUtils";
 import { assertProviderManagementRole, hasProviderManagementAccess } from "./providerRules";
-import { markInvoicesStaleForTransaction } from "./invoiceIntegrity";
+import { markInvoicesStaleForTransaction, transactionChangeInvalidatesInvoice } from "./invoiceIntegrity";
 import { summarizeLaborWorkforce } from "./laborWorkforceRules";
 import { assertAttemptFile, writableAttempt } from "./laborImportHistory";
 import { LABOR_IMPORT_ATTEMPT_TIMEOUT, type LaborImportResult } from "./laborImportValidators";
@@ -39,6 +39,7 @@ const lineItemValidator = v.object({
   partida: v.string(),
   familia: v.string(),
   sub_partida: v.string(),
+  concepto_adicional: v.optional(v.string()),
   monto: v.number(),
   numero_personas_origen: v.optional(v.number()),
   source_row: v.number(),
@@ -92,32 +93,50 @@ function invoiceKey(transaction: { factura?: string; tipo_pago: string; moneda: 
     normalizeText(transaction.moneda), providerKey]);
 }
 
-function paymentValues(items: Array<{ monto: number; numero_personas_origen?: number }>) {
-  return JSON.stringify(items.map(item => [Math.round(item.monto * 100), item.numero_personas_origen ?? null])
-    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
-}
-
 function mergePaymentConcepts(existing: Doc<"pagos">[], incoming: ImportLine[]) {
   const writes: Array<{ item: ImportLine; previous?: Doc<"pagos"> }> = [];
   const includedPartidas = new Set(incoming.map(item => String(item.partida_id)));
   const preserved = existing.filter(item => !includedPartidas.has(String(item.partida_id)));
+  const sameValues = (before: Doc<"pagos">, after: ImportLine) =>
+    Math.round(before.monto * 100) === Math.round(after.monto * 100) &&
+    (before.numero_personas_origen ?? null) === (after.numero_personas_origen ?? null);
   for (const partidaId of includedPartidas) {
-    const before = existing.filter(item => String(item.partida_id) === partidaId);
-    const after = incoming.filter(item => String(item.partida_id) === partidaId);
-    if (paymentValues(before) === paymentValues(after)) {
-      preserved.push(...before);
-      continue;
-    }
+    const before = existing.filter(item => String(item.partida_id) === partidaId)
+      .sort((a, b) => (a.source_row ?? a._creationTime) - (b.source_row ?? b._creationTime) || a._id.localeCompare(b._id));
+    const after = incoming.filter(item => String(item.partida_id) === partidaId)
+      .sort((a, b) => a.source_row - b.source_row)
+      .map(item => ({ ...item, concepto_adicional: item.concepto_adicional?.trim() || undefined }));
     if (before.length > after.length) {
       throw new Error("La recarga contiene menos filas de un concepto ya registrado en esa factura. Revisa el pago desde Editar antes de reducir sus filas.");
     }
-    after.forEach((item, index) => writes.push({ item, previous: before[index] }));
+    const remaining = new Set(before);
+    const matches = new Map<ImportLine, Doc<"pagos">>();
+    const match = (item: ImportLine, predicate: (previous: Doc<"pagos">) => boolean) => {
+      const previous = [...remaining].find(predicate);
+      if (previous) { matches.set(item, previous); remaining.delete(previous); }
+    };
+    // Match explicit descriptions before unspecified ones so blank cells cannot
+    // consume another row's exact match when repeated subpartidas are reordered.
+    for (const item of after) if (item.concepto_adicional) {
+      match(item, previous => sameValues(previous, item) && previous.concepto_adicional === item.concepto_adicional);
+    }
+    for (const item of after) if (!item.concepto_adicional) {
+      match(item, previous => sameValues(previous, item));
+    }
+    for (const item of after) if (!matches.has(item)) match(item, () => true);
+    for (const incomingItem of after) {
+      const previous = matches.get(incomingItem);
+      const item = { ...incomingItem, concepto_adicional: incomingItem.concepto_adicional || previous?.concepto_adicional };
+      if (previous && sameValues(previous, item) && previous.concepto_adicional === item.concepto_adicional) preserved.push(previous);
+      else writes.push({ item, previous });
+    }
   }
   const merged = [...preserved, ...writes.map(({ item }) => ({
     monto: item.monto, numero_personas_origen: item.numero_personas_origen, source_row: item.source_row,
     sub_partida_snapshot: item.sub_partida, familia_snapshot: item.familia,
   }))];
-  return { writes, merged, amount: Math.round(merged.reduce((sum, item) => sum + item.monto, 0) * 100) / 100 };
+  const invalidatesInvoices = writes.some(({ item, previous }) => !previous || !sameValues(previous, item));
+  return { writes, merged, invalidatesInvoices, amount: Math.round(merged.reduce((sum, item) => sum + item.monto, 0) * 100) / 100 };
 }
 
 function normalizeText(value: unknown) {
@@ -474,12 +493,20 @@ export const replaceLaborPaymentImport = mutation({
         };
         let transactionId: Id<"transacciones">;
         if (existing) {
-          await markInvoicesStaleForTransaction(ctx, existing._id);
+          if (concepts.invalidatesInvoices || transactionChangeInvalidatesInvoice(existing, fields)) {
+            await markInvoicesStaleForTransaction(ctx, existing._id);
+          }
           await ctx.db.patch(existing._id, fields);
           transactionId = existing._id;
         } else transactionId = await ctx.db.insert("transacciones", fields);
-        await updateProviderStatsForTransactionChange(ctx, existing || null, fields);
+        if (!existing || existing.proveedor_id !== fields.proveedor_id || existing.monto_total !== fields.monto_total) {
+          await updateProviderStatsForTransactionChange(ctx, existing || null, fields);
+        }
         for (const { item, previous } of concepts.writes) {
+          if (previous && previous.monto === item.monto && previous.numero_personas_origen === item.numero_personas_origen) {
+            await ctx.db.patch(previous._id, { concepto_adicional: item.concepto_adicional });
+            continue;
+          }
           const partida = partidaDocs.get(String(item.partida_id));
           if (!partida) throw new Error("Una partida de la importación ya no existe.");
           const partidaNombre = String(partida.nivel === 1 ? partida.nombre : partida.partida_nombre || partida.nombre || "").trim();
@@ -488,6 +515,7 @@ export const replaceLaborPaymentImport = mutation({
           const concepto = mostSpecificCostLabel({ sub_partida: subPartida, familia, partida: partidaNombre, nombre: partida.nombre });
           const paymentFields = {
             transaccion_id: transactionId, partida_id: item.partida_id, proyecto_id: args.proyecto,
+            concepto_adicional: item.concepto_adicional,
             concepto, concepto_normalizado: normalizeCostText(concepto), partida_nombre_snapshot: partidaNombre,
             familia_snapshot: familia, sub_partida_snapshot: subPartida, classification_status: "mapped" as const,
             monto: Math.round(item.monto * 100) / 100, numero_personas_origen: item.numero_personas_origen, source_row: item.source_row,
@@ -505,7 +533,10 @@ export const replaceLaborPaymentImport = mutation({
     // Rebuild once after the merge. Recalculating each changed concept
     // repeatedly reads the same payment history and can exceed mutation limits.
     // Keep this in the same mutation so a failure rolls back the entire import.
-    await repairProjectPaymentTotals(ctx, args.proyecto);
+    const financialChanged = plans.some(plan => plan.transactions.some(({ existing, input, concepts }) =>
+      !existing || concepts.invalidatesInvoices || existing.monto_total !== concepts.amount || existing.status !== "Pagado" ||
+      normalizeText(existing.categoria) !== normalizeText(input.categoria)));
+    if (financialChanged) await repairProjectPaymentTotals(ctx, args.proyecto);
 
     return finishAttempt(ctx, attempt, {
       status: replacedDates ? "replaced" as const : "created" as const,

@@ -26,11 +26,17 @@ export const editFields = {
 export const paymentEditValidators = {
   id: v.id("transacciones"), fields: v.object(editFields),
   amounts: v.array(v.object({ id: v.id("pagos"), monto: v.number() })),
+  conceptos: v.optional(v.array(v.object({ id: v.id("pagos"), concepto_adicional: v.union(v.string(), v.null()) }))),
 };
 export type EditFields = Partial<Pick<Doc<"transacciones">, Exclude<keyof typeof editFields, "proveedor_id" | "payment_account_id">>> & {
   proveedor_id?: Id<"proveedores"> | null; payment_account_id?: Id<"payment_accounts"> | null;
 };
-export type PaymentEditDraft = { id: Id<"transacciones">; fields: EditFields; amounts: { id: Id<"pagos">; monto: number }[] };
+export type PaymentEditDraft = {
+  id: Id<"transacciones">;
+  fields: EditFields;
+  amounts: { id: Id<"pagos">; monto: number }[];
+  conceptos?: { id: Id<"pagos">; concepto_adicional: string | null }[];
+};
 type ReadCtx = Pick<QueryCtx, "db" | "auth">;
 const LIMIT = 2500;
 const CAPACITY = "El proyecto supera el límite de revisión completa. No se guardaron cambios; solicita una revisión de capacidad.";
@@ -130,11 +136,20 @@ export async function preparePaymentEdit(ctx: ReadCtx, draft: PaymentEditDraft) 
     if (item.partida_id && (!item.partida || item.partida.proyecto !== project._id)) throw new Error("La partida del concepto no pertenece al proyecto.");
     amounts.set(edit.id, edit.monto);
   }
-  const afterItems = context.lineItems.map(p => ({ ...p, monto: amounts.get(p._id) ?? p.monto }));
+  const conceptos = new Map<Id<"pagos">, string | undefined>();
+  for (const edit of draft.conceptos || []) {
+    const item = byId.get(edit.id);
+    if (!item || item.transaccion_id !== draft.id || conceptos.has(edit.id)) throw new Error("Los conceptos no corresponden a esta transacción o están repetidos.");
+    conceptos.set(edit.id, edit.concepto_adicional?.trim() || undefined);
+  }
+  const afterItems = context.lineItems.map(p => ({ ...p, monto: amounts.get(p._id) ?? p.monto,
+    concepto_adicional: conceptos.has(p._id) ? conceptos.get(p._id) : p.concepto_adicional }));
   if (afterItems.some(p => !Number.isFinite(p.monto))) throw new Error("Hay conceptos con montos inválidos.");
-  effective.monto_total = afterItems.reduce((sum, p) => sum + p.monto, 0);
+  const metadataOnly = conceptos.size > 0 && amounts.size === 0 && Object.keys(fields).length === 0;
+  effective.monto_total = metadataOnly ? before.monto_total : afterItems.reduce((sum, p) => sum + p.monto, 0);
   if (!Number.isFinite(effective.monto_total)) throw new Error("El total no es válido.");
   const changedItems = afterItems.filter((p, i) => p.monto !== context.lineItems[i].monto);
+  const changedConcepts = afterItems.filter((p, i) => p.concepto_adicional !== context.lineItems[i].concepto_adicional);
   const patch: Partial<Doc<"transacciones">> = {};
   for (const key of [...Object.keys(editFields), "monto_total"] as (keyof Doc<"transacciones">)[]) {
     if (effective[key] !== before[key]) Object.assign(patch, { [key]: effective[key] });
@@ -192,7 +207,8 @@ export async function preparePaymentEdit(ctx: ReadCtx, draft: PaymentEditDraft) 
   const oldProvider = before.proveedor_id && before.proveedor_id !== effective.proveedor_id ? await ctx.db.get(before.proveedor_id) : provider;
   // Canonical exact scope includes every input used by the review, not just the entity timestamp.
   const scope = JSON.stringify([FEE_CONCEPT_CALCULATION_VERSION, context.source, project, sorted(records.partidas), sorted(records.transactions), sorted(records.pagos),
-    fields, [...amounts].sort(([a], [b]) => a.localeCompare(b)), provider, oldProvider, account, sorted(invoices), sorted(allocations), sorted(documents)]);
+    fields, [...amounts].sort(([a], [b]) => a.localeCompare(b)), [...conceptos].sort(([a], [b]) => a.localeCompare(b)),
+    provider, oldProvider, account, sorted(invoices), sorted(allocations), sorted(documents)]);
   if (new TextEncoder().encode(scope).byteLength > 512 * 1024) throw new Error(CAPACITY);
   const dates = [reportDateIso(before.fecha), reportDateIso(effective.fecha)].filter((d): d is string => Boolean(d)).sort();
   const start = new Date(`${dates[0] || "2026-10-01"}T00:00:00`), end = new Date(`${dates[dates.length - 1] || "2026-10-01"}T23:59:59`);
@@ -203,10 +219,11 @@ export async function preparePaymentEdit(ctx: ReadCtx, draft: PaymentEditDraft) 
       costosDirectosObra: result.costosDirectosObra,
       monthly: Object.fromEntries(Object.entries(result.monthly).map(([key, m]) => [key, { honorarios: m.honorarios, indirectos: m.indirectos, costosDirectosObra: m.costosDirectosObra }])) };
   };
-  return { context, patch, changedItems, effective, project, afterProject, afterRecords, affected, financial, invalidatesInvoices,
+  return { context, patch, changedItems, changedConcepts, effective, project, afterProject, afterRecords, affected, financial, invalidatesInvoices,
     review: { status: "ready" as const, expectedScope: scope, source: context.source, before, after: effective,
-      hasChanges: changedItems.length > 0 || Object.keys(patch).length > 0,
-      concepts: context.lineItems.map((p, i) => ({ id: p._id, label: p.label, before: p.monto, after: afterItems[i].monto })),
+      hasChanges: changedItems.length > 0 || changedConcepts.length > 0 || Object.keys(patch).length > 0,
+      concepts: context.lineItems.map((p, i) => ({ id: p._id, label: p.label, before: p.monto, after: afterItems[i].monto,
+        conceptoBefore: p.concepto_adicional || "", conceptoAfter: afterItems[i].concepto_adicional || "" })),
       hierarchy: afterRecords.partidas.filter(p => affected.has(p._id)).map(p => {
         const old = records.partidas.find(b => b._id === p._id)!;
         return { id: p._id, label: [rootName(p), p.familia, p.sub_partida].filter(Boolean).join(" › "),
@@ -230,11 +247,12 @@ export async function applyPaymentEdit(ctx: MutationCtx, draft: PaymentEditDraft
   if (!prepared.review.hasChanges) return { id: draft.id, changed: false };
   // This helper must run in one raw mutation: write final sources, then final derived values.
   for (const item of prepared.changedItems) await ctx.db.patch(item._id, { monto: item.monto });
+  for (const item of prepared.changedConcepts) await ctx.db.patch(item._id, { concepto_adicional: item.concepto_adicional });
   if (prepared.invalidatesInvoices) await markInvoicesStaleForTransaction(ctx, draft.id);
   if (prepared.effective.monto_total !== prepared.context.transaction.monto_total || prepared.effective.proveedor_id !== prepared.context.transaction.proveedor_id) {
     await updateProviderStatsForTransactionChange(ctx, prepared.context.transaction, prepared.effective);
   }
-  await ctx.db.patch(draft.id, prepared.patch);
+  if (Object.keys(prepared.patch).length) await ctx.db.patch(draft.id, prepared.patch);
   if (prepared.financial) {
     for (const p of prepared.afterRecords.partidas) if (prepared.affected.has(p._id)) await ctx.db.patch(p._id, { pagado: p.pagado, por_gastar: p.por_gastar });
     await ctx.db.patch(prepared.project._id, { moneda_principal: prepared.afterProject.moneda_principal, honorarios_monto: prepared.afterProject.honorarios_monto });

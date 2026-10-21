@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { Fragment, useCallback, useRef, useState } from "react";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { hasProviderManagementAccess } from "../../../convex/providerRules";
@@ -29,6 +29,7 @@ import {
   LaborPaymentImportValidationError,
   parseLaborPaymentWorkbook,
   type LaborPaymentParseResult,
+  type LaborPaymentLineItem,
 } from "@/lib/laborPaymentImport";
 
 type ModalStep = "upload" | "preview" | "result";
@@ -39,6 +40,7 @@ type PreviewTransaction = {
   fecha: string;
   monto: number;
   itemCount: number;
+  lineItems: LaborPaymentLineItem[];
   providerName: string;
   providerStatus: "matched" | "new" | "archived" | "conflict";
   providerType?: "regular" | "generico";
@@ -218,6 +220,7 @@ export default function UploadProjectTransactionsModal() {
             fecha: week.date,
             monto: transaction.monto_total,
             itemCount: transaction.line_items.length,
+            lineItems: transaction.line_items,
             providerName: transaction.proveedor,
             providerStatus: status,
             providerType: match?.tipo,
@@ -426,6 +429,7 @@ export default function UploadProjectTransactionsModal() {
                         Explorar archivos
                       </Button>
                       <p className="text-xs text-muted-foreground">.xlsx o .xls · máximo 10 MB y 1,000 filas</p>
+                      <p className="text-xs text-muted-foreground">Puedes incluir la columna opcional CONCEPTO entre SUBPARTIDA y MONTO.</p>
                     </div>
                   )}
                   <input
@@ -519,6 +523,7 @@ export default function UploadProjectTransactionsModal() {
                 ))}
               </div>
 
+              <p className="text-xs text-muted-foreground">Concepto es opcional. Al recargar, las celdas vacías conservan el concepto registrado.</p>
               <div className="border rounded-none overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-background">
@@ -533,7 +538,8 @@ export default function UploadProjectTransactionsModal() {
                   </thead>
                   <tbody className="divide-y">
                     {validationReport.transactions.map((transaction) => (
-                      <tr key={transaction.sourceKey}>
+                      <Fragment key={transaction.sourceKey}>
+                      <tr>
                         <td className="p-2 font-mono text-xs">{transaction.factura}</td>
                         <td className="p-2">
                           <span className="block">{transaction.providerName}</span>
@@ -555,6 +561,26 @@ export default function UploadProjectTransactionsModal() {
                           )}
                         </td>
                       </tr>
+                      <tr>
+                        <td colSpan={6} className="px-2 pb-3">
+                          <details>
+                            <summary className="cursor-pointer text-xs text-muted-foreground">Ver desglose de {transaction.factura}</summary>
+                            <div className="mt-2 overflow-x-auto">
+                              <table className="w-full min-w-[680px] text-left text-xs">
+                                <thead><tr className="bg-muted/40">
+                                  <th className="p-2">Partida</th><th className="p-2">Familia</th><th className="p-2">Subpartida</th><th className="p-2">Concepto</th><th className="p-2 text-right">Monto</th>
+                                </tr></thead>
+                                <tbody>{transaction.lineItems.map(item => <tr key={item.source_row} className="border-t border-border">
+                                  <td className="p-2">{item.partida}</td><td className="p-2">{item.familia}</td><td className="p-2">{item.sub_partida || "—"}</td>
+                                  <td className="min-w-40 max-w-72 whitespace-normal break-words p-2">{item.concepto_adicional || "—"}</td>
+                                  <td className="whitespace-nowrap p-2 text-right font-mono">{formatCurrency(item.monto, validationReport.parsed.currency)}</td>
+                                </tr>)}</tbody>
+                              </table>
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

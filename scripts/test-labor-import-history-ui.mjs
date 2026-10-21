@@ -10,8 +10,8 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const server = await createServer({ configFile: `${root}/e2e/labor-import-history/vite.config.ts` });
 const workbook = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
-  ["ADMINISTRACIÓN", "PARTIDA", "FAMILIA", "SUBPARTIDA", "MONTO", "FECHA", "PROVEEDOR", "FACTURA", "CATEGORÍA", "TIPO DE PAGO", "MONEDA", "NO. PERSONAS"],
-  ["Obra", "OBRA", "MATERIAL", "ACERO", 100, "05/10/2026", "Proveedor de prueba", "FACTURA-100", "MATERIAL", "TRANSFERENCIA", "MXN", 0],
+  ["ADMINISTRACIÓN", "PARTIDA", "FAMILIA", "SUBPARTIDA", "CONCEPTO", "MONTO", "FECHA", "PROVEEDOR", "FACTURA", "CATEGORÍA", "TIPO DE PAGO", "MONEDA", "NO. PERSONAS"],
+  ["Obra", "OBRA", "MATERIAL", "ACERO", "Entrega de acero frente norte", 100, "05/10/2026", "Proveedor de prueba", "FACTURA-100", "MATERIAL", "TRANSFERENCIA", "MXN", 0],
 ]), "Pagos");
 const bytes = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
 const originalName = "Pagos originales · revisión 2.xlsx";
@@ -82,6 +82,11 @@ try {
     for (const scenario of ["success", "upload-error", "import-error", "lost-response"]) {
       await open(scenario);
       await validate();
+      await page.getByText("Ver desglose de FACTURA-100", { exact: true }).click();
+      await expect(page.getByRole("cell", { name: "Entrega de acero frente norte", exact: true })).toBeVisible();
+      const headers = await page.locator("details table th").allTextContents();
+      assert.deepEqual(headers, ["Partida", "Familia", "Subpartida", "Concepto", "Monto"]);
+      await overflow();
       await page.getByRole("button", { name: "Confirmar carga (1)", exact: true }).click();
       if (["success", "lost-response"].includes(scenario)) {
         await expect(page.getByText("Carga completada correctamente", { exact: true })).toBeVisible();
@@ -91,6 +96,7 @@ try {
         assert.equal(recorded.mutations[0].args.source.file_name, originalName);
         assert.equal(recorded.mutations[0].args.source.file_hash, createHash("sha256").update(bytes).digest("hex"));
         assert.equal(recorded.actions.length, 1);
+        assert.equal(recorded.actions[0].args.weeks[0].transactions[0].line_items[0].concepto_adicional, "Entrega de acero frente norte");
         await page.getByRole("button", { name: "Cerrar", exact: true }).click();
       } else {
         await expect(page.getByText("No se pudo completar la carga", { exact: true })).toBeVisible();

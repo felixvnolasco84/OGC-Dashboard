@@ -19,13 +19,16 @@ const REQUIRED_HEADERS = [
   "numero_personas",
 ] as const;
 
-type HeaderKey = (typeof REQUIRED_HEADERS)[number];
+const OPTIONAL_HEADERS = ["concepto_adicional"] as const;
+
+type HeaderKey = (typeof REQUIRED_HEADERS)[number] | (typeof OPTIONAL_HEADERS)[number];
 
 const HEADER_ALIASES: Record<HeaderKey, string[]> = {
   administracion: ["ADMINISTRACION"],
   partida: ["PARTIDA"],
   familia: ["FAMILIA"],
   subpartida: ["SUBPARTIDA", "SUB PARTIDA"],
+  concepto_adicional: ["CONCEPTO"],
   monto: ["MONTO"],
   fecha: ["FECHA"],
   proveedor: ["PROVEEDOR"],
@@ -56,6 +59,7 @@ export type LaborPaymentLineItem = {
   partida: string;
   familia: string;
   sub_partida: string;
+  concepto_adicional?: string;
   monto: number;
   numero_personas_origen?: number;
   source_row: number;
@@ -108,6 +112,7 @@ type ParsedSourceRow = {
   partida: string;
   familia: string;
   subpartida: string;
+  conceptoAdicional?: string;
   monto: number;
   date: string;
   proveedor: string;
@@ -145,7 +150,7 @@ function normalizeHeader(value: unknown): string {
 
 function headerKey(value: unknown): HeaderKey | null {
   const normalized = normalizeHeader(value);
-  for (const key of REQUIRED_HEADERS) {
+  for (const key of [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS]) {
     if (HEADER_ALIASES[key].includes(normalized)) return key;
   }
   return null;
@@ -279,6 +284,7 @@ function stringifyRow(row: ParsedSourceRow) {
     partida: normalizeLaborImportText(row.partida),
     familia: normalizeLaborImportText(row.familia),
     subpartida: normalizeLaborImportText(row.subpartida),
+    conceptoAdicional: row.conceptoAdicional,
     monto: roundMoney(row.monto),
     date: row.date,
     proveedor: normalizeLaborImportText(row.proveedor),
@@ -353,6 +359,7 @@ export function parseLaborPaymentRows(
     const partida = String(readCell(row, headers, "partida") ?? "").trim();
     const familia = String(readCell(row, headers, "familia") ?? "").trim();
     const subpartida = String(readCell(row, headers, "subpartida") ?? "").trim();
+    const conceptoAdicional = String(readCell(row, headers, "concepto_adicional") ?? "").trim() || undefined;
     const proveedor = String(readCell(row, headers, "proveedor") ?? "").trim();
     const factura = String(readCell(row, headers, "factura") ?? "").trim();
     const categoria = String(readCell(row, headers, "categoria") ?? "").trim();
@@ -404,6 +411,7 @@ export function parseLaborPaymentRows(
         partida,
         familia,
         subpartida,
+        conceptoAdicional,
         monto: roundMoney(monto),
         date,
         proveedor,
@@ -494,6 +502,7 @@ export function parseLaborPaymentRows(
           partida: row.partida,
           familia: row.familia,
           sub_partida: row.subpartida,
+          concepto_adicional: row.conceptoAdicional,
           monto: row.monto,
           numero_personas_origen: row.numeroPersonas,
           source_row: row.sourceRow,

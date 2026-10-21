@@ -9,6 +9,7 @@ const server = await createServer({ configFile: `${root}/e2e/payment-edits/vite.
 await server.listen();
 let browser;
 const errors = [];
+const overflowCheck = async (page, width) => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}`);
 try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   await mkdir(`${root}/output/payment-edits`, { recursive: true });
@@ -97,6 +98,35 @@ try {
     await page.getByRole("button", { name: "Volver a editar", exact: true }).click();
     await expect(page.getByLabel("Referencia o notas", { exact: true })).toHaveValue("Cambio externo");
     await expect(page.getByLabel("OBRA › ACERO › VARILLA", { exact: true })).toHaveValue("350");
+    // Text-only edits participate in review, conflicts, clearing and recovery.
+    await open(page);
+    const concept = page.getByLabel("Concepto (opcional)", { exact: true }).first();
+    await expect(concept).toHaveValue("Entrega original");
+    await concept.fill("Entrega adicional para frente norte y revisión de octubre");
+    await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("Entrega adicional para frente norte");
+    await overflowCheck(page, width);
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.conceptos), [{ id: "a", concepto_adicional: "Entrega adicional para frente norte y revisión de octubre" }]);
+    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.amounts), []);
+    await open(page, "lost-response");
+    await page.getByLabel("Concepto (opcional)", { exact: true }).first().fill("");
+    await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByText("Los cambios ya están guardados", { exact: true })).toBeVisible();
+    assert.deepEqual(await page.evaluate(() => window.paymentEditRecorded.mutations[0].args.conceptos), [{ id: "a", concepto_adicional: null }]);
+    await open(page, "lost-response-drift");
+    await page.getByLabel("Concepto (opcional)", { exact: true }).first().fill("Mi borrador");
+    await page.getByRole("button", { name: "Revisar cambios", exact: true }).click();
+    await page.getByRole("button", { name: "Confirmar actualización", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("Se perdió la respuesta");
+    await expect(page.getByLabel("Concepto (opcional)", { exact: true }).first()).toHaveValue("Mi borrador");
+    await open(page);
+    await page.getByLabel("Concepto (opcional)", { exact: true }).first().fill("Conservar borrador");
+    await page.evaluate(() => window.dispatchEvent(new Event("payment-edit-change")));
+    await page.getByRole("button", { name: "Actualizar base y revisión", exact: true }).click();
+    await expect(page.getByLabel("Concepto (opcional)", { exact: true }).first()).toHaveValue("Conservar borrador");
     await open(page, "denied");
     await expect(page.getByRole("alert")).toContainText("No tienes permiso");
     assert.equal(await page.getByRole("button", { name: "Revisar cambios", exact: true }).count(), 0);

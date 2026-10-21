@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import schema from "./schema";
 import { api } from "./_generated/api";
 import * as providerStats from "./providerStats";
-import { buildEditDraft, editForm, rebaseEditForm } from "../src/lib/payment-edit-draft";
+import { buildEditDraft, editForm, rebaseEditForm, rebaseConceptEdits } from "../src/lib/payment-edit-draft";
 
 const modules = import.meta.glob(["./**/*.ts", "./_generated/*.js"]);
 afterEach(() => vi.restoreAllMocks());
@@ -232,5 +232,114 @@ describe("payment edit review and atomic save", () => {
     form.codigo_referencia = "mi borrador";
     const current = structuredClone(r.loaded); current.transaction.fecha = "10/10/2026";
     expect(rebaseEditForm(r.loaded, current, form)).toMatchObject({ fecha: "2026-10-10", codigo_referencia: "mi borrador" });
+  });
+});
+
+
+async function reviewConcepts(f, conceptos, amounts = []) {
+  const r = await f.review({}, amounts);
+  r.draft.conceptos = conceptos;
+  r.result = await f.writer.query(api.transacciones.previewEdit, r.draft);
+  expect(r.result.status).toBe("ready");
+  return r;
+}
+
+describe("optional additional concepts", () => {
+  it.each(["createTransaction", "createTransactionBulk"])("persists optional text independently from classification through %s", async name => {
+    const f = await fixture();
+    const result = await f.writer.mutation(api.transacciones[name], {
+      proyecto: f.ids.project, monto_total: 60, fecha: "2026-10-05", tipo_pago: "EFECTIVO", moneda: "MXN", tipo_cambio: "1", status: "Pagado",
+      lineItems: [
+        { partida_id: f.ids.leaf, partida: "OBRA", familia: "ACERO", sub_partida: "VARILLA", monto: 10, concepto_adicional: "  Entrega de octubre  " },
+        { partida_id: f.ids.family, partida: "OBRA", familia: "ACERO", sub_partida: "", monto: 20, concepto_adicional: "  " },
+        { partida_id: f.ids.root, partida: "OBRA", familia: "", sub_partida: "", monto: 30 },
+      ],
+    });
+    const transaction = await f.writer.query(api.transacciones.getTransactionConceptosById, { id: result.transaccionId });
+    expect(transaction.lineItems).toHaveLength(3);
+    expect(transaction.lineItems.find(p => p.monto === 10)).toMatchObject({ concepto_adicional: "Entrega de octubre", concepto: "VARILLA", concepto_normalizado: "varilla" });
+    expect(transaction.lineItems.find(p => p.monto === 20).concepto_adicional).toBeUndefined();
+    expect(transaction.lineItems.find(p => p.monto === 30).concepto_adicional).toBeUndefined();
+  });
+
+  it("previews and saves text alone without changing financial records, classification or invoice analysis", async () => {
+    const f = await fixture();
+    await f.t.run(ctx => ctx.db.patch(f.ids.a, { concepto: "VARILLA", concepto_normalizado: "VARILLA", classification_status: "mapped" }));
+    const before = await f.snapshot();
+    const r = await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: "  Entrega planta norte  " }]);
+    expect(await f.snapshot()).toEqual(before);
+    expect(r.result.concepts.find(p => p.id === f.ids.a)).toMatchObject({ before: 300, after: 300, conceptoBefore: "", conceptoAfter: "Entrega planta norte" });
+    expect(r.result.hasChanges).toBe(true);
+    expect(r.result.invoiceCount).toBe(0);
+    expect(r.result.beforeBudget).toEqual(r.result.afterBudget);
+    expect(r.result.beforePnl).toEqual(r.result.afterPnl);
+    await f.save(r);
+    const after = await f.snapshot();
+    expect(after.pagos).toEqual(before.pagos.map(p => p._id === f.ids.a ? { ...p, concepto_adicional: "Entrega planta norte" } : p));
+    for (const table of Object.keys(before).filter(table => table !== "pagos")) expect(after[table]).toEqual(before[table]);
+  });
+
+  it("preserves omitted text and clears it with null or whitespace", async () => {
+    const f = await fixture();
+    await f.t.run(ctx => ctx.db.patch(f.ids.a, { concepto_adicional: "Conservar" }));
+    await f.save(await f.review({}, [{ id: f.ids.b, monto: 710 }]));
+    expect((await f.get(f.ids.a)).concepto_adicional).toBe("Conservar");
+    const noChange = await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: " Conservar " }]);
+    expect(noChange.result.hasChanges).toBe(false);
+    await f.save(await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: null }]));
+    expect((await f.get(f.ids.a)).concepto_adicional).toBeUndefined();
+    await f.t.run(ctx => ctx.db.patch(f.ids.a, { concepto_adicional: "Borrar" }));
+    await f.save(await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: "  " }]));
+    expect((await f.get(f.ids.a)).concepto_adicional).toBeUndefined();
+  });
+
+  it("does not repair historical total discrepancies during a text-only edit", async () => {
+    const f = await fixture();
+    await f.t.run(ctx => ctx.db.patch(f.ids.transaction, { monto_total: 999.99 }));
+    const r = await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: "Nota histórica" }]);
+    expect(r.result.after.monto_total).toBe(999.99);
+    expect(r.result.invoiceCount).toBe(0);
+    await f.save(r);
+    expect((await f.get(f.ids.transaction)).monto_total).toBe(999.99);
+    expect((await f.get(f.ids.invoice)).status).toBe("approved");
+  });
+
+  it("rejects duplicate or foreign IDs and protects text edits with both review tokens", async () => {
+    const f = await fixture();
+    const r = await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: "A" }]);
+    const before = await f.snapshot();
+    await expect(f.writer.mutation(api.transacciones.saveEdit, { ...r.draft, conceptos: [...r.draft.conceptos, ...r.draft.conceptos], expectedScope: r.result.expectedScope })).rejects.toThrow("repetidos");
+    const foreign = await f.t.run(async ctx => {
+      const tx = await ctx.db.insert("transacciones", { proyecto: f.ids.project, monto_total: 1, fecha: "05/10/2026", tipo_pago: "EFECTIVO", moneda: "MXN", tipo_cambio: "1", status: "Pagado" });
+      return ctx.db.insert("pagos", { transaccion_id: tx, monto: 1 });
+    });
+    const bad = await f.writer.query(api.transacciones.previewEdit, { ...r.draft, conceptos: [{ id: foreign, concepto_adicional: "X" }] });
+    expect(bad).toMatchObject({ status: "error" });
+    // Refresh the scope after creating unrelated records, then try another draft.
+    const current = await reviewConcepts(f, r.draft.conceptos);
+    await expect(f.writer.mutation(api.transacciones.saveEdit, { ...current.draft, conceptos: [{ id: f.ids.a, concepto_adicional: "B" }], expectedScope: current.result.expectedScope })).rejects.toThrow("impacto cambió");
+    await f.t.run(ctx => ctx.db.patch(f.ids.a, { concepto_adicional: "Edición concurrente" }));
+    await expect(f.save(current)).rejects.toThrow("transacción cambió");
+    expect((await f.get(f.ids.a)).monto).toBe(before.pagos.find(p => p._id === f.ids.a).monto);
+  });
+
+  it("rolls back text together with amounts when a later write fails", async () => {
+    const f = await fixture();
+    const r = await reviewConcepts(f, [{ id: f.ids.a, concepto_adicional: "Sin guardar" }], [{ id: f.ids.a, monto: 350 }]);
+    const before = await f.snapshot();
+    vi.spyOn(providerStats, "updateProviderStatsForTransactionChange").mockRejectedValueOnce(new Error("Fallo posterior"));
+    await expect(f.save(r)).rejects.toThrow("Fallo posterior");
+    expect(await f.snapshot()).toEqual(before);
+  });
+
+  it("builds scoped text drafts and rebases only modified descriptions", async () => {
+    const f = await fixture(), r = await f.review({}, []), form = editForm(r.loaded.transaction);
+    const draft = buildEditDraft(r.loaded, form, {}, f.ids.a, { [f.ids.a]: "  Texto  " });
+    expect(draft.conceptos).toEqual([{ id: f.ids.a, concepto_adicional: "Texto" }]);
+    expect(() => buildEditDraft(r.loaded, form, {}, f.ids.a, { [f.ids.b]: "Otro" })).toThrow("Sólo");
+    expect(() => buildEditDraft(r.loaded, form, {}, undefined, { missing: "Otro" })).toThrow("ya no existe");
+    r.loaded.lineItems[0].concepto_adicional = "Anterior";
+    expect(buildEditDraft(r.loaded, form, {}, undefined, { [f.ids.a]: "" }).conceptos).toEqual([{ id: f.ids.a, concepto_adicional: null }]);
+    expect(rebaseConceptEdits(r.loaded, { [f.ids.a]: " Anterior ", [f.ids.b]: "Mi borrador" })).toEqual({ [f.ids.b]: "Mi borrador" });
   });
 });

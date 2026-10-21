@@ -515,7 +515,14 @@ export default function AddPaymentModal() {
                                                     {familia.isExpanded && familia.familia && (
                                                         <>
                                                             {!familiaHasSubPartidas(partida.partida, familia.familia) ? (
-                                                                <div className="ml-4 space-y-1">
+                                                                <div className="ml-4 space-y-2">
+                                                                    <label htmlFor={`familia-concepto-${familia.id}`} className="block text-xs text-muted-foreground">Concepto (opcional)</label>
+                                                                    <Input
+                                                                        id={`familia-concepto-${familia.id}`}
+                                                                        placeholder="Concepto"
+                                                                        value={familia.concepto_adicional || ""}
+                                                                        onChange={(event) => updateFamiliaDirectPayment(partida.id, familia.id, { concepto_adicional: event.target.value })}
+                                                                    />
                                                                     <label htmlFor={`familia-monto-${familia.id}`} className="text-xs text-muted-foreground">Monto de la familia</label>
                                                                     <div className="flex-1">
                                                                         <MoneyInput
@@ -533,7 +540,7 @@ export default function AddPaymentModal() {
                                                                 /* Family with sub-items */
                                                                 <div className="space-y-2 ml-4">
                                                                     {familia.subPartidas.map((subPartida) => (
-                                                                        <div key={subPartida.id} className="flex items-center gap-2">
+                                                                        <div key={subPartida.id} className="grid min-w-0 grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_8rem_auto]">
                                                                             <Select
                                                                                 value={subPartida.sub_partida}
                                                                                 onValueChange={(value) =>
@@ -547,7 +554,7 @@ export default function AddPaymentModal() {
                                                                                     )
                                                                                 }
                                                                             >
-                                                            <SelectTrigger className="flex-1 h-9">
+                                                                                <SelectTrigger className="min-w-0 h-9">
                                                                                     <SelectValue placeholder="Sub-partida" />
                                                                                 </SelectTrigger>
                                                                                 <SelectContent data-square-modal="">
@@ -558,7 +565,17 @@ export default function AddPaymentModal() {
                                                                                     ))}
                                                                                 </SelectContent>
                                                                             </Select>
-                                                                            <div className="w-32">
+                                                                            <div className="min-w-0 space-y-1">
+                                                                                <label htmlFor={`subpartida-concepto-${subPartida.id}`} className="block text-xs text-muted-foreground">Concepto (opcional)</label>
+                                                                                <Input
+                                                                                    id={`subpartida-concepto-${subPartida.id}`}
+                                                                                    className="h-9"
+                                                                                    placeholder="Concepto"
+                                                                                    value={subPartida.concepto_adicional || ""}
+                                                                                    onChange={(event) => updateSubPartida(partida.id, familia.id, subPartida.id, { concepto_adicional: event.target.value })}
+                                                                                />
+                                                                            </div>
+                                                                            <div className="min-w-0">
                                                                                 <MoneyInput
                                                                                     aria-label={`Monto de ${subPartida.sub_partida || "sub-partida"}`}
                                                                                     placeholder="Monto"

@@ -11,6 +11,7 @@ export type SubPartidaItem = {
     id: string;
     partida_id: Id<"partidas"> | "";
     sub_partida: string;
+    concepto_adicional?: string;
     monto: number;
 };
 
@@ -19,6 +20,7 @@ export type FamiliaItem = {
     familia: string;
     subPartidas: SubPartidaItem[];
     isExpanded: boolean;
+    concepto_adicional?: string; // For direct payments
     monto?: number; // For direct payments
     partida_id?: Id<"partidas"> | ""; // For direct payments
 };
@@ -48,7 +50,7 @@ type AddPaymentModalStore = {
     removeFamilia: (partidaId: string, familiaId: string) => void;
     updateFamilia: (partidaId: string, familiaId: string, familia: string) => void;
     toggleFamiliaExpanded: (partidaId: string, familiaId: string) => void;
-    updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { monto?: number; partida_id?: Id<"partidas"> | "" }) => void;
+    updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { concepto_adicional?: string; monto?: number; partida_id?: Id<"partidas"> | "" }) => void;
     
     // SubPartida operations
     addSubPartida: (partidaId: string, familiaId: string) => void;
@@ -62,6 +64,7 @@ const createEmptySubPartida = (): SubPartidaItem => ({
     id: Date.now().toString() + Math.random(),
     partida_id: "",
     sub_partida: "",
+    concepto_adicional: "",
     monto: 0,
 });
 
@@ -71,6 +74,7 @@ const createEmptyFamilia = (): FamiliaItem => ({
     subPartidas: [createEmptySubPartida()],
     isExpanded: true,
     monto: 0,
+    concepto_adicional: "",
     partida_id: "",
 });
 
@@ -144,6 +148,7 @@ export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
                         f.id === familiaId ? {
                             ...f,
                             familia,
+                            concepto_adicional: "",
                             monto: 0,
                             partida_id: "",
                             subPartidas: [createEmptySubPartida()],
@@ -167,7 +172,7 @@ export const useAddPaymentModal = create<AddPaymentModalStore>((set) => ({
         )
     })),
     
-    updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { monto?: number; partida_id?: Id<"partidas"> | "" }) => set((state) => ({
+    updateFamiliaDirectPayment: (partidaId: string, familiaId: string, data: { concepto_adicional?: string; monto?: number; partida_id?: Id<"partidas"> | "" }) => set((state) => ({
         partidas: state.partidas.map(p => 
             p.id === partidaId 
                 ? {

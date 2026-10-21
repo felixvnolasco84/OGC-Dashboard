@@ -54,6 +54,7 @@ type LineItem = {
   _id: Id<"pagos">;
   monto: number;
   concepto?: string;
+  concepto_adicional?: string;
   partida_nombre_snapshot?: string;
   familia_snapshot?: string;
   sub_partida_snapshot?: string;
@@ -324,7 +325,7 @@ export default function TransactionDetailsModal() {
                 </div>
               ) : (
                 <div className="overflow-x-auto border-t border-border px-6 py-5">
-                  <div className="min-w-[760px] border border-border">
+                  <div className="min-w-[920px] border border-border">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-b border-border bg-muted/40 hover:bg-muted/40">
@@ -332,6 +333,7 @@ export default function TransactionDetailsModal() {
                           <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Partida</TableHead>
                           <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Familia</TableHead>
                           <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Subpartida</TableHead>
+                          <TableHead className="h-10 px-3 text-xs font-medium text-muted-foreground">Concepto</TableHead>
                           <TableHead className="h-10 px-3 text-right text-xs font-medium text-muted-foreground">Monto</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -350,6 +352,9 @@ export default function TransactionDetailsModal() {
                             <TableCell className="px-3 py-3 text-sm text-muted-foreground">
                               {item.sub_partida_snapshot || item.partida?.sub_partida || item.concepto || "—"}
                             </TableCell>
+                            <TableCell className="min-w-40 max-w-72 whitespace-normal break-words px-3 py-3 text-sm text-muted-foreground">
+                              {item.concepto_adicional || "—"}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums">
                               {formatCurrency(item.monto, transaction.moneda)}
                             </TableCell>
@@ -358,7 +363,7 @@ export default function TransactionDetailsModal() {
                       </TableBody>
                       <TableFooter>
                         <TableRow className="border-t border-border bg-card hover:bg-card">
-                          <TableCell colSpan={4} className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                          <TableCell colSpan={5} className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                             Total de conceptos
                           </TableCell>
                           <TableCell className="whitespace-nowrap px-3 py-3 text-right text-sm font-medium tabular-nums">
