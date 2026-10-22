@@ -148,7 +148,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   }
 
   // Compute extension end date from tiempo_extra fields on detalleSchedule.
-  // The base fecha_fin is the green bar end; red extension goes from base to base + tiempo_extra.
+  // The base fecha_fin is the planned bar end; only manual time extends it.
   //
   // Backward-compat: old records stored fecha_fin = base + extension (baked in).
   // Detection: if tiempo_extra exists AND fecha_fin > parent end, the stored fecha_fin
@@ -209,12 +209,11 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
 
   // Avance real and financiero percentages
   const avanceReal = item.avanceReal ?? 0;
-  const isComplete = item.isComplete ?? avanceReal >= 100;
   const financiero = item.financiero ?? 0;
   const now = parseDate(programToday(currentTime))!;
 
   // A late start is only shown after a full seven-day reporting window.
-  // Once progress exists, preserve the red span through its first positive entry.
+  // Once progress exists, preserve its late start within the planned bar.
   const graceEnd = new Date(startDate);
   graceEnd.setDate(graceEnd.getDate() + 7);
   graceEnd.setHours(23, 59, 59, 999);
@@ -234,50 +233,32 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
     ? dateToPixel(lateStartEndDate, columnWidth, timelineMonths)
     : null;
   const lateStartWidth = lateStartEndPx != null
-    ? Math.max(lateStartEndPx - startPx, 0)
+    ? Math.min(Math.max(lateStartEndPx - startPx, 0), barWidth)
     : 0;
 
-  // Once the planned end has passed, keep extending an incomplete activity to
-  // today. If it later reaches 100%, retain its known actual completion date.
-  let automaticDelayEndDate: Date | null = null;
-  if (!isComplete && item.completedAt == null && isProgramaItemDelayed(item, currentTime)) {
-    automaticDelayEndDate = now;
-  } else if (
+  // Overdue work and known late completions turn the planned line red. Neither
+  // today's date nor an actual date may extend the saved schedule.
+  const hasFinishDelay = isProgramaItemDelayed(item, currentTime) || !!(
     item.completionKnown &&
-    item.completedAt != null
-  ) {
-    const completedDate = new Date(item.completedAt);
-    if (completedDate > endDate) automaticDelayEndDate = completedDate;
-  }
+    item.completedAt != null &&
+    new Date(item.completedAt) > endDate
+  );
+  const delayWidth = hasFinishDelay ? barWidth : lateStartWidth;
 
-  if (
-    automaticDelayEndDate &&
-    (!extensionEndDate || automaticDelayEndDate > extensionEndDate)
-  ) {
-    extensionEndDate = automaticDelayEndDate;
-  }
-
-  // Red extension pixels for a child activity (manual extension and/or delay).
+  // Extensions come exclusively from saved manual dates and time allowances.
   const extensionEndPx = extensionEndDate ? dateToPixel(extensionEndDate, columnWidth, timelineMonths) : null;
   const extensionWidth = extensionEndPx != null ? Math.max(extensionEndPx - endPx, 0) : 0;
   const parentEndPx0 = parentEndForExtension ? dateToPixel(parentEndForExtension, columnWidth, timelineMonths) : null;
-  let level0ExtensionEndDate = maxChildEnd;
-  if (
-    automaticDelayEndDate &&
-    (!level0ExtensionEndDate || automaticDelayEndDate > level0ExtensionEndDate)
-  ) {
-    level0ExtensionEndDate = automaticDelayEndDate;
-  }
-  const level0ExtensionEndPx = level0ExtensionEndDate
-    ? dateToPixel(level0ExtensionEndDate, columnWidth, timelineMonths)
+  const level0ExtensionEndPx = maxChildEnd
+    ? dateToPixel(maxChildEnd, columnWidth, timelineMonths)
     : null;
   const level0ExtensionWidth = parentEndPx0 != null && level0ExtensionEndPx != null
     ? Math.max(level0ExtensionEndPx - parentEndPx0, 0)
     : 0;
 
   const hasDelay = item.level === 0
-    ? lateStartWidth > 0 || level0ExtensionWidth > 0
-    : item.level === 1 && (lateStartWidth > 0 || extensionWidth > 0);
+    ? delayWidth > 0 || level0ExtensionWidth > 0
+    : item.level === 1 && (delayWidth > 0 || extensionWidth > 0);
   const recordedStartOffset = item.hasReportedProgress === true &&
     item.progressStartKnown &&
     item.progressStartedAt != null
@@ -285,7 +266,8 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
     : null;
   const showRecordedStartMarker = hasDelay &&
     recordedStartOffset != null &&
-    recordedStartOffset >= 0;
+    recordedStartOffset >= 0 &&
+    recordedStartOffset <= barWidth + (item.level === 0 ? level0ExtensionWidth : extensionWidth);
   const recordedStartLabel = item.progressStartedAt != null
     ? formatRecordedStart(item.progressStartedAt)
     : null;
@@ -327,6 +309,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
 
   return (
     <div
+      data-programa-item={item.id}
       title={`Inicio real: ${item.progressStartedAt != null ? formatRecordedStart(item.progressStartedAt) : "Desconocido"} · Terminación real: ${item.completedAt != null ? formatRecordedStart(item.completedAt) : "Desconocida"} · Avance al día: ${item.detalleSchedule?.progress_as_of ?? "Sin fecha"}`}
       className={cn(
         "absolute top-0 bottom-0 flex items-start",
@@ -354,12 +337,6 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 className="h-full rounded-t-none transition-all bg-green-700"
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
-              {/* % label on the right */}
-              {avanceReal > 0 && (
-                <span className="absolute -right-10 top-0 text-[10px] text-muted-foreground leading-[10px]">
-                  {Math.round(avanceReal)}%
-                </span>
-              )}
             </div>
             {/* Light green - Financiero */}
             <div className="h-[5px] shrink-0 w-full bg-[#bee3cf] rounded-b-none overflow-hidden relative">
@@ -367,11 +344,6 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 className="h-full bg-green-400/70 rounded-b-none transition-all"
                 style={{ width: `${Math.min(financiero, 100)}%` }}
               />
-              {financiero > 0 && (
-                <span className="absolute -right-10 top-0 text-[10px] text-disabled-foreground leading-[8px]">
-                  {financiero}%
-                </span>
-              )}
             </div>
             {/* Label */}
             <span className="text-xs text-foreground px-2.5 py-1.5 block mt-0 text-left flex-1 whitespace-nowrap">
@@ -384,7 +356,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {item.level === 0 && level0ExtensionWidth > 0 && (
           <>
             <div
-              data-delay-kind="finish" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              data-delay-kind="extension" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
               style={{ left: `${barWidth}px`, width: `${level0ExtensionWidth}px` }}
             />
             <div
@@ -404,20 +376,20 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
           </>
         )}
 
-        {/* === Late-start span for nivel 0 (one-week reporting tolerance) === */}
-        {item.level === 0 && lateStartWidth > 0 && (
+        {/* === Delay within the planned nivel 0 range === */}
+        {item.level === 0 && delayWidth > 0 && (
           <>
             <div
-              data-delay-kind="start" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
-              style={{ left: 0, width: `${lateStartWidth}px` }}
+              data-delay-kind={hasFinishDelay ? "finish" : "start"} className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              style={{ left: 0, width: `${delayWidth}px` }}
             />
             <div
               className="absolute top-0 h-[6.5px] bg-[#B17C7C] z-[6]"
-              style={{ left: 0, width: `${lateStartWidth}px` }}
+              style={{ left: 0, width: `${delayWidth}px` }}
             />
             <div
               className="absolute top-[6.5px] h-[5px] bg-[#CCA7A9] z-[6]"
-              style={{ left: 0, width: `${lateStartWidth}px` }}
+              style={{ left: 0, width: `${delayWidth}px` }}
             />
           </>
         )}
@@ -430,11 +402,6 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
                 className="h-full bg-[#417847] rounded-none transition-all"
                 style={{ width: `${Math.min(avanceReal, 100)}%` }}
               />
-              {avanceReal > 0 && (
-                <span className="absolute -right-8 top-[-3px] text-[9px] text-green-700  leading-[10px]">
-                  {Math.round(avanceReal)}%
-                </span>
-              )}
             </div>
 
 
@@ -450,7 +417,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         {item.level === 1 && extensionWidth > 0 && (
           <>
             <div
-              data-delay-kind="finish" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              data-delay-kind="extension" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
               style={{ left: `${barWidth}px`, width: `${extensionWidth}px` }}
             />
             <div
@@ -463,18 +430,34 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
           </>
         )}
 
-        {/* === Late-start span for nivel 1 (one-week reporting tolerance) === */}
-        {item.level === 1 && lateStartWidth > 0 && (
+        {/* === Delay within the planned nivel 1 range === */}
+        {item.level === 1 && delayWidth > 0 && (
           <>
             <div
-              data-delay-kind="start" className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
-              style={{ left: 0, width: `${lateStartWidth}px` }}
+              data-delay-kind={hasFinishDelay ? "finish" : "start"} className="absolute top-0 bottom-0 bg-[#EFE5E4] z-[1]"
+              style={{ left: 0, width: `${delayWidth}px` }}
             />
             <div
               className="absolute top-0 h-[3px] bg-[#B17C7C] z-[6]"
-              style={{ left: 0, width: `${lateStartWidth}px` }}
+              style={{ left: 0, width: `${delayWidth}px` }}
             />
           </>
+        )}
+
+        {/* Keep percentages above the red overlays and outside clipped tracks. */}
+        {(item.level === 0 || item.level === 1) && avanceReal > 0 && (
+          <span className={cn(
+            "absolute z-10",
+            item.level === 0 ? "-right-10 top-0 text-[10px] text-muted-foreground" : "-right-8 top-[-3px] text-[9px] text-green-700",
+            "leading-[10px]",
+          )}>
+            {Math.round(avanceReal)}%
+          </span>
+        )}
+        {item.level === 0 && financiero > 0 && (
+          <span className="absolute -right-10 top-[12px] z-10 text-[10px] text-disabled-foreground leading-[10px]">
+            {financiero}%
+          </span>
         )}
 
         {/* Exact first positive progress, shown only when the history proves it. */}

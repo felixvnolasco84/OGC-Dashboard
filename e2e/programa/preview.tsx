@@ -33,6 +33,7 @@ function Preview() {
   const [selected, setSelected] = useState<string | null>(null);
   const progressMode = new URLSearchParams(location.search).get("progress");
   if (progressMode) return <ProgressPreview mode={progressMode} />;
+  if (new URLSearchParams(location.search).has("bars")) return <GanttBoundsPreview />;
   if (new URLSearchParams(location.search).has("import")) return <ProgramaObraImportReview
     proyecto={"project" as Id<"desarrollos">}
     rows={[{ nivel: 2, partida: "Instalaciones", familia: "Pruebas nuevas" }]}
@@ -43,6 +44,50 @@ function Preview() {
     onApply={async (rows) => { (window as unknown as { importedRows: unknown }).importedRows = rows; }}
   />;
   return <main data-viewer-readonly={isViewer ? "true" : undefined}><ProgramaObraExecution model={model} proyecto={"project" as ExecutionProgram["activities"][number]["proyecto"]} selectedId={selected} onSelect={setSelected} onClose={() => setSelected(null)} /></main>;
+}
+function GanttBoundsPreview() {
+  const params = new URLSearchParams(location.search);
+  const day = params.get("day") ?? "2026-10-22";
+  const schedule = { fecha_inicio: "01/09/2026", fecha_fin: "30/09/2026" } as Doc<"programa_obra">;
+  const detail = { ...schedule, _id: "bounds-family" } as unknown as Doc<"programa_obra_detalle">;
+  const started = { hasReportedProgress: true, progressStartKnown: true, progressStartedAt: new Date(2026, 8, 1).getTime() };
+  const lateCompletion = { ...started, avanceReal: 100, isComplete: true, completionKnown: true, completedAt: new Date(2026, 9, 5).getTime() };
+  const makeItem = (id: string, level: number, values: Partial<ProgramaItem> = {}): ProgramaItem => ({
+    id, partida: id, presupuesto: 0, pagado: 0, expanded: false, children: [], level,
+    schedule, ...(level === 1 ? { detalleSchedule: detail } : {}),
+    avanceReal: 0, isComplete: false, hasReportedProgress: false, ...values,
+  });
+  const items = [
+    ...[0, 1].flatMap((level) => [
+      makeItem(`pending-${level}`, level),
+      makeItem(`partial-${level}`, level, { ...started, avanceReal: 50, financiero: level === 0 ? 25 : undefined }),
+      makeItem(`completed-late-${level}`, level, lateCompletion),
+      makeItem(`started-late-${level}`, level, { ...started, avanceReal: 50, progressStartedAt: new Date(2026, 9, 5).getTime() }),
+    ]),
+    makeItem("manual-days", 1, { detalleSchedule: { ...detail, tiempo_extra_cantidad: 7, tiempo_extra_unidad: "dias" } }),
+    makeItem("manual-weeks", 1, { detalleSchedule: { ...detail, tiempo_extra_cantidad: 1, tiempo_extra_unidad: "semanas" } }),
+    makeItem("manual-months", 1, { detalleSchedule: { ...detail, tiempo_extra_cantidad: 1, tiempo_extra_unidad: "meses" } }),
+    makeItem("manual-legacy", 1, { detalleSchedule: { ...detail, fecha_fin: "07/10/2026", tiempo_extra_cantidad: 7, tiempo_extra_unidad: "dias" } }),
+    makeItem("manual-parent", 0, { maxChildEndDate: "07/10/2026" }),
+    makeItem("reference-days", 0, { schedule: { ...schedule, fecha_fin: "07/10/2026" } }),
+    makeItem("reference-months", 0, { schedule: { ...schedule, fecha_fin: "30/10/2026" } }),
+    makeItem("one-day", 1, { detalleSchedule: { ...detail, fecha_inicio: "30/09/2026" } }),
+    makeItem("editable", 1, { ...started, avanceReal: 50, detalleSchedule: params.has("reprogram")
+      ? { ...detail, fecha_inicio: "10/10/2026", fecha_fin: "10/11/2026" }
+      : { ...detail, ...(params.has("extra") ? { tiempo_extra_cantidad: 7, tiempo_extra_unidad: "dias" } : {}) } }),
+  ];
+  return <TooltipProvider><main className="p-4">
+    <h1>Barras con fechas programadas</h1>
+    <div className="overflow-x-auto pt-4">
+      {items.map((item) => <div key={item.id} className="relative h-14 w-[480px]">
+        <ProgramaObraGanttItem item={item} columnWidth={24} currentTime={Date.parse(`${day}T12:00:00-06:00`)} timelineMonths={[
+          { label: "Septiembre", year: 2026, month: 8, weeks: 5 },
+          { label: "Octubre", year: 2026, month: 9, weeks: 5 },
+          { label: "Noviembre", year: 2026, month: 10, weeks: 5 },
+        ]} />
+      </div>)}
+    </div>
+  </main></TooltipProvider>;
 }
 function ProgressPreview({ mode }: { mode: string }) {
   const [open, setOpen] = useState(false);

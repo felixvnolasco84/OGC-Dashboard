@@ -27,6 +27,16 @@ const observeExport = {
         markers: Array.from(timelineEl.querySelectorAll('button[aria-label]')).filter(el => /^(Anticipo|Suministro|Finiquito) de /.test(el.getAttribute('aria-label'))).length,
         commentBars: Array.from(timelineEl.querySelectorAll("div")).filter(el => el.classList.contains("bg-[#3B82F6]")).length,
         delayBars: Array.from(timelineEl.querySelectorAll("div")).filter(el => el.classList.contains("bg-[#B17C7C]")).length,
+        bars: Array.from(timelineEl.querySelectorAll("[data-programa-item]")).map(bar => ({
+          id: bar.dataset.programaItem,
+          width: bar.getBoundingClientRect().width,
+          delays: Array.from(bar.querySelectorAll("[data-delay-kind]")).map(span => ({
+            kind: span.dataset.delayKind,
+            left: span.getBoundingClientRect().left - bar.getBoundingClientRect().left,
+            width: span.getBoundingClientRect().width,
+          })),
+          redEnds: Array.from(bar.querySelectorAll("div")).filter(el => el.classList.contains("bg-[#B17C7C]")).map(el => el.getBoundingClientRect().right - bar.getBoundingClientRect().left),
+        })),
       });
       if (window.__failCapture) throw new Error("Fallo de captura de prueba");
     `);
@@ -77,10 +87,20 @@ async function scrollState(page, set = false) {
 try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.clock.setFixedTime(new Date("2026-10-22T12:00:00-06:00"));
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("http://127.0.0.1:4187/e2e/programa/export-preview.html");
   await page.getByRole("button", { name: "Expandir Estructura", exact: true }).click();
+  const screenBars = await page.locator('[data-programa-item^="fam-detail0-"]').evaluateAll(bars => bars.slice(0, 4).map(bar => ({
+    id: bar.dataset.programaItem, width: bar.getBoundingClientRect().width,
+    delays: Array.from(bar.querySelectorAll("[data-delay-kind]")).map(span => ({
+      kind: span.dataset.delayKind,
+      left: span.getBoundingClientRect().left - bar.getBoundingClientRect().left,
+      width: span.getBoundingClientRect().width,
+    })),
+    redEnds: Array.from(bar.querySelectorAll("div")).filter(el => el.classList.contains("bg-[#B17C7C]")).map(el => el.getBoundingClientRect().right - bar.getBoundingClientRect().left),
+  })));
   const originalScroll = await scrollState(page, true);
   await openExport(page);
   assert.equal(await page.getByRole("checkbox").count(), 3, "Only partidas with families should be selectable");
@@ -94,6 +114,18 @@ try {
   assert.deepEqual(full.names.slice(-4), ["Instalaciones", "Red 01", "Red 02", "Acabados"]);
   assert.equal(full.markers, 9);
   assert.equal(full.commentBars, 2);
+  assert.deepEqual(full.bars.filter(bar => screenBars.some(screen => screen.id === bar.id)), screenBars, "PDF captures the same saved bar geometry as the screen");
+  for (const id of ["fam-detail0-0", "fam-detail0-1", "fam-detail0-2"]) {
+    const bar = full.bars.find(bar => bar.id === id);
+    assert.equal(bar.delays.length, 1);
+    assert.equal(bar.delays[0].kind, "finish");
+    assert.ok(Math.abs(bar.delays[0].left) < 0.1);
+    assert.ok(Math.abs(bar.delays[0].width - bar.width) < 0.1);
+    assert.ok(bar.redEnds.every(end => end <= bar.width + 0.1), "PDF cannot restore automatic red extensions");
+  }
+  const manual = full.bars.find(bar => bar.id === "fam-detail0-3");
+  assert.equal(manual.delays.filter(span => span.kind === "extension").length, 1);
+  assert.ok(Math.max(...manual.redEnds) > manual.width, "PDF retains saved manual extensions");
   assert.deepEqual(await scrollState(page), originalScroll);
   assert.equal(await page.getByRole("button", { name: "Contraer Estructura", exact: true }).count(), 1);
 
@@ -138,6 +170,7 @@ try {
   await page.close();
 
   const reader = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await reader.clock.setFixedTime(new Date("2026-10-22T12:00:00-06:00"));
   reader.on("pageerror", (error) => errors.push(error.message));
   await reader.goto("http://127.0.0.1:4187/e2e/programa/export-preview.html?viewer=1");
   await openExport(reader);

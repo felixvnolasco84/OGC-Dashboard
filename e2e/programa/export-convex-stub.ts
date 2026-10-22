@@ -14,6 +14,13 @@ const details = schedules.flatMap((schedule, index) => Array.from({ length: inde
   _id: `detail${index}-${order}`, programa_obra_id: schedule._id, proyecto_id: "project", nivel: 2,
   familia: `${index === 0 ? "Eje" : "Red"} ${String(order + 1).padStart(2, "0")}`,
   orden: order, fecha_inicio: "01/01/2026", fecha_fin: "30/11/2026", avance_porcentaje: 25,
+  ...(index === 0 && order < 4 ? {
+    fecha_fin: "30/09/2026", avance_porcentaje: [0, 50, 100, 25][order],
+    actual_start: order > 0 ? "2026-01-01" : undefined,
+    actual_finish: order === 2 ? "2026-10-05" : undefined,
+    tiempo_extra_cantidad: order === 3 ? 7 : undefined,
+    tiempo_extra_unidad: order === 3 ? "dias" : undefined,
+  } : {}),
 })));
 const comentarios = [
   { _id: "comment0", parent_type: "partida", parent_id: "schedule0", comentario: "Aviso de estructura", fecha_inicio: "01/03/2026", fecha_fin: "15/03/2026" },
