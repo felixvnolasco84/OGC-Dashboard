@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ExcelRow } from "./ProgramaObraExcelPreview";
 
-export default function ProgramaObraImportReview({ proyecto, rows, schedules, details, onCancel, onApply, busy }: {
+export default function ProgramaObraImportReview({ proyecto, rows, schedules, details, onCancel, onApply, busy, recoverPending = false }: {
   proyecto: Id<"desarrollos">; rows: ExcelRow[]; schedules: Doc<"programa_obra">[]; details: Doc<"programa_obra_detalle">[];
-  onCancel: () => void; onApply: (rows: ExcelRow[], fingerprint: string) => Promise<void>; busy: boolean;
+  onCancel: () => void; onApply: (rows: ExcelRow[], fingerprint: string) => Promise<void>; busy: boolean; recoverPending?: boolean;
 }) {
   const [mapped, setMapped] = useState(rows);
   const preview = useQuery(api.programa_obra.previewExcelImport, { proyecto, rows: mapped });
@@ -25,7 +25,7 @@ export default function ProgramaObraImportReview({ proyecto, rows, schedules, de
         <p className="text-sm"><strong>{row.name}</strong> · {row.status === "create" ? "Alta" : row.status === "update" ? "Cambio" : "Revisar"}</p>
         <label className="block min-w-0 space-y-1 text-xs">
           <span>Coincidencia existente</span>
-          <Select disabled={busy} value={(mapped[index].nivel === 1 ? mapped[index].programa_obra_id : mapped[index].detalle_id) || "__auto__"} onValueChange={(value) => mapExisting(index, value)}>
+          <Select disabled={busy || recoverPending} value={(mapped[index].nivel === 1 ? mapped[index].programa_obra_id : mapped[index].detalle_id) || "__auto__"} onValueChange={(value) => mapExisting(index, value)}>
             <SelectTrigger aria-label={`Coincidencia existente de ${row.name}`} className="min-h-11 min-w-0 bg-background"><SelectValue /></SelectTrigger>
             <SelectContent className="max-w-[calc(100vw-2rem)]">
               <SelectItem value="__auto__">Detectar por nombre</SelectItem>
@@ -41,6 +41,8 @@ export default function ProgramaObraImportReview({ proyecto, rows, schedules, de
       {!!preview.absent.length && <details className="border border-border p-3"><summary className="cursor-pointer text-sm">{preview.absent.length} registros ausentes: seguirán activos</summary><ul className="mt-2 list-disc pl-5 text-sm">{preview.absent.map((row) => <li key={row.id}>{row.name}</li>)}</ul><p className="mt-2 text-xs">Archívalos desde el detalle después de resolver sus relaciones.</p></details>}
       {preview.proposal && <div className="space-y-2"><h3 className="text-sm font-medium">Impacto en fechas</h3>{preview.proposal.changes.map((c) => <p className="text-sm" key={c.activity_id}>{c.name}: {c.old_start ?? "Sin inicio"} / {c.old_finish ?? "Sin fin"} → {c.start} / {c.finish}</p>)}{preview.proposal.problems.map((p, i) => <p className="text-sm text-red-700" key={i}>{p.message}</p>)}</div>}
     </>}
-    <DialogFooter><Button variant="outline" disabled={busy} onClick={onCancel}>Cancelar</Button><Button disabled={busy || !preview?.canApply} onClick={() => preview && void onApply(mapped, preview.fingerprint)}>{busy ? "Aplicando…" : "Aplicar cambios revisados"}</Button></DialogFooter>
+    {recoverPending && <p role="alert" className="text-sm">La confirmación quedó pendiente de respuesta. Comprueba el mismo intento para recuperar su resultado.</p>}
+    <p className="text-xs text-muted-foreground">Al confirmar se guardará el Excel original, además de las decisiones revisadas. Máximo 10 MB.</p>
+    <DialogFooter><Button variant="outline" disabled={busy} onClick={onCancel}>{recoverPending ? "Cerrar" : "Cancelar"}</Button><Button disabled={busy || (!recoverPending && !preview?.canApply)} onClick={() => void onApply(mapped, preview?.fingerprint ?? "")}>{busy ? "Guardando y aplicando…" : recoverPending ? "Comprobar resultado" : "Aplicar cambios revisados"}</Button></DialogFooter>
   </DialogContent></Dialog>;
 }

@@ -1,7 +1,9 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { mutation } from "./functions";
-import { Id } from "./_generated/dataModel";
+import { query, mutation as rawMutation } from "./_generated/server";
+import { mutation, updateIngresosTotalsInternal } from "./functions";
+import { writableIncomeAttempt, assertIncomeOriginal } from "./incomeImportHistory";
+import { incomeCurrencyTotals, INCOME_IMPORT_TIMEOUT, INCOME_IMPORT_MAX_ROWS } from "./incomeImportRules";
+import type { IncomeImportResult } from "./incomeImportValidators";
 import { assertIncomeManager, assertIncomeProjectAccess } from "./permissions";
 
 // ============================================
@@ -97,55 +99,37 @@ export const create = mutation({
   },
 });
 
-// Bulk create ingresos from a parsed Excel upload
-export const bulkCreate = mutation({
-  args: {
-    proyecto: v.id("desarrollos"),
-    clerk_id: v.optional(v.string()), // Legacy argument; attribution comes from the session.
-    ingresos: v.array(
-      v.object({
-        monto: v.number(),
-        fecha: v.string(),
-        descripcion: v.optional(v.string()),
-        moneda: v.string(),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    const user = await assertIncomeManager(ctx);
-    await assertIncomeProjectAccess(ctx, args.proyecto);
-
-    if (args.ingresos.length === 0) {
-      return { created: 0, ids: [] as Id<"ingresos">[] };
-    }
-
+// Atomic commit of an immutable, backed-up review. Only this batch path uses
+// the raw writer: the same total calculation runs once before the commit.
+export const bulkCreate = rawMutation({
+  args: { attempt_id: v.id("income_import_attempts"), clerk_id: v.optional(v.string()) },
+  handler: async (ctx, args): Promise<IncomeImportResult> => {
+    const { attempt, user } = await writableIncomeAttempt(ctx, args.attempt_id);
+    if (attempt.result) return attempt.result;
+    if (attempt.status !== "processing") throw new Error(attempt.error || "El intento ya terminó.");
+    if (Date.now() >= attempt.created_at + INCOME_IMPORT_TIMEOUT) throw new Error("El intento de carga expiró.");
+    await assertIncomeOriginal(ctx, attempt);
+    const items = await ctx.db.query("income_import_items").withIndex("by_attempt_position", q => q.eq("attempt_id", attempt._id)).take(INCOME_IMPORT_MAX_ROWS + 1);
+    const pending = items.filter(item => item.outcome === "pending");
+    if (items.length !== attempt.response_rows || pending.length !== attempt.valid_rows || !pending.length) throw new Error("La vista previa guardada está incompleta.");
+    const amounts = incomeCurrencyTotals(pending);
+    if (amounts.some(amount => !Number.isFinite(amount.monto))) throw new Error("El importe acumulado supera el rango permitido.");
     const now = Date.now();
-    const ids: Id<"ingresos">[] = [];
-
-    for (const item of args.ingresos) {
-      // Defensive validation: skip rows that don't meet minimum requirements
-      if (!Number.isFinite(item.monto) || item.monto <= 0 || !item.fecha) {
-        continue;
-      }
-
-      const ingresoId = await ctx.db.insert("ingresos", {
-        proyecto: args.proyecto,
-        monto: item.monto,
-        fecha: item.fecha,
-        descripcion: item.descripcion || undefined,
-        moneda: item.moneda || "MXN",
-        added_by_id: user._id,
-        added_by_name: user.name,
-        created_at: now,
+    for (const item of pending) {
+      if (item.proyecto !== attempt.proyecto || !Number.isFinite(item.monto) || item.monto <= 0 || !item.fecha) throw new Error("Una fila guardada no es válida. No se importaron ingresos.");
+      const id = await ctx.db.insert("ingresos", {
+        proyecto: attempt.proyecto, import_attempt_id: attempt._id,
+        monto: item.monto, fecha: item.fecha, descripcion: item.descripcion || undefined, moneda: item.moneda,
+        added_by_id: user._id, added_by_name: user.name, created_at: now,
       });
-
-      ids.push(ingresoId);
+      await ctx.db.patch(item._id, { ingreso_id: id, outcome: "created" });
     }
-
-    return { created: ids.length, ids };
+    await updateIngresosTotalsInternal(ctx, attempt.proyecto);
+    const result: IncomeImportResult = { created: pending.length, rejected: attempt.rejected_rows, response_rows: items.length, amounts };
+    await ctx.db.patch(attempt._id, { status: "completed", completed_at: now, result, error: undefined });
+    return result;
   },
 });
-
 // Update an existing ingreso
 export const update = mutation({
   args: {

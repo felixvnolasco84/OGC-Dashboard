@@ -6,6 +6,8 @@ import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { hasIncomeManagementAccess } from "../../../convex/ingresoRules";
 import { useIngresosModal } from "@/hooks/ingresos-modal";
 import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
+import { IncomeBulkUpload } from "@/components/ingresos/IncomeBulkUpload";
+import { IncomeImportHistoryDialog, IngresoSourceDialog } from "@/components/ingresos/IncomeImportHistory";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -55,9 +57,6 @@ import {
   CalendarIcon,
   RefreshCw,
   FileSpreadsheet,
-  CheckCircle2,
-  AlertCircle,
-  ArrowLeft,
 } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import {
@@ -72,40 +71,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { es } from "date-fns/locale";
-
-// Endpoint of the external Excel reader service (same service used for transactions)
-const INGRESOS_EXCEL_API = "https://ogc-excel-reader.vercel.app/upload/ingresos";
-
-// A single ingreso row parsed from the Excel file plus its client-side validation result
-type BulkIngresoRow = {
-  monto: number;
-  fecha: string;
-  descripcion: string;
-  moneda: string;
-  rowIndex?: number;
-  status: "valid" | "invalid";
-  errors: string[];
-};
-
-// Shape of the response returned by the external Excel reader service
-type IngresosExcelResponse = {
-  success?: boolean;
-  message?: string;
-  error?: string;
-  summary?: {
-    totalRows: number;
-    validRows: number;
-    errors: number;
-    totalAmount: number;
-  };
-  ingresos?: Array<{
-    monto?: number;
-    fecha?: string;
-    descripcion?: string;
-    moneda?: string;
-    rowIndex?: number;
-  }>;
-};
 
 type OgcIncomeMovement = Doc<"ogc_movimientos"> & {
   tipo: "ingreso";
@@ -134,24 +99,6 @@ type IncomeTableRow =
       createdAt?: number;
       ogcMovement: OgcIncomeMovement;
     };
-
-const ALLOWED_MONEDAS = ["MXN", "USD", "EUR"];
-const DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
-const LOOSE_DATE_REGEX = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-
-// Normalize a date string to padded DD/MM/YYYY when possible; returns null if unrecognized
-const normalizeBulkDate = (raw: string): string | null => {
-  const trimmed = raw.trim();
-  const match = trimmed.match(LOOSE_DATE_REGEX);
-  if (!match) return null;
-  const day = match[1].padStart(2, "0");
-  const month = match[2].padStart(2, "0");
-  const year = match[3];
-  const d = parseInt(day, 10);
-  const m = parseInt(month, 10);
-  if (d < 1 || d > 31 || m < 1 || m > 12) return null;
-  return `${day}/${month}/${year}`;
-};
 
 export default function IngresosModal() {
   const currentUser = useQuery(api.users.getCurrentUser);
@@ -189,12 +136,6 @@ export default function IngresosModal() {
 
   // Bulk Excel upload state
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [bulkFile, setBulkFile] = useState<globalThis.File | null>(null);
-  const [isValidatingBulk, setIsValidatingBulk] = useState(false);
-  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
-  const [bulkRows, setBulkRows] = useState<BulkIngresoRow[] | null>(null);
-  const [bulkResult, setBulkResult] = useState<{ created: number; skipped: number } | null>(null);
-
   // Queries
   const ingresos = useQuery(
     api.ingresos.getByProyecto,
@@ -230,7 +171,6 @@ export default function IngresosModal() {
 
   // Mutations
   const createIngreso = useMutation(api.ingresos.create);
-  const bulkCreateIngresos = useMutation(api.ingresos.bulkCreate);
   const updateIngreso = useMutation(api.ingresos.update);
   const deleteIngreso = useMutation(api.ingresos.remove);
   const updateOgcMovement = useMutation(api.ogc_movimientos.update);
@@ -267,165 +207,7 @@ export default function IngresosModal() {
     setDocumentDescription("");
   };
 
-  const resetBulkUpload = () => {
-    setShowBulkUpload(false);
-    setBulkFile(null);
-    setBulkRows(null);
-    setBulkResult(null);
-    setIsValidatingBulk(false);
-    setIsProcessingBulk(false);
-  };
-
-  // Step 1: send the selected file to the external Excel reader and validate the rows
-  const handleValidateBulk = async () => {
-    if (!canManageIngresos || !context || !bulkFile) return;
-
-    setIsValidatingBulk(true);
-    setBulkRows(null);
-    setBulkResult(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", bulkFile);
-      formData.append("proyecto_id", context.projectId);
-
-      const response = await fetch(INGRESOS_EXCEL_API, {
-        method: "POST",
-        body: formData,
-      });
-
-      let data: IngresosExcelResponse;
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error("Respuesta inválida del servicio de lectura de Excel.");
-      }
-
-      if (!response.ok || data.success === false) {
-        toast.error("Error al procesar el archivo", {
-          description: data.message || data.error || "No se pudieron leer los ingresos.",
-        });
-        setIsValidatingBulk(false);
-        return;
-      }
-
-      const parsed = Array.isArray(data.ingresos) ? data.ingresos : [];
-
-      if (parsed.length === 0) {
-        toast.warning("Sin ingresos", {
-          description: "No se encontraron filas válidas en el archivo.",
-        });
-        setBulkRows([]);
-        setIsValidatingBulk(false);
-        return;
-      }
-
-      // Client-side validation on top of the server parsing
-      const rows: BulkIngresoRow[] = parsed.map((item) => {
-        const errors: string[] = [];
-
-        const monto = typeof item.monto === "number" ? item.monto : Number(item.monto);
-        if (!Number.isFinite(monto) || monto <= 0) {
-          errors.push("Monto inválido");
-        }
-
-        const rawFecha = (item.fecha || "").trim();
-        let fecha = rawFecha;
-        if (!rawFecha) {
-          errors.push("Fecha faltante");
-        } else {
-          const normalized = normalizeBulkDate(rawFecha);
-          if (!normalized || !DATE_REGEX.test(normalized)) {
-            errors.push("Fecha con formato inválido (DD/MM/YYYY)");
-          } else {
-            fecha = normalized;
-          }
-        }
-
-        let moneda = (item.moneda || "MXN").trim().toUpperCase();
-        if (!ALLOWED_MONEDAS.includes(moneda)) {
-          moneda = "MXN";
-        }
-
-        return {
-          monto: Number.isFinite(monto) ? monto : 0,
-          fecha,
-          descripcion: (item.descripcion || "").trim(),
-          moneda,
-          rowIndex: item.rowIndex,
-          status: errors.length === 0 ? "valid" : "invalid",
-          errors,
-        };
-      });
-
-      setBulkRows(rows);
-
-      const validCount = rows.filter((r) => r.status === "valid").length;
-      const invalidCount = rows.length - validCount;
-
-      if (invalidCount > 0) {
-        toast.warning("Validación con advertencias", {
-          description: `${validCount} válidos, ${invalidCount} con errores.`,
-        });
-      } else {
-        toast.success("Validación exitosa", {
-          description: `${validCount} ingresos listos para cargar.`,
-        });
-      }
-    } catch (error) {
-      console.error("Error validating ingresos file:", error);
-      toast.error("Error al validar el archivo", {
-        description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
-      });
-    } finally {
-      setIsValidatingBulk(false);
-    }
-  };
-
-  // Step 2: confirm and bulk-insert all valid rows
-  const handleConfirmBulk = async () => {
-    if (!canManageIngresos || !context || !bulkRows) return;
-
-    const validRows = bulkRows.filter((r) => r.status === "valid");
-    if (validRows.length === 0) {
-      toast.error("No hay ingresos válidos para cargar.");
-      return;
-    }
-
-    setIsProcessingBulk(true);
-    try {
-      const result = await bulkCreateIngresos({
-        proyecto: context.projectId,
-        ingresos: validRows.map((r) => ({
-          monto: r.monto,
-          fecha: r.fecha,
-          descripcion: r.descripcion || undefined,
-          moneda: r.moneda,
-        })),
-      });
-
-      const skipped = validRows.length - result.created;
-      setBulkResult({ created: result.created, skipped });
-
-      toast.success("Carga masiva completada", {
-        description: `${result.created} ingreso(s) creado(s)${skipped > 0 ? `, ${skipped} omitido(s)` : ""}.`,
-      });
-    } catch (error) {
-      console.error("Error bulk creating ingresos:", error);
-      toast.error("Error al cargar ingresos", {
-        description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
-      });
-    } finally {
-      setIsProcessingBulk(false);
-    }
-  };
-
-  const handleBulkFileSelect = (file: globalThis.File | undefined) => {
-    if (!file) return;
-    setBulkFile(file);
-    setBulkRows(null);
-    setBulkResult(null);
-  };
+  const resetBulkUpload = () => setShowBulkUpload(false);
 
   // Parse date string (DD/MM/YYYY) to Date object
   const parseDate = (dateStr: string): Date | undefined => {
@@ -1084,8 +866,10 @@ export default function IngresosModal() {
             </section>
           )}
 
-          {canManageIngresos && !showForm && !showBulkUpload && (
-            <div className="flex items-center justify-end gap-1 border-b border-border px-4 py-2">
+          {!showForm && !showBulkUpload && context && (
+            <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border px-4 py-2">
+              <IncomeImportHistoryDialog projectId={context.projectId} />
+              {canManageIngresos && <>
               <Button
                 variant="outline"
                 size="sm"
@@ -1107,223 +891,12 @@ export default function IngresosModal() {
                 <Plus className="h-4 w-4" />
                 Nuevo
               </Button>
+              </>}
             </div>
           )}
 
-          {canManageIngresos && !showForm && showBulkUpload && (
-            <div>
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={resetBulkUpload}
-                    title="Volver"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <div>
-                    <h3 className="text-sm font-medium">Carga masiva</h3>
-                    <p className="text-xs text-muted-foreground">Importar ingresos desde Excel</p>
-                  </div>
-                </div>
-              </div>
-
-              {bulkResult ? (
-                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                  <CheckCircle2 className="h-7 w-7 text-success" />
-                  <p className="mt-3 text-sm font-medium text-foreground">Carga completada</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {bulkResult.created} ingreso(s) creado(s)
-                    {bulkResult.skipped > 0 && `, ${bulkResult.skipped} omitido(s)`}.
-                  </p>
-                  <div className="mt-5 flex gap-2">
-                    <Button variant="outline" onClick={resetBulkUpload}>
-                      Cerrar
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setBulkFile(null);
-                        setBulkRows(null);
-                        setBulkResult(null);
-                      }}
-                    >
-                      Cargar otro archivo
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-5 px-6 py-5">
-                  <div className="border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">Formato del Excel</p>
-                    <p className="mt-1">
-                      Primera fila con encabezados, en este orden:{" "}
-                      <span className="font-medium text-foreground">MONTO</span>,{" "}
-                      <span className="font-medium text-foreground">FECHA</span> (DD/MM/YYYY),{" "}
-                      <span className="font-medium text-foreground">DESCRIPCION</span>,{" "}
-                      <span className="font-medium text-foreground">MONEDA</span> (MXN/USD/EUR).
-                    </p>
-                  </div>
-
-                  {bulkFile ? (
-                    <div className="flex items-center justify-between gap-3 border border-border bg-muted/40 px-3 py-2.5">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <File className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{bulkFile.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(bulkFile.size / 1024).toFixed(2)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="quiet"
-                        size="sm"
-                        disabled={isValidatingBulk || isProcessingBulk}
-                        onClick={() => {
-                          setBulkFile(null);
-                          setBulkRows(null);
-                        }}
-                      >
-                        Cambiar
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-border px-3 py-8 text-center hover:bg-muted/30">
-                      <Upload className="h-5 w-5 text-disabled-foreground" />
-                      <p className="text-sm text-muted-foreground">Seleccionar archivo Excel</p>
-                      <p className="text-xs text-muted-foreground">.xlsx, .xls o .xlsm</p>
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls,.xlsm"
-                        className="sr-only"
-                        onChange={(e) => {
-                          handleBulkFileSelect(e.target.files?.[0]);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                  )}
-
-                  {bulkFile && !bulkRows && (
-                    <div className="flex justify-end">
-                      <Button onClick={handleValidateBulk} disabled={isValidatingBulk}>
-                        {isValidatingBulk ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Validando...
-                          </>
-                        ) : (
-                          "Validar archivo"
-                        )}
-                      </Button>
-                    </div>
-                  )}
-
-                  {bulkRows && (
-                    <div className="space-y-3">
-                      {(() => {
-                        const validCount = bulkRows.filter((r) => r.status === "valid").length;
-                        const invalidCount = bulkRows.length - validCount;
-                        return (
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                            <span>{bulkRows.length} filas</span>
-                            <span>{validCount} válidas</span>
-                            {invalidCount > 0 && (
-                              <span className="text-muted-foreground">{invalidCount} con errores</span>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {bulkRows.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 text-center">
-                          <AlertCircle className="h-7 w-7 text-disabled-foreground" />
-                          <p className="mt-3 text-sm font-medium text-foreground">Sin filas</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            No se encontraron filas para cargar.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="max-h-[320px] overflow-auto border border-border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow variant="ledgerHeader">
-                                <TableHead variant="ledger" className="w-[52px]">#</TableHead>
-                                <TableHead variant="ledger" className="w-[110px]">Fecha</TableHead>
-                                <TableHead variant="ledger">Descripción</TableHead>
-                                <TableHead variant="ledger" className="w-[140px] text-right">Monto</TableHead>
-                                <TableHead variant="ledger" className="w-[72px]">Moneda</TableHead>
-                                <TableHead variant="ledger" className="w-[180px]">Estado</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {bulkRows.map((row, idx) => (
-                                <TableRow
-                                  key={idx}
-                                  variant={row.status === "invalid" ? "ledgerInvalid" : "ledger"}
-                                >
-                                  <TableCell variant="ledgerCompactSubtle">
-                                    {row.rowIndex ?? idx + 1}
-                                  </TableCell>
-                                  <TableCell variant="ledgerCompactEmphasis">{row.fecha || "—"}</TableCell>
-                                  <TableCell variant="ledgerCompactMuted">
-                                    {row.descripcion || "—"}
-                                  </TableCell>
-                                  <TableCell variant="ledgerCompactEmphasis" className="text-right">
-                                    {formatCurrency(row.monto, row.moneda)}
-                                  </TableCell>
-                                  <TableCell variant="ledgerCompactMuted">{row.moneda}</TableCell>
-                                  <TableCell variant="ledgerCompact">
-                                    {row.status === "valid" ? (
-                                      <span className="inline-flex items-center gap-1.5 text-xs text-success">
-                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                        Válido
-                                      </span>
-                                    ) : (
-                                      <span
-                                        className="inline-flex items-center gap-1.5 text-xs text-danger"
-                                        title={row.errors.join(", ")}
-                                      >
-                                        <AlertCircle className="h-3.5 w-3.5" />
-                                        {row.errors.join(", ")}
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={resetBulkUpload} disabled={isProcessingBulk}>
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={handleConfirmBulk}
-                          disabled={
-                            isProcessingBulk ||
-                            bulkRows.filter((r) => r.status === "valid").length === 0
-                          }
-                        >
-                          {isProcessingBulk ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Cargando...
-                            </>
-                          ) : (
-                            `Cargar ${bulkRows.filter((r) => r.status === "valid").length} ingreso(s)`
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+          {canManageIngresos && !showForm && showBulkUpload && context && currentUser && (
+            <IncomeBulkUpload key={context.projectId} projectId={context.projectId} userId={currentUser._id} onBack={resetBulkUpload} />
           )}
 
           {!showForm && !showBulkUpload && (
@@ -1411,6 +984,7 @@ export default function IngresosModal() {
                               })()}
                             </TableCell>
                             <TableCell variant="ledger">
+                              {row.source === "ingresos" && <IngresoSourceDialog ingresoId={row.id} />}
                               {canManageIngresos && <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="quiet" size="iconXs">

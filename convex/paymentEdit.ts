@@ -1,3 +1,4 @@
+import { assertBudgetReady } from "./budgetImportGuard";
 import { feeBudgetConvert } from "./indirectosBudget";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -55,6 +56,7 @@ export async function loadEditContext(ctx: ReadCtx, id: Id<"transacciones">) {
   const user = await getCurrentUserOrThrow(ctx as QueryCtx);
   const transaction = await ctx.db.get(id);
   if (!transaction) throw new Error("La transacción ya no existe.");
+  await assertBudgetReady(ctx, transaction.proyecto);
   if (["viewer", "almacenista"].includes(user.role) || !(await checkDesarrolloAccess(ctx as QueryCtx, transaction.proyecto))) {
     throw new Error("No tienes permiso para editar esta transacción.");
   }

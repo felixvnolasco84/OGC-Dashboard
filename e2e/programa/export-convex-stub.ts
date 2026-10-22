@@ -43,3 +43,5 @@ export function useQuery(reference: Parameters<typeof getFunctionName>[0], args?
 export function useMutation() {
   return async () => { throw new Error("Exportación no debe modificar el programa"); };
 }
+export const useAction = useMutation;
+export const useConvex = () => ({ query: async () => null });

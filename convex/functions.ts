@@ -712,7 +712,7 @@ triggers.register("ingresos", async (ctx, change) => {
 });
 
 // Helper function to update ingresos_totals (internal implementation for trigger)
-async function updateIngresosTotalsInternal(
+export async function updateIngresosTotalsInternal(
   ctx: { db: any },
   proyectoId: string
 ) {

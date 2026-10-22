@@ -1,3 +1,4 @@
+import { BudgetRecordSource } from "@/components/Presupuesto/BudgetOriginal";
 "use client";
 
 import { useRef, useState } from "react";
@@ -42,6 +43,7 @@ export default function DropdownMenuComponentPartida({
 }: DropdownMenuComponentPartidaProps) {
   const seePaymentDetailsModal = useSeePaymentDetailsModal();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const closeEditRequest = useRef<(() => void) | null>(null);
 
@@ -160,6 +162,7 @@ export default function DropdownMenuComponentPartida({
 
   return (
     <>
+      <Dialog open={sourceOpen} onOpenChange={setSourceOpen}><DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle>Excel de origen</DialogTitle><DialogDescription>Archivo usado al crear este concepto presupuestario.</DialogDescription></DialogHeader>{sourceOpen && <BudgetRecordSource partidaId={partida._id} />}</DialogContent></Dialog>
       <Dialog open={isEditOpen} onOpenChange={open => {
         if (open) setIsEditOpen(true);
         else if (closeEditRequest.current) closeEditRequest.current();
@@ -195,6 +198,7 @@ export default function DropdownMenuComponentPartida({
               </>
             )}
             <DropdownMenuGroup>
+              <DropdownMenuItem data-viewer-readonly-allow="true" onSelect={() => { setIsMenuOpen(false); window.setTimeout(() => setSourceOpen(true), 100); }}>Excel de origen</DropdownMenuItem>
               {isRealPartida && <DropdownMenuItem asChild data-viewer-readonly-allow="true">
                 <Link to={`/proyecto/${partida.proyecto}/partidas/${partida._id}`}>Detalle de partida</Link>
               </DropdownMenuItem>}

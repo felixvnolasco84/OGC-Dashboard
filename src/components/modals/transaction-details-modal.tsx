@@ -1,3 +1,4 @@
+import { BudgetRecordSource } from "@/components/Presupuesto/BudgetOriginal";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -300,6 +301,7 @@ export default function TransactionDetailsModal() {
             </section>
 
             <TransactionImportSources key={transaction._id} transactionId={transaction._id} />
+            <BudgetRecordSource key={`budget-${transaction._id}`} transactionId={transaction._id} />
 
             <section className="border-t border-border">
               <div className="flex items-center justify-between gap-3 px-6 py-5">

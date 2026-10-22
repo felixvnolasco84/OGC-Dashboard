@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-22",
+  "baseline": { "programExecutionTests": 51, "passed": true },
+  "backend": { "programExecutionTests": 51, "programImportTests": 16, "reportTests": 9, "total": 76, "passed": true },
+  "checks": { "pureProgramRules": true, "convexTypes": true, "productionBuild": true },
+  "visual": { "importHistory": true, "execution": true, "weight": true, "pdfExport": true, "widths": [1440, 390, 320], "data": "Ficticios; componentes reales con transporte de prueba en localhost" },
+  "deploymentExecuted": false,
+  "migrationExecuted": false
+}

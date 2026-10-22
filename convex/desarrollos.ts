@@ -1,3 +1,7 @@
+import { internal } from "./_generated/api";
+import type { Infer } from "convex/values";
+import type { MutationCtx } from "./_generated/server";
+import { assertBudgetReady } from "./budgetImportGuard";
 import { currentFeeConcepts, feeChargesAtRate, createFeeSourceLookup, isActiveFeeConcept, replacesIndirectIncomeCategory } from "./feeConceptRules";
 import { feeConceptInputValidator } from "./feeConceptValidators";
 import { isAutomaticIndirectos, isIndirectosPartida, indirectosCharge, validateIndirectosPercentage, getFeeExcludedPartidaIds, isEligibleFeePayment } from "./indirectosRules";
@@ -5,10 +9,12 @@ import { getBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
 import { deleteProjectImportHistory } from "./laborImportHistory";
+import { deleteProjectIncomeHistory } from "./incomeImportHistory";
+import { deleteProjectProgramHistory } from "./programaObraImportHistory";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { mutation } from "./functions";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import {
     checkDesarrolloAccess,
     getCurrentUserOrThrow,
@@ -1106,8 +1112,7 @@ export const getById = query({
 });
 
 // Create new project
-export const create = mutation({
-    args: {
+const createBudgetProjectRecordArgs = v.object({
         nombre: v.string(),
         descripcion: v.string(),
         image: v.string(),
@@ -1116,8 +1121,8 @@ export const create = mutation({
         fecha_creacion: v.optional(v.string()),
         indirectos_porcentaje: v.optional(v.number()),
         honorarios_porcentaje: v.optional(v.number()),
-    },
-    handler: async (ctx, args) => {
+    });
+export async function createBudgetProjectRecord(ctx: MutationCtx, args: Infer<typeof createBudgetProjectRecordArgs>) {
         const currentUser = await getCurrentUserOrThrow(ctx);
         if (!hasAdminAccess(currentUser)) {
             throw new Error("Unauthorized: Admin access required");
@@ -1153,8 +1158,13 @@ export const create = mutation({
         }
 
         return project;
-    },
-});
+}
+// Old tabs must reload instead of silently creating another unbacked budget.
+export const create = mutation({ args: createBudgetProjectRecordArgs, handler: async (ctx) => {
+    const user = await getCurrentUserOrThrow(ctx);
+    if (!hasAdminAccess(user)) throw new Error("Unauthorized: Admin access required");
+    throw new ConvexError("Actualiza la página y confirma el Excel desde Agregar proyecto para conservar su archivo original.");
+} });
 
 // Update project
 const loadReviewedFeeRecords = async (ctx: QueryCtx, project: Doc<"desarrollos">, user: Doc<"users">) => {
@@ -1265,6 +1275,7 @@ export const update = rawMutation({
             throw new Error("Unauthorized: Project belongs to another organization");
         }
 
+        await assertBudgetReady(ctx, id);
         const existing = await ctx.db.get(id);
         if (!existing) throw new Error("El proyecto ya no existe.");
         for (const [field, expected] of Object.entries(expected_fields || {})) {
@@ -1582,6 +1593,10 @@ export const deleteProject = rawMutation({
         }
 
         await deleteProjectImportHistory(ctx, args.id);
+        await deleteProjectIncomeHistory(ctx, args.id);
+        await deleteProjectProgramHistory(ctx, args.id);
+        const budgetAttempts = await ctx.db.query("budget_creation_attempts").withIndex("by_proyecto", q => q.eq("proyecto", args.id)).collect();
+        for (const attempt of budgetAttempts) await ctx.scheduler.runAfter(0, internal.budgetCreationHistory.purgeDeleted, { attempt_id: attempt._id });
 
         // 9. Finally, delete the proyecto itself
         await ctx.db.delete(args.id);

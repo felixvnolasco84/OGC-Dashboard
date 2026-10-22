@@ -11,6 +11,7 @@ function fixture(role = "finance", { authenticated = true, allowed = true } = {}
     ],
     desarrollos: [{ _id: "project", organization_id: allowed ? "org" : "foreign" }, { _id: "other-project", organization_id: "foreign" }],
     ingresos: [{ _id: "income", proyecto: "project", monto: 100, fecha: "01/01/2026", moneda: "MXN" }],
+    income_import_attempts: [{ _id: "attempt", proyecto: "project", imported_by: "actor" }],
     ingresos_totals: [{ _id: "totals", proyecto: "project", total_ingresos: 100, total_count: 1 }],
     ingresos_documentos: [{ _id: "document", ingreso_id: "income", proyecto: "project", storage_id: "file", nombre: "Factura" }],
     ogc_movimientos: [{ _id: "movement", proyecto: "project", organization_id: "org", tipo: "ingreso", categoria: "HONORARIOS", monto: 100, fecha: "01/01/2026", moneda: "MXN", status: "activo" }],
@@ -64,7 +65,7 @@ const createArgs = { proyecto: "project", monto: 50, fecha: "02/01/2026", moneda
 const documentArgs = { ingreso_id: "income", proyecto: "project", nombre: "Factura", storage_id: "new-file", type: "factura", size: 100, clerk_id: "spoofed" };
 const writeOperations = [
   ["create", ingresos.create, createArgs],
-  ["bulk create", ingresos.bulkCreate, { proyecto: "project", clerk_id: "spoofed", ingresos: [{ monto: 50, fecha: "02/01/2026", moneda: "MXN" }] }],
+  ["bulk create", ingresos.bulkCreate, { attempt_id: "attempt", clerk_id: "spoofed" }],
   ["update", ingresos.update, { id: "income", monto: 150 }],
   ["remove", ingresos.remove, { id: "income" }],
   ["upload URL", documents.generateUploadUrl, {}],
@@ -93,7 +94,9 @@ describe("income authorization", () => {
   });
 
   it.each(["finance", "admin"])("allows every write for %s within project scope", async (role) => {
-    for (const [, operation, args] of writeOperations) {
+    // The atomic import's backed-up attempt is exercised with real convex-test
+    // storage/transactions in incomeImports.test.mjs, not this permission stub.
+    for (const [, operation, args] of writeOperations.filter(([, operation]) => operation !== ingresos.bulkCreate)) {
       const f = fixture(role);
       await operation._handler(f.ctx, args);
       expect(f.writes.length + f.storageWrites.length).toBeGreaterThan(0);

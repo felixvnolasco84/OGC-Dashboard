@@ -1,3 +1,4 @@
+import { BudgetOriginalDialog } from "@/components/Presupuesto/BudgetOriginal";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
@@ -389,6 +390,7 @@ export default function PresupuestoPage() {
   return (
     <div className="bg-card py-6 space-y-12">
       <div className="max-w-full mx-auto space-y-12">
+        {proyecto.initial_budget_status === "incomplete" && <div role="status" className="mx-4 border border-border p-4 text-sm sm:mx-6">Creación incompleta. Consulta Excel de origen para reanudarla. Las partidas y los pagos conservan el avance confirmado.</div>}
         {/* Header */}
         <div className="py-6 border-b border-border px-4 sm:px-6 xl:px-12 pb-12">
           <div className="responsive-header">
@@ -397,6 +399,7 @@ export default function PresupuestoPage() {
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
             <div className="flex flex-wrap items-start gap-3">
+              <BudgetOriginalDialog projectId={proyecto._id} />
               {/* <Button
                 onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
                   proyecto: selectedDesarrollo._id,
@@ -443,7 +446,7 @@ export default function PresupuestoPage() {
               </Card></div>
 
               <AddTransactionMenu
-                visible={canCreateTransactions}
+                visible={canCreateTransactions && proyecto.initial_budget_status !== "incomplete"}
                 onAddPayment={handleOpenAddPayment}
                 onUploadExcel={() => {
                   uploadProjectTransactionsModal.onOpen(proyecto._id, proyecto.nombre);
@@ -456,7 +459,7 @@ export default function PresupuestoPage() {
                   <Button
                     variant="quiet"
                     size="iconLg"
-                    disabled={!proyecto}
+                    disabled={!proyecto || proyecto.initial_budget_status === "incomplete"}
                   >
                     <span className="sr-only">Abrir acciones de presupuesto</span>
                     <MoreHorizontal className="h-4 w-4" />

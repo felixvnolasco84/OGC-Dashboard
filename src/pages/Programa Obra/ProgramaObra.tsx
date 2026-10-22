@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +50,7 @@ import ProgramaObraPartidaEditor from "./ProgramaObraPartidaEditor";
 import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
 import ProgramaObraAvanceHistorial from "./ProgramaObraAvanceHistorial";
-import ProgramaObraExcelPreview, { type ExcelPartida, type ExcelRow } from "./ProgramaObraExcelPreview";
+import ProgramaObraExcelPreview from "./ProgramaObraExcelPreview";
 import { exportProgramaObraPdf } from "./ProgramaObraPdfExport";
 import ProgramaObraExportDialog, { type ProgramaObraExportSelection } from "./ProgramaObraExportDialog";
 import { selectGanttExportRows } from "./programa-obra-pdf-layout";
@@ -65,6 +65,8 @@ import ProgramaObraProgressEditor from "./ProgramaObraProgressEditor";
 import ProgramaObraWeightEditor from "./ProgramaObraWeightEditor";
 import { getRecordedProgressTiming } from "@/lib/programa-obra-progress";
 import ProgramaObraImportReview from "./ProgramaObraImportReview";
+import { useProgramaObraExcelImport } from "./useProgramaObraExcelImport";
+import { ProgramaObraImportHistory, ProgramaObraSourcesDialog } from "./ProgramaObraImportHistory";
 import { aggregateProgramProgress, programToday } from "@/lib/programa-obra-rules";
 
 // ============================================================
@@ -105,7 +107,7 @@ function getMultiYearTimelineMonths(startYear: number, endYear: number, startMon
 const WEEK_WIDTH = 32; // px per week column
 const getMonthWidth = (weeks: number) => weeks * WEEK_WIDTH;
 
-const API_BASE_URL = "https://ogc-excel-reader.vercel.app";
+
 
 /** Convert a Date object to a pixel offset within a multi-year timeline */
 function dateToPx(date: Date, months: TimelineMonth[]): number {
@@ -176,7 +178,6 @@ export default function ProgramaObra() {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [executionView, setExecutionView] = useState(false);
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
-  const [importRows, setImportRows] = useState<ExcelRow[] | null>(null);
   const execution = useQuery(api.programa_obra.getExecutionProgram, proyectoId ? { proyecto: proyectoId as Id<"desarrollos">, refresh_day: programToday(currentTime) } : "skip");
   const openExecution = useCallback((item?: ProgramaItem) => {
     const leaves = execution?.activities.filter((a) => a.detalle_id === item?.detalleSchedule?._id) ?? [];
@@ -253,7 +254,7 @@ export default function ProgramaObra() {
   );
 
   // Mutations
-  const bulkUpsertFromExcel = useMutation(api.programa_obra.bulkUpsertFromExcel);
+
 
   const [progressItem, setProgressItem] = useState<ProgramaItem | null>(null);
 
@@ -625,96 +626,14 @@ export default function ProgramaObra() {
     return dateToPx(now, timelineMonths);
   }, [yearRange, timelineMonths, currentTime]);
 
-  // Excel upload state
-  const [uploading, setUploading] = useState(false);
-  const [parsing, setParsing] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{
-    created: number;
-    updated: number;
-    errors: string[];
-    partidas?: { created: number; updated: number; skipped: number; total: number };
-    familias?: { created: number; updated: number; skipped: number; total: number };
-  } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Preview state
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<ExcelPartida[]>([]);
-
-  // Step 1: Parse the Excel and open the preview dialog
-  const handleExcelParse = useCallback(
-    async (file: File) => {
-      if (!proyectoId) return;
-      setParsing(true);
-      setUploadResult(null);
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const res = await fetch(`${API_BASE_URL}/upload/programa-obra`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Error parsing Excel file");
-        }
-
-        const data = await res.json();
-
-        if (data.partidas && data.partidas.length > 0) {
-          setPreviewData(data.partidas as ExcelPartida[]);
-          setPreviewOpen(true);
-        } else {
-          setUploadResult({ created: 0, updated: 0, errors: ["No se encontraron partidas en el archivo."], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
-        }
-      } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : "Unknown error";
-        toast.error("No se pudo aplicar el Excel", { description: msg });
-        setUploadResult({ created: 0, updated: 0, errors: [msg], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
-      } finally {
-        setParsing(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      }
-    },
-    [proyectoId]
-  );
-
-  // Step 2: User confirmed preview — upload rows to Convex
-  const handlePreviewConfirm = useCallback(async (rows: ExcelRow[]) => { setImportRows(rows); setPreviewOpen(false); }, []);
-  const handleImportApply = useCallback(
-    async (rows: ExcelRow[], fingerprint: string) => {
-      if (!proyectoId) return;
-      setUploading(true);
-
-      try {
-        const result = await bulkUpsertFromExcel({
-          proyecto: proyectoId as Id<"desarrollos">,
-          rows,
-          expected_fingerprint: fingerprint,
-        });
-
-        setUploadResult(result);
-        setPreviewOpen(false);
-        setPreviewData([]);
-        setImportRows(null);
-      } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : "Unknown error";
-        setUploadResult({ created: 0, updated: 0, errors: [msg], partidas: { created: 0, updated: 0, skipped: 0, total: 0 }, familias: { created: 0, updated: 0, skipped: 0, total: 0 } });
-      } finally {
-        setUploading(false);
-      }
-    },
-    [proyectoId, bulkUpsertFromExcel]
-  );
-
-  const handlePreviewCancel = useCallback(() => {
-    setPreviewOpen(false);
-    setPreviewData([]);
-  }, []);
-
+  const {
+    parsing, uploading, previewData, previewOpen, importRows, uploadResult, setUploadResult, fileInputRef,
+    handleExcelParse, handlePreviewConfirm, handleImportApply, handlePreviewCancel, uncertain,
+  } = useProgramaObraExcelImport(proyectoId as Id<"desarrollos"> | undefined);
+  const [importHistoryOpen, setImportHistoryOpen] = useState(false);
+  const [sourceItem, setSourceItem] = useState<ProgramaItem | null>(null);
+  useEffect(() => { setImportHistoryOpen(false); setSourceItem(null); }, [proyectoId]);
+  const canImportExcel = !!execution?.capabilities.write && (!execution.config || execution.capabilities.plan);
   // PDF Export handler
   const handleExportPdf = useCallback(async (selection: ProgramaObraExportSelection) => {
     if (exportInProgressRef.current || !proyecto || programaDataWithComentarios.length === 0) return;
@@ -791,6 +710,9 @@ export default function ProgramaObra() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        {(item.schedule || item.detalleSchedule) && <DropdownMenuItem data-viewer-readonly-allow="true" className="min-h-11 min-[850px]:min-h-8" onSelect={() => setSourceItem(item)}>
+          <FileDown className="h-4 w-4" /> Fuentes de Excel
+        </DropdownMenuItem>}
         <DropdownMenuItem disabled={currentUser?.role === "viewer" || currentUser?.role === "almacenista"} className="min-h-11 min-[850px]:min-h-8" onSelect={() => execution?.activities.some((a) => a.detalle_id === item.detalleSchedule?._id) ? openExecution(item) : item.level === 0 ? setEditingPartida(item) : setEditingFamilia(item)}>
           <CalendarDays className="h-4 w-4" /> Editar programa
         </DropdownMenuItem>
@@ -882,7 +804,8 @@ export default function ProgramaObra() {
               </button>
             </div>
           )}
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" data-viewer-readonly-allow="true" onClick={() => setImportHistoryOpen(true)}><History className="h-4 w-4" /> Historial de cargas</Button>
             <Button size="sm" variant="outline" data-viewer-readonly-allow="true" disabled={!execution} onClick={() => openExecution()}>Actividades por frente</Button>
             {/* Hidden file input */}
             <input
@@ -914,7 +837,7 @@ export default function ProgramaObra() {
                     <FileDown className="h-4 w-4" /> Exportar PDF
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} disabled={exporting || parsing || uploading || !currentUser || currentUser.role === "viewer"}>
+                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} disabled={exporting || parsing || uploading || !canImportExcel}>
                     <Upload className="h-4 w-4" /> Cargar Excel
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -926,7 +849,7 @@ export default function ProgramaObra() {
         {/* Upload result feedback */}
         {uploadResult && (() => {
           const hasErrors = uploadResult.errors.length > 0;
-          const hasSuccess = uploadResult.created + uploadResult.updated > 0;
+          const hasSuccess = uploadResult.created + uploadResult.updated + (uploadResult.activity_effects ?? 0) > 0;
           const p = uploadResult.partidas;
           const f = uploadResult.familias;
           return (
@@ -939,8 +862,8 @@ export default function ProgramaObra() {
                   : "bg-green-50 border-green-200"
             )}>
               {/* Header row */}
-              <div className="flex items-center justify-between px-4 py-2.5">
-                <div className="flex items-center gap-3">
+              <div className="flex items-start justify-between gap-2 px-4 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={cn("font-semibold", hasErrors && !hasSuccess ? "text-red-700" : hasErrors ? "text-amber-700" : "text-green-700")}>
                     {hasErrors && !hasSuccess ? "Error en la carga" : hasSuccess ? "Carga completada" : "Sin cambios"}
                   </span>
@@ -960,13 +883,14 @@ export default function ProgramaObra() {
 
               {/* Detail breakdown */}
               {(p || f) && (
-                <div className="border-t border-inherit px-4 py-2 flex gap-6 text-xs text-muted-foreground">
+                <div className="border-t border-inherit px-4 py-2 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
                   {p && (
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium text-foreground">Partidas</span>
                       <span className="text-disabled-foreground">({p.total} en archivo)</span>
                       {p.created > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5">{p.created} nueva{p.created !== 1 ? "s" : ""}</span>}
                       {p.updated > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5">{p.updated} actualizada{p.updated !== 1 ? "s" : ""}</span>}
+                      {!!p.unchanged && <span>{p.unchanged} sin cambios</span>}
                       {p.skipped > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5">{p.skipped} omitida{p.skipped !== 1 ? "s" : ""}</span>}
                     </div>
                   )}
@@ -976,6 +900,7 @@ export default function ProgramaObra() {
                       <span className="text-disabled-foreground">({f.total} en archivo)</span>
                       {f.created > 0 && <span className="bg-green-100 text-green-700 px-1.5 py-0.5">{f.created} nueva{f.created !== 1 ? "s" : ""}</span>}
                       {f.updated > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5">{f.updated} actualizada{f.updated !== 1 ? "s" : ""}</span>}
+                      {!!f.unchanged && <span>{f.unchanged} sin cambios</span>}
                       {f.skipped > 0 && <span className="bg-red-100 text-red-700 px-1.5 py-0.5">{f.skipped} omitida{f.skipped !== 1 ? "s" : ""}</span>}
                     </div>
                   )}
@@ -1091,7 +1016,7 @@ export default function ProgramaObra() {
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
               Carga el archivo de programa para generar actividades, fechas, hitos y alertas del proyecto.
             </p>
-            <Button className="mt-5 rounded-none" onClick={() => fileInputRef.current?.click()} disabled={uploading || parsing}>
+            <Button className="mt-5 rounded-none" onClick={() => fileInputRef.current?.click()} disabled={uploading || parsing || !canImportExcel}>
               <Upload className="mr-2 h-4 w-4" /> Cargar Excel
             </Button>
           </div>
@@ -1431,7 +1356,10 @@ export default function ProgramaObra() {
       )}
 
       {/* Excel Preview Dialog */}
-      {importRows && proyectoId && execution && <ProgramaObraImportReview proyecto={proyectoId as Id<"desarrollos">} rows={importRows} schedules={schedules ?? []} details={detalles ?? []} onCancel={() => setImportRows(null)} onApply={handleImportApply} busy={uploading} />}
+      {importHistoryOpen && proyectoId && <ProgramaObraImportHistory key={proyectoId} proyecto={proyectoId as Id<"desarrollos">} onClose={() => setImportHistoryOpen(false)} />}
+      {sourceItem && proyectoId && <ProgramaObraSourcesDialog key={sourceItem.id} proyecto={proyectoId as Id<"desarrollos">} name={sourceItem.partida}
+        target={sourceItem.level === 0 ? { kind: "schedule", id: sourceItem.schedule!._id } : { kind: "detail", id: sourceItem.detalleSchedule!._id }} onClose={() => setSourceItem(null)} />}
+      {importRows && proyectoId && execution && <ProgramaObraImportReview key={proyectoId} proyecto={proyectoId as Id<"desarrollos">} rows={importRows} schedules={schedules ?? []} details={detalles ?? []} onCancel={handlePreviewCancel} onApply={handleImportApply} busy={uploading} recoverPending={uncertain} />}
       {previewOpen && (
         <ProgramaObraExcelPreview
           open={previewOpen}

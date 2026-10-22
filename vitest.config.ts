@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: [
+      "convex/budgetCreation.test.mjs",
       "src/components/Charts/FamiliaChart.test.mjs",
       "convex/rfiTransitions.test.mjs",
       "convex/requisicionStates.test.mjs",
@@ -20,6 +21,7 @@ export default defineConfig({
       "convex/paymentEdit.test.mjs",
       "convex/transactionDeletion.test.mjs",
       "convex/programaObraExecution.test.mjs",
+      "convex/programaObraImportHistory.test.mjs",
       "convex/reportLogbook.test.mjs",
       "convex/reportingRules.test.mjs",
       "convex/pnl.test.mjs",
@@ -30,6 +32,7 @@ export default defineConfig({
       "convex/partidaEdit.test.mjs",
       "convex/ogcClassification.test.mjs",
       "convex/ingresosPermissions.test.mjs",
+      "convex/incomeImports.test.mjs",
       "convex/autorizacionesPermissions.test.mjs",
       "convex/proveedoresPermissions.test.mjs",
       "convex/laborPaymentImports.test.mjs",

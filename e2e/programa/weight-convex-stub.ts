@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from "react";
+export const useAction = () => async () => { throw new Error("No se esperaba importar en esta prueba de ponderaciones"); };
+export const useConvex = () => ({ query: async () => null });
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
 import {

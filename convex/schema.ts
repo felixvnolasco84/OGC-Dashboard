@@ -2,6 +2,9 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { feeConceptConfigValidator } from "./feeConceptValidators";
 import { laborImportResultValidator, laborImportSourceValidator } from "./laborImportValidators";
+import { incomeImportResultValidator, incomeParserSummaryValidator } from "./incomeImportValidators";
+import { budgetFormValidator } from "./budgetImportRules";
+import { programImportResultValidator, programImportSourceValidator } from "./programaObraImportValidators";
 import {
   assistantAnswerValidator,
   assistantReferenceValidator,
@@ -50,6 +53,8 @@ export default defineSchema({
     .index("by_proyecto_nivel_partida", { fields: ["proyecto", "nivel", "partida_nombre"] })
     .index("by_proyecto_nivel_partida_familia", { fields: ["proyecto", "nivel", "partida_nombre", "familia"] }),
   desarrollos: defineTable({
+    initial_budget_attempt_id: v.optional(v.id("budget_creation_attempts")),
+    initial_budget_status: v.optional(v.union(v.literal("incomplete"), v.literal("completed"))),
     nombre: v.string(),
     descripcion: v.string(),
     image: v.string(),
@@ -66,6 +71,26 @@ export default defineSchema({
     moneda_principal: v.optional(v.string()), // Primary currency for project (MXN, USD, EUR) - auto-updated from transactions
     organization_id: v.optional(v.string()),
   }).index("by_organization", { fields: ["organization_id"] }),
+  budget_creation_attempts: defineTable({
+    request_id: v.string(), created_by: v.id("users"), created_by_name: v.string(), organization_id: v.optional(v.string()),
+    form: budgetFormValidator, file_name: v.string(), file_hash: v.string(), size: v.number(), content_type: v.string(),
+    storage_id: v.optional(v.id("_storage")), manifest_id: v.optional(v.id("_storage")), proyecto: v.optional(v.id("desarrollos")),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("failed"), v.literal("completed")),
+    row_cursor: v.number(), payment_cursor: v.number(), row_count: v.optional(v.number()), payment_count: v.optional(v.number()),
+    partidas_created: v.number(), payments_created: v.number(), created_at: v.number(), updated_at: v.number(),
+    error: v.optional(v.string()),
+  }).index("by_user_request", ["created_by", "request_id"])
+    .index("by_user_created", ["created_by", "created_at"])
+    .index("by_organization_created", ["organization_id", "created_at"])
+    .index("by_proyecto", ["proyecto"]),
+  budget_creation_items: defineTable({
+    attempt_id: v.id("budget_creation_attempts"), proyecto: v.id("desarrollos"), source_index: v.number(),
+    payment_index: v.optional(v.number()), partida_id: v.id("partidas"), transaccion_id: v.optional(v.id("transacciones")),
+    snapshot_json: v.string(),
+  }).index("by_attempt", ["attempt_id"])
+    .index("by_attempt_row", ["attempt_id", "source_index", "payment_index"])
+    .index("by_partida", ["partida_id"])
+    .index("by_transaction", ["transaccion_id"]),
   project_locations: defineTable({
     name: v.string(),
     order: v.number(),
@@ -874,7 +899,31 @@ export default defineSchema({
     .index("by_proyecto", { fields: ["proyecto"] }),
   
   // Ingresos (Income) - Money entries for a project
+  income_import_attempts: defineTable({
+    proyecto: v.id("desarrollos"), request_id: v.string(),
+    file_name: v.string(), file_hash: v.string(), size: v.number(), content_type: v.string(),
+    storage_id: v.optional(v.id("_storage")), parser_summary: v.optional(incomeParserSummaryValidator),
+    response_rows: v.number(), valid_rows: v.number(), rejected_rows: v.number(),
+    status: v.union(v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    imported_by: v.id("users"), imported_by_name: v.string(), created_at: v.number(), completed_at: v.optional(v.number()),
+    result: v.optional(incomeImportResultValidator), error: v.optional(v.string()),
+  }).index("by_proyecto_created", ["proyecto", "created_at"])
+    .index("by_proyecto_request", ["proyecto", "request_id"])
+    .index("by_proyecto_hash", ["proyecto", "file_hash", "status"])
+    .index("by_storage", ["storage_id"]),
+  // Keep the large parser payload away from the paginated metadata queries.
+  income_import_reviews: defineTable({
+    proyecto: v.id("desarrollos"), attempt_id: v.id("income_import_attempts"), review_json: v.string(),
+  }).index("by_attempt", ["attempt_id"]).index("by_proyecto", ["proyecto"]),
+  income_import_items: defineTable({
+    proyecto: v.id("desarrollos"), attempt_id: v.id("income_import_attempts"), position: v.number(),
+    source_row: v.optional(v.number()), raw_json: v.string(), monto: v.number(), fecha: v.string(), descripcion: v.string(), moneda: v.string(),
+    errors: v.array(v.string()), outcome: v.union(v.literal("pending"), v.literal("rejected"), v.literal("created")),
+    ingreso_id: v.optional(v.id("ingresos")),
+  }).index("by_attempt_position", ["attempt_id", "position"]).index("by_ingreso", ["ingreso_id"])
+    .index("by_proyecto", ["proyecto"]),
   ingresos: defineTable({
+    import_attempt_id: v.optional(v.id("income_import_attempts")),
     proyecto: v.id("desarrollos"),
     monto: v.number(), // Amount
     fecha: v.string(), // Date in DD/MM/YYYY format
@@ -1546,7 +1595,35 @@ export default defineSchema({
   programa_obra_revisions: defineTable({
     proyecto: v.id("desarrollos"), kind: v.union(v.literal("baseline"), v.literal("reschedule"), v.literal("import")),
     actor_id: v.id("users"), created_at: v.number(), reason: v.string(), version: v.number(), snapshot_json: v.string(),
+    import_attempt_id: v.optional(v.id("programa_obra_import_attempts")),
   }).index("by_proyecto", ["proyecto"]),
+  programa_obra_import_attempts: defineTable({
+    proyecto: v.id("desarrollos"), request_id: v.string(),
+    source: v.optional(programImportSourceValidator), size: v.optional(v.number()), content_type: v.optional(v.string()),
+    storage_id: v.optional(v.id("_storage")), confirmation_hash: v.optional(v.string()),
+    row_count: v.optional(v.number()),
+    status: v.union(v.literal("processing"), v.literal("completed"), v.literal("unchanged"), v.literal("failed"), v.literal("legacy")),
+    imported_by: v.id("users"), imported_by_name: v.string(), created_at: v.number(), completed_at: v.optional(v.number()),
+    result: v.optional(programImportResultValidator), error: v.optional(v.string()),
+    revision_id: v.optional(v.id("programa_obra_revisions")),
+  }).index("by_proyecto_created", ["proyecto", "created_at"])
+    .index("by_proyecto_request", ["proyecto", "request_id"])
+    .index("by_proyecto_hash", ["proyecto", "source.file_hash"]),
+  programa_obra_import_reviews: defineTable({
+    proyecto: v.id("desarrollos"), attempt_id: v.id("programa_obra_import_attempts"),
+    kind: v.union(v.literal("confirmed"), v.literal("applied")), snapshot_json: v.string(),
+  }).index("by_proyecto", ["proyecto"]).index("by_attempt_kind", ["attempt_id", "kind"]),
+  programa_obra_import_items: defineTable({
+    proyecto: v.id("desarrollos"), attempt_id: v.id("programa_obra_import_attempts"),
+    target_key: v.string(), name: v.string(),
+    kind: v.union(v.literal("row"), v.literal("activity_effect")),
+    outcome: v.union(v.literal("created"), v.literal("updated"), v.literal("unchanged")),
+    // An ordinal in the reviewed data is not a physical Excel row coordinate.
+    review_index: v.optional(v.number()), row_json: v.optional(v.string()),
+    before_json: v.optional(v.string()), after_json: v.string(),
+    effect_reason: v.optional(v.string()), imported_at: v.number(),
+  }).index("by_proyecto", ["proyecto"]).index("by_attempt", ["attempt_id"])
+    .index("by_proyecto_target", ["proyecto", "target_key"]),
   programa_obra: defineTable({
     proyecto: v.id("desarrollos"),
     partida_id: v.id("partidas"), // Nivel 1 partida reference

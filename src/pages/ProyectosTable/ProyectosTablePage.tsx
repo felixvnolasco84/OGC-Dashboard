@@ -1,3 +1,4 @@
+import { BudgetOriginalDialog } from "@/components/Presupuesto/BudgetOriginal";
 import { Table } from "@/components/ui/table";
 import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
 import { Link } from "react-router";
@@ -47,6 +48,7 @@ export default function ProyectosTablePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Id<"desarrollos"> | null>(null);
 
+  const currentUser = useQuery(api.users.getCurrentUser);
   const projects = useQuery(api.desarrollos.getAllWithMetrics);
   const projectLocations = useQuery(api.project_locations.list);
   const deleteProject = useMutation(api.desarrollos.deleteProject);
@@ -117,6 +119,7 @@ export default function ProyectosTablePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
+              {currentUser?.role === "admin" && <BudgetOriginalDialog />}
               <Button
                 onClick={() => addProyectoModal.onOpen()}
                 variant="outline"
@@ -278,7 +281,7 @@ export default function ProyectosTablePage() {
                           project.status || "Activo"
                         )} rounded-full px-3 py-1 text-xs font-normal`}
                       >
-                        {project.status || "Activo"}
+                        {project.initial_budget_status === "incomplete" ? "Creación incompleta" : project.status || "Activo"}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 border-r border-border">

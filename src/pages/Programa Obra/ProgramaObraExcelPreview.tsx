@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight, AlertTriangle, Loader2 } from "lucide-react";
 import { parseDate } from "./programa-obra-types";
+import type { ProgramImportReview } from "../../../convex/programaObraImportValidators";
 
 // ============================================================
 // Types
@@ -76,7 +77,7 @@ type ConflictResolution = "child" | "parent";
 type Props = {
   open: boolean;
   parsedData: ExcelPartida[];
-  onConfirm: (rows: ExcelRow[]) => void;
+  onConfirm: (rows: ExcelRow[], review: ProgramImportReview) => void;
   onCancel: () => void;
   uploading: boolean;
 };
@@ -227,7 +228,11 @@ export default function ProgramaObraExcelPreview({
       }
     }
 
-    onConfirm(rows);
+    onConfirm(rows, { date_resolutions: conflicts.map(conflict => ({
+      partida_index: conflict.partidaIndex, child_index: conflict.childIndex, partida: conflict.partidaName, child: conflict.childName,
+      parent_finish: conflict.partidaEndDate, child_finish: conflict.childEndDate,
+      choice: resolutions[`${conflict.partidaIndex}-${conflict.childIndex}`]!,
+    })) });
   };
 
   // Check if a specific child has a conflict
@@ -447,7 +452,7 @@ export default function ProgramaObraExcelPreview({
                 Cargando...
               </>
             ) : (
-              "Confirmar y cargar"
+              "Continuar a revisión"
             )}
           </Button>
         </DialogFooter>

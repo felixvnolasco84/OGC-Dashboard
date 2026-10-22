@@ -1,6 +1,12 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { assertIncomeManager, assertIncomeProjectAccess } from "./permissions";
+import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+
+async function isOriginalExcel(ctx: MutationCtx, storageId: Id<"_storage">) {
+  return Boolean(await ctx.db.query("income_import_attempts").withIndex("by_storage", q => q.eq("storage_id", storageId)).first());
+}
 
 // ============================================
 // QUERIES
@@ -105,7 +111,8 @@ export const create = mutation({
       throw new Error("El ingreso no pertenece al proyecto del documento.");
     }
     await assertIncomeProjectAccess(ctx, ingreso.proyecto);
-    
+
+    if (await isOriginalExcel(ctx, args.storage_id)) throw new Error("El Excel fuente se conserva en el historial; no puede usarse como comprobante individual.");
     const documentId = await ctx.db.insert("ingresos_documentos", {
       ingreso_id: args.ingreso_id,
       proyecto: args.proyecto,
@@ -135,7 +142,7 @@ export const remove = mutation({
     await assertIncomeProjectAccess(ctx, doc.proyecto);
     
     // Delete from storage
-    await ctx.storage.delete(doc.storage_id);
+    if (!await isOriginalExcel(ctx, doc.storage_id)) await ctx.storage.delete(doc.storage_id);
     
     // Delete document record
     await ctx.db.delete(args.id);
@@ -159,7 +166,7 @@ export const removeByIngreso = mutation({
     
     // Delete each document from storage and database
     for (const doc of documents) {
-      await ctx.storage.delete(doc.storage_id);
+      if (!await isOriginalExcel(ctx, doc.storage_id)) await ctx.storage.delete(doc.storage_id);
       await ctx.db.delete(doc._id);
     }
     

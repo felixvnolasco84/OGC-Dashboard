@@ -1,3 +1,5 @@
+import type { Infer } from "convex/values";
+import { assertBudgetReady } from "./budgetImportGuard";
 import { getTransactionConcept } from "./transactionConcept";
 import { query, mutation as baseMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -715,9 +717,11 @@ async function prepareTransactionLineItems(
 async function validateTransactionWrite(
   ctx: MutationCtx,
   proyecto: Id<"desarrollos">,
-  proveedorId?: Id<"proveedores"> | null
+  proveedorId?: Id<"proveedores"> | null,
+  initialBudgetImport = false
 ) {
   await assertCanWrite(ctx);
+  if (!initialBudgetImport) await assertBudgetReady(ctx, proyecto);
   if (!(await checkDesarrolloAccess(ctx, proyecto))) {
     throw new Error("No tienes acceso para modificar este proyecto.");
   }
@@ -744,8 +748,7 @@ async function providerSummary(ctx: QueryCtx, proveedorId?: Id<"proveedores">) {
 }
 
 // Create a transaction with multiple line items (concepts)
-export const createTransaction = mutation({
-  args: {
+const createBudgetTransactionRecordArgs = v.object({
     proyecto: v.id("desarrollos"),
     proveedor_id: v.optional(v.id("proveedores")),
     import_batch_id: v.optional(v.id("transaction_import_batches")),
@@ -780,9 +783,9 @@ export const createTransaction = mutation({
         monto: v.number(),
       })
     ),
-  },
-  handler: async (ctx, args) => {
-    await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id);
+  });
+export async function createBudgetTransactionRecord(ctx: MutationCtx, args: Infer<typeof createBudgetTransactionRecordArgs>) {
+    await validateTransactionWrite(ctx, args.proyecto, args.proveedor_id, true);
     const { lineItems, allow_duplicate_signature, ...transactionData } = args;
     transactionData.concepto_adicional = transactionData.concepto_adicional?.trim() || undefined;
     if (transactionData.payment_account_id) {
@@ -872,8 +875,8 @@ export const createTransaction = mutation({
       pagoIds,
       duplicate: false,
     };
-  },
-});
+}
+export const createTransaction = mutation({ args: createBudgetTransactionRecordArgs, handler: async (ctx, args) => { await assertBudgetReady(ctx, args.proyecto); return createBudgetTransactionRecord(ctx, args); } });
 
 // Bulk version of createTransaction that bypasses per-item triggers.
 // Inserts all records first, then runs hierarchy/metrics updates once.
@@ -1316,6 +1319,7 @@ export const deleteTransaction = baseMutation({
       throw new Error("Transaction not found");
     }
     await assertCanWrite(ctx);
+    await assertBudgetReady(ctx, existingTransaction.proyecto);
     if (!(await checkDesarrolloAccess(ctx, existingTransaction.proyecto))) {
       throw new Error("No tienes acceso para modificar este proyecto.");
     }

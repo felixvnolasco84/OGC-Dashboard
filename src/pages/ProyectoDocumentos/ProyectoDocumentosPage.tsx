@@ -1,3 +1,4 @@
+import { BudgetCreationHistory } from "@/components/Presupuesto/BudgetOriginal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
@@ -480,6 +481,7 @@ export default function ProyectoDocumentosPage() {
           </div>
         </div>
       )}
+      {!currentFolderId && projectId && <section className="space-y-3 border-b border-border px-4 py-5 sm:px-6 lg:px-8 xl:px-10"><h2 className="text-base font-medium">Excel del presupuesto inicial</h2><p className="text-sm text-muted-foreground">Original protegido de la creación del proyecto.</p><BudgetCreationHistory key={projectId} projectId={projectId} /></section>}
       <div className="border-b border-border px-4 py-5 sm:px-6 sm:py-6 lg:px-8 xl:px-10">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-6">

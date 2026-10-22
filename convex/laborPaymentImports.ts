@@ -1,3 +1,4 @@
+import { assertBudgetReady } from "./budgetImportGuard";
 import { getTransactionConcept } from "./transactionConcept";
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
@@ -237,6 +238,7 @@ export const replaceLaborPaymentImport = mutation({
   },
   handler: async (ctx, input): Promise<LaborImportResult> => {
     const attempt = await writableAttempt(ctx, input.attempt_id);
+    await assertBudgetReady(ctx, attempt.proyecto);
     if (attempt.result) return attempt.result;
     if (attempt.status !== "processing") throw new Error(attempt.error || "El intento ya terminó.");
     if (Date.now() >= attempt.created_at + LABOR_IMPORT_ATTEMPT_TIMEOUT) throw new Error("El intento de carga expiró.");

@@ -8,6 +8,7 @@ export function useMutation(reference: Parameters<typeof getFunctionName>[0]) {
     window.dispatchEvent(new CustomEvent("programa-progress-test", { detail: { name: getFunctionName(reference), args } }));
   };
 }
+export const useConvex = () => ({ query: async () => null });
 export function useQuery(reference: Parameters<typeof getFunctionName>[0], args?: unknown) {
   if (args === "skip") return undefined;
   const name = getFunctionName(reference);

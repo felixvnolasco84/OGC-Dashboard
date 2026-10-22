@@ -1,4 +1,6 @@
 "use client";
+import { useBudgetCreation } from "@/hooks/use-budget-creation";
+import { BudgetAttemptCard } from "@/components/Presupuesto/BudgetOriginal";
 import {
   Sheet,
   SheetContent,
@@ -11,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useCallback } from 'react';
-import { useMutation, useQuery } from "convex/react";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Upload, FolderPlus, FileSpreadsheet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -38,9 +40,17 @@ export default function AddProyectoModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExcelUploader, setShowExcelUploader] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [, setResult] = useState<UploadResult | null>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const projectLocations = useQuery(api.project_locations.list);
+  const creation = useBudgetCreation();
+  const confirmedAttempt = useQuery(api.budgetCreationHistory.get, creation.attemptId ? { attempt_id: creation.attemptId } : "skip");
+  const progressRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen || !creation.attemptId) return;
+    const frame = requestAnimationFrame(() => progressRef.current?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, creation.attemptId, isSubmitting]);
 
   type UploadResult = {
     success: boolean;
@@ -69,6 +79,7 @@ export default function AddProyectoModal() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
+    if (isSubmitting || confirmedAttempt?.proyecto) return;
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
@@ -78,7 +89,7 @@ export default function AddProyectoModal() {
         setResult(null);
       }
     }
-  }, [updateFormData]);
+  }, [updateFormData, isSubmitting, confirmedAttempt?.proyecto]);
 
   const validateFile = (file: File): boolean => {
     if (!file) return false;
@@ -134,10 +145,6 @@ export default function AddProyectoModal() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const createProject = useMutation(api.desarrollos.create);
-  const uploadProjectData = useMutation(api.partida.createPartida);
-  const createTransaction = useMutation(api.transacciones.createTransaction);
-
   const handleInputChange = (field: string, value: string) => {
     // Convert to number for honorarios_porcentaje field
     if (field === 'indirectos_porcentaje') {
@@ -150,247 +157,27 @@ export default function AddProyectoModal() {
     }
   };
 
-  // Helper function to convert Excel serial date to JavaScript Date
-  const excelSerialToDate = (serial: number): string => {
-    // Excel stores dates as days since 1/1/1900
-    // Subtract 25569 to convert to Unix epoch, then multiply by milliseconds in a day
-    const date = new Date((serial - 25569) * 86400 * 1000);
-    // Format as DD/MM/YYYY
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const handleExcelUpload = async (file: File) => {
-    const formDataToSend = new FormData();
-    formDataToSend.append('file', file);
-
-    // const response = await fetch("http://localhost:3000/upload", {
-    const response = await fetch("https://ogc-excel-reader.vercel.app/upload", {
-      method: "POST",
-      body: formDataToSend,
-    });
-
-    const data = await response.json();
-
-    console.log(data);
-
-    return data;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!formData.excel || isSubmitting) return;
     setIsSubmitting(true);
-
     try {
-      if (!formData.excel) {
-        return;
+      const project = await creation.create({ nombre: formData.nombre, descripcion: formData.descripcion,
+        ubicacion: formData.ubicacion, honorarios_porcentaje: formData.honorarios_porcentaje,
+        indirectos_porcentaje: formData.indirectos_porcentaje }, formData.excel);
+      if (project) {
+        toast.success('Proyecto creado con su Excel original respaldado');
+        handleClose();
       }
-
-      const response = await handleExcelUpload(formData.excel);
-
-      console.log(response)
-
-      if (!response.success || !response.data || response.data.length === 0) {
-        console.error('No data received from server');
-        return;
-      }
-
-      // Create the project
-      const project = await createProject({
-        nombre: formData.nombre,
-        descripcion: formData.descripcion,
-        image: "",
-        ubicacion: formData.ubicacion,
-        honorarios_porcentaje: formData.honorarios_porcentaje,
-        indirectos_porcentaje: formData.indirectos_porcentaje,
-      });
-
-      // Type for the record from the API
-      type PartidaRecord = {
-        nivel: number;
-        nombre: unknown;
-        familia: unknown;
-        sub_partida: unknown;
-        unidad: unknown;
-        cantidad: unknown;
-        precio_unitario: unknown;
-        presupuesto_original: unknown;
-        presupuesto_aprobado: unknown;
-        pagado: unknown;
-        weeklyPayments?: Array<{
-          week: number;
-          columnLetter: string;
-          amount: number;
-          position: number;
-        }>;
-      };
-
-      const textValue = (value: unknown) => {
-        if (value === null || value === undefined) return '';
-        return String(value).trim();
-      };
-
-      const numberValue = (value: unknown) => {
-        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-        if (value === null || value === undefined || value === '') return 0;
-        let normalized = String(value)
-          .trim()
-          .replace(/\s|\u00a0/g, '')
-          .replace(/[$%]/g, '')
-          .replace(/[^0-9.,()-]/g, '');
-
-        if (!normalized) return 0;
-
-        let isNegative = false;
-        if (normalized.startsWith('(') && normalized.endsWith(')')) {
-          isNegative = true;
-          normalized = normalized.slice(1, -1);
-        }
-
-        const lastComma = normalized.lastIndexOf(',');
-        const lastDot = normalized.lastIndexOf('.');
-
-        if (lastComma !== -1 && lastDot !== -1) {
-          const decimalSeparator = lastComma > lastDot ? ',' : '.';
-          const groupSeparator = decimalSeparator === ',' ? '.' : ',';
-          normalized = normalized
-            .replace(new RegExp(`\\${groupSeparator}`, 'g'), '')
-            .replace(decimalSeparator, '.');
-        } else if (lastComma !== -1) {
-          const decimalDigits = normalized.length - lastComma - 1;
-          normalized = decimalDigits > 0 && decimalDigits <= 2
-            ? normalized.replace(/\./g, '').replace(',', '.')
-            : normalized.replace(/,/g, '');
-        } else if (lastDot !== -1) {
-          const decimalDigits = normalized.length - lastDot - 1;
-          const dotCount = (normalized.match(/\./g) || []).length;
-          normalized = dotCount > 1
-            ? (decimalDigits > 0 && decimalDigits <= 2
-              ? normalized.replace(/\.(?=.*\.)/g, '')
-              : normalized.replace(/\./g, ''))
-            : normalized;
-        }
-
-        const parsed = Number(normalized);
-        if (!Number.isFinite(parsed)) return 0;
-        return isNegative ? -parsed : parsed;
-      };
-
-      // Upload all partidas from the Excel data in order. Convex recalculates
-      // rollups after each insert, so parallel inserts can leave parent totals
-      // calculated from an incomplete tree.
-      let currentPartidaNombre = '';
-      const partidas = [];
-
-      for (const record of response.data as PartidaRecord[]) {
-        const nombre = textValue(record.nombre);
-        const familia = textValue(record.familia);
-        const subPartida = textValue(record.sub_partida);
-        const unidad = textValue(record.unidad);
-
-        // Update current partida name when we encounter a nivel 1 item
-        if (record.nivel === 1) {
-          currentPartidaNombre = nombre;
-        }
-
-        const parentPartidaNombre = record.nivel > 1 ? currentPartidaNombre : undefined;
-
-        // Create the partida
-        const partidaId = await uploadProjectData({
-          nivel: record.nivel || 0,
-          nombre,
-          familia,
-          sub_partida: subPartida,
-          partida_nombre: parentPartidaNombre,
-          unidad,
-          cantidad: numberValue(record.cantidad),
-          precio_unitario: numberValue(record.precio_unitario),
-          presupuesto_original: numberValue(record.presupuesto_original),
-          presupuesto_aprobado: numberValue(record.presupuesto_aprobado),
-          pagado: numberValue(record.pagado),
-          archivo_origen: response.fileName || formData.excel?.name || 'unknown',
-          proyecto: project,
-        });
-        partidas.push(partidaId);
-
-        // Create transactions for this partida if weeklyPayments exist
-        if (record.weeklyPayments && record.weeklyPayments.length > 0) {
-          const transactionPromises = record.weeklyPayments.map((payment) => {
-            // Only create transaction if amount is greater than 0
-            if (payment.amount <= 0) {
-              return Promise.resolve(null);
-            }
-
-            // Create a transaction with a single line item for this weekly payment
-            return createTransaction({
-              proyecto: project,
-              monto_total: payment.amount,
-              fecha: excelSerialToDate(payment.week),
-              tipo_pago: 'transferencia', // Default payment type
-              moneda: 'MXN',
-              tipo_cambio: '1',
-              status: 'Pendiente',
-              codigo_referencia: `Week-${payment.position}`,
-              banco: '',
-              tarjeta: '',
-              numero_cuenta: '',
-              numero_transferencia: '',
-              factura: '',
-              comprobante: '',
-              presupuesto_archivo: '',
-              lineItems: [
-                {
-                  partida_id: partidaId,
-                  partida: record.nivel === 1 ? nombre : parentPartidaNombre || nombre,
-                  familia,
-                  sub_partida: subPartida,
-                  monto: payment.amount,
-                }
-              ]
-            });
-          });
-
-          await Promise.all(transactionPromises);
-        }
-      }
-      console.log(`Successfully uploaded ${partidas.length} partida records with their transactions`);
-
-      // Show success toast
-      toast.success('Proyecto creado exitosamente', {
-        description: `Se creó el proyecto "${formData.nombre}" con ${partidas.length} partidas y sus transacciones asociadas.`,
-        duration: 5000,
-      });
-
-      // Reset form and close modal
-      updateFormData({
-        nombre: '',
-        descripcion: '',
-        excel: null,
-        honorarios_porcentaje: 0, indirectos_porcentaje: undefined,
-        ubicacion: undefined,
-      });
-      setFile(null);
-      setShowExcelUploader(false);
-      onClose();
     } catch (error) {
-      console.error("Error creating project:", error);
-
-      // Show error toast
-      toast.error('Error al crear el proyecto', {
-        description: error instanceof Error ? error.message : 'Ocurrió un error inesperado. Por favor intenta nuevamente.',
-        duration: 5000,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+      toast.error('La creación sigue pendiente', { description: error instanceof Error ? error.message : 'Puedes reanudarla desde Creaciones de proyectos.' });
+    } finally { setIsSubmitting(false); }
   };
 
   const handleClose = () => {
+    creation.clear();
     // Reset form state
-    updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0, indirectos_porcentaje: undefined });
+    updateFormData({ nombre: '', descripcion: '', excel: null, honorarios_porcentaje: 0, indirectos_porcentaje: undefined, ubicacion: undefined });
     setFile(null);
     setShowExcelUploader(false);
     setResult(null);
@@ -418,6 +205,7 @@ export default function AddProyectoModal() {
 
         {!showExcelUploader ? (
           <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+          <fieldset disabled={isSubmitting || Boolean(confirmedAttempt?.proyecto)} className="min-w-0 space-y-6">
             {/* Project Name */}
             <div className="space-y-2">
               <Label htmlFor="nombre">Nombre del Proyecto *</Label>
@@ -580,17 +368,21 @@ export default function AddProyectoModal() {
               )}
             </div>
 
-            {/* Form Actions */}
+          </fieldset>
+          {result && !result.success && <p role="alert" className="text-sm text-destructive">{result.message}</p>}
+          <p className="text-xs text-muted-foreground">Al confirmar se guardará el Excel original para consultarlo desde Presupuesto y Documentos.</p>
+          {creation.attemptId && <div ref={progressRef}><BudgetAttemptCard attemptId={creation.attemptId} /></div>}
+          {/* Form Actions */}
             <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t">
               <Button type="button" variant="outline" onClick={handleClose}>
-                Cancelar
+              {creation.attemptId ? "Cerrar y conservar intento" : "Cancelar"}
               </Button>
-              <Button
+            {!confirmedAttempt?.proyecto && <Button
                 type="submit"
                 disabled={!isFormValid() || isSubmitting}
               >
-                {isSubmitting ? 'Creando...' : 'Continuar con Excel'}
-              </Button>
+                {isSubmitting ? 'Guardando y creando…' : 'Crear proyecto y guardar Excel'}
+            </Button>}
             </div>
           </form>
         ) : (

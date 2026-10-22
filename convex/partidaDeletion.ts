@@ -1,3 +1,4 @@
+import { assertBudgetReady } from "./budgetImportGuard";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -118,6 +119,7 @@ function withoutDeletedExclusions(project: Doc<"desarrollos">, ids: Set<string>)
 async function inspect(ctx: Context, id: Id<"partidas">, projectId: Id<"desarrollos">) {
   const user = await getCurrentUserOrThrow(ctx);
   if (!hasAdminAccess(user)) throw new ConvexError("Solo los administradores pueden eliminar conceptos del presupuesto.");
+  await assertBudgetReady(ctx, projectId);
   const project = await ctx.db.get(projectId);
   if (!project || !canUserAccessDesarrollo(user, project)) {
     throw new ConvexError("No tienes permisos de administración en este proyecto.");

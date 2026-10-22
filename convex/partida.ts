@@ -1,3 +1,6 @@
+import type { Infer } from "convex/values";
+import type { MutationCtx } from "./_generated/server";
+import { assertBudgetReady } from "./budgetImportGuard";
 import { paginationOptsValidator } from "convex/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { query, mutation as rawMutation } from "./_generated/server";
@@ -480,8 +483,7 @@ export const getGroupedByFamilia = query({
 
 
 
-export const createPartida = mutation({
-  args: {
+const createBudgetPartidaRecordArgs = v.object({
     nivel: v.number(),
     nombre: v.string(),
     familia: v.string(),
@@ -495,8 +497,8 @@ export const createPartida = mutation({
     pagado: v.number(),
     archivo_origen: v.string(),
     proyecto: v.optional(v.id("desarrollos")),
-  },
-  handler: async (ctx, args) => {
+  });
+export async function createBudgetPartidaRecord(ctx: MutationCtx, args: Infer<typeof createBudgetPartidaRecordArgs>) {
     await assertCanWrite(ctx);
 
     // Validate hierarchy: nivel 2/3 require partida_nombre referencing an existing nivel 1
@@ -537,8 +539,8 @@ export const createPartida = mutation({
     }
 
     return partidaId;
-  },
-});
+}
+export const createPartida = mutation({ args: createBudgetPartidaRecordArgs, handler: async (ctx, args) => { await assertBudgetReady(ctx, args.proyecto); return createBudgetPartidaRecord(ctx, args); } });
 
 export const getEditContext = query({
   args: partidaEditIdentity,
@@ -753,6 +755,7 @@ export const syncMontosPorPartidaNivel1 = mutation({
     partidaNombre: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertBudgetReady(ctx, args.projectId);
     let targetPartidaNames: string[] = [];
 
     if (args.partidaId) {
@@ -852,6 +855,7 @@ export const syncPorGastarForAllPartidas = mutation({
   },
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
+    await assertBudgetReady(ctx, args.projectId);
 
     console.log("🔄 Starting por_gastar sync for all partidas...");
 
@@ -874,6 +878,7 @@ export const syncPorGastarForAllPartidas = mutation({
 
       // Update each partida with calculated por_gastar
       for (const partida of partidas) {
+        await assertBudgetReady(ctx, partida.proyecto);
         const presupuestoAprobado = partida.presupuesto_aprobado || 0;
         const pagado = partida.pagado || 0;
         const porGastar = presupuestoAprobado - pagado;
@@ -922,6 +927,7 @@ export const syncGastadoForAllPartidas = mutation({
   },
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
+    await assertBudgetReady(ctx, args.projectId);
 
     console.log("🔄 Starting gastado sync for all partidas...");
 
@@ -944,6 +950,7 @@ export const syncGastadoForAllPartidas = mutation({
 
       // Update each partida with calculated gastado
       for (const partida of partidas) {
+        await assertBudgetReady(ctx, partida.proyecto);
         // Get all pagos for this partida
         const pagos = await ctx.db
           .query("pagos")
@@ -999,6 +1006,7 @@ export const syncProjectData = mutation({
   },
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
+    await assertBudgetReady(ctx, args.projectId);
 
     console.log(`🔄 Starting comprehensive sync for project: ${args.projectId}`);
 
@@ -1102,6 +1110,7 @@ export const updatePorGastarByFilters = mutation({
   },
   handler: async (ctx, args) => {
     await assertCanWrite(ctx);
+    await assertBudgetReady(ctx, args.proyecto);
 
     console.log(`🔄 Updating por_gastar for: ${args.nombre} / ${args.familia}`);
 

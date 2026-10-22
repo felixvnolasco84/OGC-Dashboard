@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ProgramaObraProgressForm from "./ProgramaObraProgressForm";
+import { ProgramaObraImportHistory, ProgramaObraImportSources } from "./ProgramaObraImportHistory";
 
 export type ExecutionProgram = FunctionReturnType<
   typeof api.programa_obra.getExecutionProgram
@@ -191,6 +192,7 @@ export default function ProgramaObraExecution({
     [settings, setSettings] = useState(false),
     [gantt, setGantt] = useState(false);
   const [ganttSelectedId, setGanttSelectedId] = useState<string | null>(null);
+  const [importHistoryOpen, setImportHistoryOpen] = useState(false);
   const initialize = useMutation(api.programa_obra.initializeExecutionProgram);
   const { perform, busy, feedback } = useAction();
   const selected = model.activities.find((a) => a._id === selectedId);
@@ -238,6 +240,7 @@ export default function ProgramaObraExecution({
         <h2 className="mr-auto text-base font-medium">
           Actividades por frente
         </h2>
+        <Button size="sm" variant="outline" data-viewer-readonly-allow="true" onClick={() => setImportHistoryOpen(true)}>Historial de cargas</Button>
         {gantt && ganttSelectedId && (
           <Button
             size="sm"
@@ -476,6 +479,7 @@ export default function ProgramaObraExecution({
           </details>
         </>
       )}
+      {importHistoryOpen && <ProgramaObraImportHistory proyecto={proyecto} onClose={() => setImportHistoryOpen(false)} />}
       {settings && (
         <ExecutionSettings
           model={model}
@@ -644,6 +648,7 @@ function ExecutionSettings({
   const configure = useMutation(api.programa_obra.configureExecutionProgram),
     createFront = useMutation(api.programa_obra.createExecutionFront),
     initialize = useMutation(api.programa_obra.initializeExecutionProgram);
+  const [importAttempt, setImportAttempt] = useState<Id<"programa_obra_import_attempts"> | null>(null);
   const [weekdays, setWeekdays] = useState(model.calendar.weekdays),
     [holidays, setHolidays] = useState(model.calendar.holidays.join("\n")),
     [enabled, setEnabled] = useState(model.config?.enabled ?? false),
@@ -812,15 +817,17 @@ function ExecutionSettings({
                       : "Reprogramación"}{" "}
                   · {r.reason}
                 </p>
-                <details>
+                {r.kind === "import" && (r.import_attempt_id ? <Button size="sm" variant="link" data-viewer-readonly-allow="true" onClick={() => setImportAttempt(r.import_attempt_id!)}>Ver carga y original</Button> : <p className="mt-2 text-muted-foreground">Archivo original no disponible · Revisión anterior al respaldo</p>)}
+                {!(r.kind === "import" && r.import_attempt_id) && <details>
                   <summary className="mt-1 cursor-pointer text-muted-foreground">
                     Ver datos de la revisión
                   </summary>
                   <RevisionDetails snapshot={r.snapshot_json} />
-                </details>
+                </details>}
               </div>
             ))}
           </details>
+          {importAttempt && <ProgramaObraImportHistory proyecto={proyecto} initialAttemptId={importAttempt} onClose={() => setImportAttempt(null)} />}
         </div>
       </SheetContent>
     </Sheet>
@@ -944,6 +951,7 @@ function ExecutionActivity({
     archive = useMutation(api.programa_obra.archiveExecutionActivity);
   const [reviewReason, setReviewReason] = useState(""),
     [reviewEvidence, setReviewEvidence] = useState("");
+  const [showImportSources, setShowImportSources] = useState(false);
   const history = useQuery(api.programa_obra.getExecutionHistory, {
     activity_id: activity._id,
   });
@@ -963,6 +971,13 @@ function ExecutionActivity({
         </SheetHeader>
         <div className="mt-5 space-y-5">
           {feedback}
+          <details onToggle={event => setShowImportSources(event.currentTarget.open)} className="border-b border-border pb-4">
+            <summary className="cursor-pointer text-sm">Archivos y efectos de Excel</summary>
+            {showImportSources && <div className="mt-3 space-y-5">
+              <ProgramaObraImportSources proyecto={activity.proyecto} target={{ kind: "detail", id: activity.detalle_id }} title="Excel vinculados a la familia" />
+              <ProgramaObraImportSources proyecto={activity.proyecto} target={{ kind: "activity", id: activity._id }} title="Efectos registrados en este frente" />
+            </div>}
+          </details>
           {activity.blockers.length > 0 && (
             <section
               aria-label="Motivos de bloqueo"

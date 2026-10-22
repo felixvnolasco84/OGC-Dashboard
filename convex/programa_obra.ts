@@ -9,6 +9,8 @@ import { assertProgramCapability, bumpProgramVersion, executionContext, updateLe
 import { programDate, programToday, projectProgramDates } from "../src/lib/programa-obra-rules";
 import { resolveProgressRecord } from "../src/lib/programa-obra-progress";
 import { previewProgramImport } from "./programaObraImport";
+import { assertProgramAttemptFile, assertProgramConfirmation, writableProgramAttempt } from "./programaObraImportHistory";
+import { PROGRAM_IMPORT_TIMEOUT, programImportConfirmationArgs, programImportPatchChanged, programImportRowValidator, type ProgramImportResult } from "./programaObraImportValidators";
 import { saveProgramWeight } from "./programaObraWeight";
 export { previewWeightChange } from "./programaObraWeight";
 export {
@@ -665,54 +667,52 @@ export const getDetallesByProgramaObra = query({
 // BULK UPSERT FROM EXCEL
 // ============================================================
 
-const excelRowValidator = v.object({
-  programa_obra_id: v.optional(v.id("programa_obra")),
-  detalle_id: v.optional(v.id("programa_obra_detalle")),
-  nivel: v.number(),
-  partida: v.string(),
-  familia: v.optional(v.string()),
-  subpartida: v.optional(v.string()),
-  fecha_inicio: v.optional(v.string()),
-  fecha_fin: v.optional(v.string()),
-  anticipo_fecha: v.optional(v.string()),
-  anticipo_porcentaje: v.optional(v.number()),
-  suministro_fecha: v.optional(v.string()),
-  finiquito_fecha: v.optional(v.string()),
-  finiquito_porcentaje: v.optional(v.number()),
-  peso: v.optional(v.number()),
-});
-
 export const previewExcelImport = query({
-  args: { proyecto: v.id("desarrollos"), rows: v.array(excelRowValidator) },
+  args: { proyecto: v.id("desarrollos"), rows: v.array(programImportRowValidator) },
   handler: async (ctx, args) => { await assertProjectAccess(ctx, args.proyecto); return previewProgramImport(ctx, args.proyecto, args.rows); },
 });
 
 export const bulkUpsertFromExcel = mutation({
   args: {
-    proyecto: v.id("desarrollos"),
-    rows: v.array(excelRowValidator),
-    expected_fingerprint: v.optional(v.string()),
+    ...programImportConfirmationArgs,
+    attempt_id: v.id("programa_obra_import_attempts"),
   },
-  handler: async (ctx, args) => {
-    await assertCanWrite(ctx);
-    await assertProjectAccess(ctx, args.proyecto);
+  handler: async (ctx, args): Promise<ProgramImportResult> => {
+    const attempt = await writableProgramAttempt(ctx, args.attempt_id);
+    if (attempt.proyecto !== args.proyecto) throw new Error("El intento no pertenece al proyecto.");
+    await assertProgramConfirmation(attempt, args);
+    // Recover a committed confirmation before comparing its now-obsolete programme fingerprint.
+    if (attempt.result) return attempt.result;
+    if (attempt.status !== "processing") throw new Error(attempt.error || "El intento ya terminó.");
+    if (Date.now() >= attempt.created_at + PROGRAM_IMPORT_TIMEOUT) throw new Error("El intento de carga expiró.");
+    await assertProgramAttemptFile(ctx, attempt);
     const execution = await executionContext(ctx, args.proyecto);
-    if (execution.config) await assertProgramCapability(ctx, args.proyecto, "plan");
     const preview = await previewProgramImport(ctx, args.proyecto, args.rows);
     if (!preview.canApply) throw new Error("Resuelve las filas inválidas y los pendientes de reprogramación antes de importar.");
     if ((execution.config && !args.expected_fingerprint) || (args.expected_fingerprint && preview.fingerprint !== args.expected_fingerprint)) throw new Error("El programa cambió; vuelve a revisar la previsualización del Excel.");
 
     let created = 0;
     let updated = 0;
+    let unchanged = 0;
     const errors: string[] = [];
 
     // Granular tracking
     let partidasCreated = 0;
     let partidasUpdated = 0;
+    let partidasUnchanged = 0;
     let partidasSkipped = 0;
     let familiasCreated = 0;
     let familiasUpdated = 0;
+    let familiasUnchanged = 0;
     let familiasSkipped = 0;
+
+    const recordRow = async (row: typeof args.rows[number], targetKey: string, name: string, outcome: "created" | "updated" | "unchanged", before: unknown, after: unknown) => {
+      await ctx.db.insert("programa_obra_import_items", {
+        proyecto: args.proyecto, attempt_id: attempt._id, target_key: targetKey, name, kind: "row", outcome,
+        review_index: args.rows.indexOf(row), row_json: JSON.stringify(row),
+        before_json: before ? JSON.stringify(before) : undefined, after_json: JSON.stringify(after), imported_at: attempt.created_at,
+      });
+    };
 
     for (const row of args.rows) {
       validateMilestonePercentage(row.anticipo_porcentaje);
@@ -772,7 +772,8 @@ export const bulkUpsertFromExcel = mutation({
       }
 
       // Check if programa_obra record already exists
-      const existing = await ctx.db
+      const matchedSchedule = preview.rows.find((m) => m.index === args.rows.indexOf(row))!.existingId;
+      const existing = matchedSchedule ? await ctx.db.get(matchedSchedule as Id<"programa_obra">) : await ctx.db
         .query("programa_obra")
         .withIndex("by_proyecto_partida", (q) =>
           q.eq("proyecto", args.proyecto).eq("partida_id", partida._id)
@@ -796,10 +797,11 @@ export const bulkUpsertFromExcel = mutation({
       nameToCanonical.set(trimmedName, partida.nombre);
 
       if (existing) {
-        await ctx.db.patch(existing._id, data);
+        const changed = programImportPatchChanged(existing, data);
+        if (changed) await ctx.db.patch(existing._id, data);
         programaObraCache.set(partida.nombre, existing._id);
-        updated++;
-        partidasUpdated++;
+        if (changed) { updated++; partidasUpdated++; } else { unchanged++; partidasUnchanged++; }
+        await recordRow(row, `schedule:${existing._id}`, partida.nombre, changed ? "updated" : "unchanged", existing, await ctx.db.get(existing._id));
       } else {
         const id = await ctx.db.insert("programa_obra", {
           proyecto: args.proyecto,
@@ -809,6 +811,7 @@ export const bulkUpsertFromExcel = mutation({
         programaObraCache.set(partida.nombre, id);
         created++;
         partidasCreated++;
+        await recordRow(row, `schedule:${id}`, partida.nombre, "created", null, await ctx.db.get(id));
       }
     }
 
@@ -913,18 +916,21 @@ export const bulkUpsertFromExcel = mutation({
 
       if (existingDetalle) {
         for (const activity of execution.activities.filter((a) => a.detalle_id === existingDetalle._id && !a.archived && a.name === existingDetalle.familia)) {
-          await ctx.db.patch(activity._id, { name: row.familia?.trim() || existingDetalle.familia });
+          const name = row.familia?.trim() || existingDetalle.familia;
+          if (name !== activity.name) await ctx.db.patch(activity._id, { name });
         }
-        await ctx.db.patch(existingDetalle._id, {
+        const patch = {
           ...detalleData,
           partida: resolvedPartida,
           familia: row.familia?.trim() || "",
           subpartida: row.subpartida?.trim(),
-        });
-        updated++;
-        familiasUpdated++;
+        };
+        const changed = programImportPatchChanged(existingDetalle, patch);
+        if (changed) await ctx.db.patch(existingDetalle._id, patch);
+        if (changed) { updated++; familiasUpdated++; } else { unchanged++; familiasUnchanged++; }
+        await recordRow(row, `detail:${existingDetalle._id}`, `${resolvedPartida} / ${patch.familia}${patch.subpartida ? ` / ${patch.subpartida}` : ""}`, changed ? "updated" : "unchanged", existingDetalle, await ctx.db.get(existingDetalle._id));
       } else {
-        await ctx.db.insert("programa_obra_detalle", {
+        const id = await ctx.db.insert("programa_obra_detalle", {
           proyecto: args.proyecto,
           programa_obra_id: parentId as Id<"programa_obra">,
           nivel: row.nivel,
@@ -935,11 +941,16 @@ export const bulkUpsertFromExcel = mutation({
         });
         created++;
         familiasCreated++;
+        await recordRow(row, `detail:${id}`, `${resolvedPartida} / ${row.familia}${row.subpartida ? ` / ${row.subpartida}` : ""}`, "created", null, await ctx.db.get(id));
       }
     }
 
     if (preview.proposal) {
-      for (const change of preview.proposal.changes) await ctx.db.patch(change.activity_id as Id<"programa_obra_activities">, { current_start: change.start, current_finish: change.finish, forecast_finish: change.forecast_finish });
+      for (const change of preview.proposal.changes) {
+        const before = execution.activities.find(a => a._id === change.activity_id)!;
+        const patch = { current_start: change.start, current_finish: change.finish, forecast_finish: change.forecast_finish };
+        if (programImportPatchChanged(before, patch)) await ctx.db.patch(change.activity_id as Id<"programa_obra_activities">, patch);
+      }
     }
     if (execution.config) {
       const front = execution.fronts.find((f) => f.name === "General" && !f.archived);
@@ -949,17 +960,48 @@ export const bulkUpsertFromExcel = mutation({
         if (execution.activities.some((a) => a.detalle_id === d._id)) continue;
         await ctx.db.insert("programa_obra_activities", { proyecto: args.proyecto, detalle_id: d._id, front_id: front._id, name: d.familia, progress: d.avance_porcentaje ?? 0, actual_start: d.actual_start, actual_finish: d.actual_finish, progress_as_of: d.progress_as_of, share: 100, mandatory: true, archived: false, requires_review: false, current_start: programDate(d.fecha_inicio), current_finish: programDate(d.fecha_fin), dates_need_review: (d.tiempo_extra_cantidad ?? 0) > 0 });
       }
-      const user = await getCurrentUserOrThrow(ctx);
-      await ctx.db.insert("programa_obra_revisions", { proyecto: args.proyecto, kind: "import", actor_id: user._id, created_at: Date.now(), reason: "Importación revisada de Excel; las filas ausentes se conservan", version: execution.config.version, snapshot_json: JSON.stringify({ rows: args.rows, proposal: preview.proposal, absent: preview.absent }) });
     }
-    await bumpProgramVersion(ctx, args.proyecto);
-    return {
+    // These are consequences of this import, not proof of rows present in the workbook.
+    let activityEffects = 0;
+    const afterActivities = await ctx.db.query("programa_obra_activities").withIndex("by_proyecto", q => q.eq("proyecto", args.proyecto)).collect();
+    for (const after of afterActivities) {
+      const before = execution.activities.find(a => a._id === after._id);
+      const completeAfter = { ...Object.fromEntries(Object.keys(before ?? {}).map(key => [key, undefined])), ...after };
+      if (before && !programImportPatchChanged(before, completeAfter)) continue;
+      activityEffects++;
+      const directlyReviewed = preview.rows.some(r => r.existingId === after.detalle_id);
+      await ctx.db.insert("programa_obra_import_items", {
+        proyecto: args.proyecto, attempt_id: attempt._id, target_key: `activity:${after._id}`,
+        name: after.name, kind: "activity_effect", outcome: before ? "updated" : "created",
+        before_json: before ? JSON.stringify(before) : undefined, after_json: JSON.stringify(after),
+        effect_reason: !before ? "Actividad incorporada al programa durante la importación" : directlyReviewed ? "Ajuste de actividad de una familia revisada" : "Reprogramación por dependencias; no acredita una fila del Excel",
+        imported_at: attempt.created_at,
+      });
+    }
+    if (errors.length) throw new Error(errors.join("\n"));
+    const changed = created + updated + activityEffects > 0;
+    const version = changed ? await bumpProgramVersion(ctx, args.proyecto) : execution.config?.version ?? 0;
+    const appliedSnapshot = JSON.stringify({ rows: args.rows, review: args.review, proposal: preview.proposal, absent: preview.absent, warnings: preview.warnings });
+    if (new TextEncoder().encode(appliedSnapshot).length > 900_000) throw new Error("La revisión aplicada es demasiado extensa. Divide el Excel en cargas más pequeñas.");
+    await ctx.db.insert("programa_obra_import_reviews", { proyecto: args.proyecto, attempt_id: attempt._id, kind: "applied", snapshot_json: appliedSnapshot });
+    const revisionId = await ctx.db.insert("programa_obra_revisions", {
+      proyecto: args.proyecto, kind: "import", actor_id: attempt.imported_by, created_at: Date.now(),
+      reason: changed ? "Importación revisada de Excel; las filas ausentes se conservan" : "Confirmación de Excel sin cambios en el programa",
+      version, import_attempt_id: attempt._id,
+      snapshot_json: JSON.stringify({ import_attempt_id: attempt._id, row_count: args.rows.length, created, updated, unchanged, activity_effects: activityEffects }),
+    });
+    const result: ProgramImportResult = {
+      status: !changed ? "unchanged" : updated > 0 || created === 0 ? "updated" : "created",
       created,
       updated,
+      unchanged,
       errors,
-      partidas: { created: partidasCreated, updated: partidasUpdated, skipped: partidasSkipped, total: nivel1Rows.length },
-      familias: { created: familiasCreated, updated: familiasUpdated, skipped: familiasSkipped, total: childRows.length },
+      partidas: { created: partidasCreated, updated: partidasUpdated, unchanged: partidasUnchanged, skipped: partidasSkipped, total: nivel1Rows.length },
+      familias: { created: familiasCreated, updated: familiasUpdated, unchanged: familiasUnchanged, skipped: familiasSkipped, total: childRows.length },
+      activity_effects: activityEffects, revision_id: revisionId, version,
     };
+    await ctx.db.patch(attempt._id, { status: changed ? "completed" : "unchanged", result, revision_id: revisionId, completed_at: Date.now() });
+    return result;
   },
 });
 

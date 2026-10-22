@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as program from "./programaObraExecution.ts";
 import { previewProgramImport } from "./programaObraImport.ts";
+import { programImportDigest } from "./programaObraImportValidators.ts";
 import { bulkUpsertFromExcel, updateDetalleAvance, updateSchedulePeso, updateDetallePeso, previewWeightChange } from "./programa_obra.ts";
 import { previewProgramWeight, programWeightSource, parseProgramWeight } from "../src/lib/programa-obra-weight.ts";
 import { DEFAULT_PROGRAM_CALENDAR, summarizeProgram } from "../src/lib/programa-obra-rules.ts";
@@ -181,6 +182,7 @@ function fixture() {
   const get = (id) => Object.values(tables).flat().find((row) => row._id === id);
   const ctx = { auth: { getUserIdentity: async () => ({ subject: actor }) }, db: {
     get: async (id) => structuredClone(get(id) ?? null),
+    system: { get: async () => ({ sha256: "a".repeat(64), size: 100 }) },
     query: (table) => {
       const filters = [], options = { desc: false };
       const rows = () => list(table).filter((row) => filters.every(([key, value]) => row[key] === value)).sort((a, b) => (options.desc ? -1 : 1) * ((a._creationTime ?? 0) - (b._creationTime ?? 0)));
@@ -199,7 +201,16 @@ function fixture() {
   } };
   const call = async (fn, args) => { const before = structuredClone(tables); try { return await fn._handler(ctx, args); } catch (e) { tables = before; throw e; } };
   const advance = (id, progress, date = "2026-09-15", reason) => call(program.updateExecutionProgress, { activity_id: id, progress, execution_date: date, reason });
-  return { ctx, call, advance, get, list, as: (user) => { actor = user; } };
+  const importRows = async (rows, expected_fingerprint) => {
+    const review = { date_resolutions: [] };
+    const attempt_id = await ctx.db.insert("programa_obra_import_attempts", {
+      proyecto: "project", status: "processing", imported_by: actor, created_at: Date.now(),
+      source: { file_name: "Prueba.xlsx", file_hash: "a".repeat(64) }, storage_id: "file", size: 100,
+      confirmation_hash: await programImportDigest({ rows, expected_fingerprint, review }),
+    });
+    return call(bulkUpsertFromExcel, { proyecto: "project", attempt_id, rows, expected_fingerprint, review });
+  };
+  return { ctx, call, advance, get, list, importRows, as: (user) => { actor = user; } };
 }
 
 describe("execution mutations and queries", () => {
@@ -257,7 +268,7 @@ describe("execution mutations and queries", () => {
     f.as("admin"); f.list("programa_obra_fronts").push({ _id: "general", proyecto: "project", name: "General", archived: false });
     const rows = [{ nivel: 1, partida: "Instalaciones" }, { nivel: 2, partida: "Instalaciones", familia: "Pruebas", detalle_id: "familyA" }];
     const preview = await previewProgramImport(f.ctx, "project", rows);
-    await f.call(bulkUpsertFromExcel, { proyecto: "project", rows, expected_fingerprint: preview.fingerprint });
+    await f.importRows(rows, preview.fingerprint);
     expect(f.get("A")).toMatchObject({ actual_start: "2026-09-01", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
     expect(f.get("familyA")).toMatchObject({ actual_start: "2026-09-01", actual_finish: "2026-09-02", progress_as_of: "2026-09-15" });
   });
@@ -393,11 +404,11 @@ describe("execution mutations and queries", () => {
     f.list("programa_obra_fronts").push({ _id: "general", proyecto: "project", name: "General", archived: false });
     const rows = [{ nivel: 1, partida: "Instalaciones" }, { nivel: 2, partida: "Instalaciones", familia: "Pruebas nuevas", detalle_id: "familyA" }];
     const preview = await previewProgramImport(f.ctx, "project", rows);
-    await f.call(bulkUpsertFromExcel, { proyecto: "project", rows, expected_fingerprint: preview.fingerprint });
+    await f.importRows(rows, preview.fingerprint);
     expect(f.get("familyA").familia).toBe("Pruebas nuevas");
     expect(f.get("familyB").orden).toBe(1); expect(f.get("familyB").archived).not.toBe(true);
     expect(f.get("A").detalle_id).toBe("familyA");
-    await expect(f.call(bulkUpsertFromExcel, { proyecto: "project", rows, expected_fingerprint: preview.fingerprint })).rejects.toThrow(/cambió/);
+    await expect(f.importRows(rows, preview.fingerprint)).rejects.toThrow(/cambió/);
   });
   it("legacy mutation cannot arbitrarily update an aggregate with several fronts", async () => {
     const f = fixture();

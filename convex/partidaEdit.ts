@@ -1,3 +1,4 @@
+import { assertBudgetReady } from "./budgetImportGuard";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
@@ -46,6 +47,7 @@ class ReadBudget {
 
 export async function loadPartidaEditContext(ctx: ReadCtx, args: Identity) {
   const user = await getCurrentUserOrThrow(ctx as QueryCtx);
+  await assertBudgetReady(ctx, args.proyecto);
   const project = await ctx.db.get(args.proyecto);
   if (["viewer", "almacenista"].includes(user.role) || !project || !canUserAccessDesarrollo(user, project)) {
     throw new ConvexError("No tienes permiso para editar el presupuesto de este proyecto.");
