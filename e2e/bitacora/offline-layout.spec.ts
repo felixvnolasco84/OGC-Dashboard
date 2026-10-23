@@ -1,81 +1,50 @@
 import { expect, test } from "@playwright/test";
 
-async function seedOfflineBitacora(page: import("@playwright/test").Page) {
-  await page.evaluate(async () => {
-    const databaseName = "ogc-bitacora-offline";
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(databaseName, 1);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        const create = (name: string, keyPath: string, indexes: Array<{ name: string; path: string | string[]; multiEntry?: boolean }>) => {
-          const store = db.createObjectStore(name, { keyPath });
-          for (const index of indexes) store.createIndex(index.name, index.path, { multiEntry: index.multiEntry });
-        };
-        create("offlineProfiles", "clerkId", [
-          { name: "expiresAt", path: "expiresAt" },
-          { name: "projectIds", path: "projectIds", multiEntry: true },
-        ]);
-        create("projects", "key", [
-          { name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "userId", path: "userId" }, { name: "projectId", path: "projectId" },
-        ]);
-        create("partidas", "key", [
-          { name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "[userId+projectId+nivel]", path: ["userId", "projectId", "nivel"] }, { name: "partidaId", path: "partidaId" },
-        ]);
-        create("entries", "key", [
-          { name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "[userId+projectId+syncState]", path: ["userId", "projectId", "syncState"] }, { name: "clientId", path: "clientId" }, { name: "serverId", path: "serverId" }, { name: "syncVersion", path: "syncVersion" },
-        ]);
-        create("attachments", "key", [
-          { name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "[userId+entryClientId]", path: ["userId", "entryClientId"] }, { name: "clientId", path: "clientId" }, { name: "serverId", path: "serverId" }, { name: "syncState", path: "syncState" },
-        ]);
-        create("outbox", "operationId", [
-          { name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "[userId+projectId+status]", path: ["userId", "projectId", "status"] }, { name: "entryClientId", path: "entryClientId" }, { name: "createdAt", path: "createdAt" },
-        ]);
-        create("syncMetadata", "key", [{ name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "status", path: "status" }]);
-        create("assignableUsers", "key", [{ name: "[userId+projectId]", path: ["userId", "projectId"] }, { name: "targetUserId", path: "targetUserId" }]);
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error(request.error?.message || "No se pudo abrir IndexedDB"));
-    });
+import { seedOfflineBitacora } from "./seed-offline";
 
-    const now = Date.now();
-    const userId = "layout-user";
-    const projectId = "layout-project";
-    const entryClientId = "layout-entry";
-    const pngBytes = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="), (character) => character.charCodeAt(0));
-    const transaction = database.transaction(["offlineProfiles", "projects", "partidas", "entries", "attachments", "syncMetadata", "assignableUsers"], "readwrite");
-    let writeError = "";
-    transaction.addEventListener("error", (event) => {
-      const request = event.target as IDBRequest;
-      const source = request.source as IDBObjectStore | null;
-      writeError = `${source?.name || "store desconocido"}: ${request.error?.message || "error de escritura"}`;
-    }, true);
-    transaction.objectStore("offlineProfiles").put({ clerkId: userId, userId, name: "Luis Contreras Aviles", email: "layout@example.com", role: "admin", projectIds: [projectId], verifiedAt: now, expiresAt: now + 86_400_000 });
-    transaction.objectStore("projects").put({ key: `${userId}:${projectId}`, userId, projectId, name: "Larena - Acceso", raw: {} });
-    transaction.objectStore("partidas").put({ key: `${userId}:partida-1`, userId, projectId, partidaId: "partida-1", name: "LUMINARIAS", nivel: 1, raw: {} });
-    transaction.objectStore("entries").put({
-      key: `${userId}:${entryClientId}`, userId, projectId, clientId: entryClientId, serverId: "server-entry", revision: 1, baseRevision: 1, syncVersion: 1,
-      uploadedAt: now, updatedAt: now, deleted: false, syncState: "synced", categoria: "Instalaciones", partidaId: "partida-1", familiasTags: ["ACCESORIOS ELÉCTRICOS"], responsable: "Luis Contreras Aviles",
-      fecha: "11/09/2026", avanceDia: "TORRE I\nINSTALACION DE ACCESORIOS 80%\nNIVEL 3\nDEP.302", comentarios: "Sin incidencias reportadas.", status: "Sin problemas",
-    });
-    for (let index = 0; index < 12; index += 1) {
-      const imageBlob = new Blob([pngBytes], { type: "image/png" });
-      transaction.objectStore("attachments").put({
-        key: `${userId}:photo-${index}`, userId, projectId, entryClientId, clientId: `photo-${index}`, serverId: `server-photo-${index}`, storageId: `storage-${index}`,
-        kind: "photo", name: "LUMINARIAS - Foto", description: `INSTALACION DE ACCESORIOS 80%\nTORRE I\nNIVEL 3\nDEP.302`, mimeType: "image/png", size: imageBlob.size,
-        blob: imageBlob, deleted: false, syncState: "synced",
-      });
-    }
-    transaction.objectStore("syncMetadata").put({ key: `${userId}:${projectId}`, userId, projectId, version: 1, prepared: true, lastSyncAt: now, status: "idle" });
-    transaction.objectStore("assignableUsers").put({ key: `${userId}:assigned-user`, userId, projectId, targetUserId: "assigned-user", name: "Luis Contreras Aviles", role: "admin" });
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(new Error(writeError || transaction.error?.message || "Falló la escritura de IndexedDB"));
-      transaction.onabort = () => reject(new Error(writeError || transaction.error?.message || "Se canceló la escritura de IndexedDB"));
-    });
-    database.close();
-    localStorage.setItem("ogc:bitacora:last-user", userId);
+test("captura offline con archivo y conserva la entrada y su cola al recargar", async ({ page, context, browserName }) => {
+  test.skip(browserName === "webkit", "La siembra de Blob/File en IndexedDB requiere Chromium en Windows.");
+  await page.goto("/");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await seedOfflineBitacora(page);
+  await context.setOffline(true);
+  await page.goto("/proyecto/layout-project/bitacora");
+  await expect(page.getByRole("heading", { name: "Larena - Acceso" })).toBeVisible();
+  await page.getByRole("button", { name: "Agregar reporte", exact: true }).click();
+  await page.getByRole("dialog").getByRole("combobox").first().click();
+  await page.getByRole("option", { name: "Instalaciones", exact: true }).click();
+  await page.locator("#bitacora-partida").click();
+  await page.getByRole("option").first().click();
+  await page.locator("#bitacora-avance").fill("Captura sintética conservada sin conexión");
+  await page.locator('input[accept=".pdf,.doc,.docx,.xls,.xlsx"]').setInputFiles({
+    name: "prueba-offline.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 prueba offline"),
   });
-}
+  await page.getByRole("button", { name: "Crear Entrada" }).click();
+  await expect(page.getByText("Guardado localmente", { exact: false }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Larena - Acceso" })).toBeVisible();
+  await page.getByRole("button", { name: /Expandir reporte del/ }).first().click();
+  await expect(page.getByText("Captura sintética conservada sin conexión")).toBeVisible();
+  const attachment = page.getByRole("link", { name: /^prueba-offline/ }).first();
+  await expect(attachment).toBeVisible();
+  const attachmentUrl = await attachment.getAttribute("href");
+  expect(await page.evaluate(async url => (await fetch(url!)).text(), attachmentUrl)).toBe("%PDF-1.4 prueba offline");
+  const queued = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("ogc-bitacora-offline");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const count = await new Promise<number>((resolve, reject) => {
+      const request = db.transaction("outbox").objectStore("outbox").count();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return count;
+  });
+  expect(queued).toBeGreaterThan(0);
+});
 
 test("galería desktop y modal de detalle no crean scroll exterior", async ({ page, context, browserName }) => {
   test.skip(browserName === "webkit", "Playwright WebKit para Windows no permite sembrar Blob/File en IndexedDB; el flujo autenticado cubre WebKit con datos reales.");

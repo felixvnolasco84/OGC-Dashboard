@@ -26,9 +26,11 @@ let mutationFailure = false;
 let delayedMutation = false;
 let paymentBase = 100000;
 let reportLoading = new URLSearchParams(location.search).get("reportLoading");
+const ledgerQueries: string[] = [];
 const reportQueries: string[] = [];
 Object.assign(window, {
   pnlFixtureQueries: reportQueries,
+  pnlFixtureLedgerQueries: ledgerQueries,
   feeFixtureChange: (change: { project?: Record<string, unknown>; approvedWork?: number; gcOriginal?: number; paymentBase?: number; previewFailure?: boolean; mutationFailure?: boolean; delayedMutation?: boolean; reportLoading?: "pnl" | "profitability" | null }) => {
     Object.assign(project, change.project || {});
     if (change.paymentBase !== undefined) paymentBase = change.paymentBase;
@@ -118,7 +120,10 @@ function queryResult(name: string, args?: unknown): unknown {
     reportQueries.push(name);
     return reportLoading === "profitability" ? undefined : profitability;
   }
-  if (name === "ogc_movimientos:getAll") return [];
+  if (name === "ogc_movimientos:getAll") {
+    ledgerQueries.push(name);
+    return reportLoading === "ledger" ? undefined : [];
+  }
   throw new Error(`Unexpected fixture query: ${name}`);
 }
 export function useQuery(query: Parameters<typeof getFunctionName>[0], args?: unknown): unknown {
@@ -129,6 +134,9 @@ export function useQuery(query: Parameters<typeof getFunctionName>[0], args?: un
 }
 export function useConvex() {
   return { query: async (query: Parameters<typeof getFunctionName>[0], args?: unknown) => queryResult(getFunctionName(query), args) };
+}
+export function useAction() {
+  return async () => { throw new Error("Unexpected fixture action"); };
 }
 export function useMutation(query: Parameters<typeof getFunctionName>[0]) {
   return async (args: unknown) => {

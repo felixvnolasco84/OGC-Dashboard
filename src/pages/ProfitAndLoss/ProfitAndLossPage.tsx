@@ -1,3 +1,4 @@
+import { useBackgroundReady } from "@/hooks/use-background-ready";
 import { Table } from "@/components/ui/table";
 import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
 import { useMemo, useState, type ReactNode } from "react";
@@ -1450,12 +1451,17 @@ const createLedgerDraft = (movement: OgcLedgerMovement): LedgerDraft => ({
 });
 
 function OgcLedgerDialog({
-  movements,
+  movements: loadedMovements,
   proyectos,
+  open,
+  onOpenChange,
 }: {
-  movements: OgcLedgerMovement[];
+  movements: OgcLedgerMovement[] | undefined;
   proyectos: DesarrolloOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
+  const movements = useMemo(() => loadedMovements ?? [], [loadedMovements]);
   const updateMovement = useMutation(api.ogc_movimientos.update);
   const voidMovement = useMutation(api.ogc_movimientos.voidMovement);
   const reconcileMovement = useMutation(api.ogc_movimientos.reconcile);
@@ -1610,7 +1616,7 @@ function OgcLedgerDialog({
       : "Conciliar movimiento";
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button
           type="button"
@@ -1632,7 +1638,7 @@ function OgcLedgerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        {loadedMovements === undefined ? <p className="py-10 text-center text-sm text-muted-foreground">Cargando datos...</p> : <div className="space-y-6">
           <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <div className="border border-border bg-[#FBFAF2] px-4 py-3">
               <p className="text-xs text-muted-foreground">Activos</p>
@@ -1892,7 +1898,7 @@ function OgcLedgerDialog({
               </tbody>
             </Table>
           </div>
-        </div>
+        </div>}
       </DialogContent>
 
       <Dialog open={!!action} onOpenChange={(open) => !open && closeAction()}>
@@ -2197,6 +2203,7 @@ function PnlSettingsDialog({
 
 export default function ProfitAndLossPage() {
   const [activeTab, setActiveTab] = useState<PnlTab>("pnl");
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [isOgcUploadOpen, setIsOgcUploadOpen] = useState(false);
   const [periodYear, setPeriodYear] = useState(() => new Date().getFullYear());
   const [cutoffMonth, setCutoffMonth] = useState(() => new Date().getMonth() + 1);
@@ -2227,9 +2234,15 @@ export default function ProfitAndLossPage() {
     api.desarrollos.getProfitabilitySummary,
     activeTab === "pnl" ? "skip" : pnlQueryParams,
   ) as ProfitabilitySummary | undefined;
-  const ogcMovements = useQuery(api.ogc_movimientos.getAll, { includeInactive: true }) as OgcLedgerMovement[] | undefined;
   const proyectos = useQuery(api.desarrollos.getAll) as DesarrolloOption[] | undefined;
   const projectLocations = useQuery(api.project_locations.list);
+  const prepareLedger = useBackgroundReady(
+    proyectos !== undefined && projectLocations !== undefined &&
+    (activeTab === "pnl" ? pnlSummary !== undefined : profitabilitySummary !== undefined),
+  );
+  const ogcMovements = useQuery(api.ogc_movimientos.getAll,
+    ledgerOpen || prepareLedger ? { includeInactive: true } : "skip",
+  ) as OgcLedgerMovement[] | undefined;
 
   const ledgerProjects = useMemo(
     () => (proyectos || []).filter((project) =>
@@ -2239,7 +2252,7 @@ export default function ProfitAndLossPage() {
   );
   const ledgerMovements = useMemo(() => {
     if (!ogcMovements || locationFilter === ALL_PROJECT_LOCATIONS) {
-      return ogcMovements || [];
+      return ogcMovements;
     }
 
     const projectIds = new Set(ledgerProjects.map((project) => String(project._id)));
@@ -2281,7 +2294,6 @@ export default function ProfitAndLossPage() {
   };
 
   if (
-    ogcMovements === undefined ||
     proyectos === undefined ||
     projectLocations === undefined
   ) {
@@ -2355,7 +2367,7 @@ export default function ProfitAndLossPage() {
                 onTaxSettingChange={updateTaxSetting}
                 onReset={resetSettings}
               />
-              <OgcLedgerDialog movements={ledgerMovements} proyectos={ledgerProjects} />
+              <OgcLedgerDialog movements={ledgerMovements} proyectos={ledgerProjects} open={ledgerOpen} onOpenChange={setLedgerOpen} />
               <Button
                 type="button"
                 variant="outline"

@@ -13,6 +13,7 @@ import { applyPaymentEdit } from "./paymentEdit";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { calculateHonorariosFromRecords } from "./honorariosRules";
+import { mapReadBatches } from "./queryReads";
 
 // Type for enriched payment with transaction and partida data
 type EnrichedPayment = Doc<"pagos"> & {
@@ -363,11 +364,14 @@ export const getPaymentsByDateRange = query({
     const periodPagos: Doc<"pagos">[] = [];
     let total = 0;
 
-    for (const transaction of filtered) {
-      const pagos = await ctx.db
+    // Preserve transaction/payment order (including historical line items).
+    const paymentGroups = await mapReadBatches(filtered, transaction => ctx.db
         .query("pagos")
         .withIndex("by_transaccion", (q) => q.eq("transaccion_id", transaction._id))
-        .collect();
+        .collect());
+    for (let index = 0; index < filtered.length; index++) {
+      const transaction = filtered[index];
+      const pagos = paymentGroups[index];
       periodPagos.push(...pagos);
       if ((proyecto?.indirectos_porcentaje !== undefined || proyecto?.fee_concepts?.length) && transaction.status !== "Pagado") continue;
       for (const pago of pagos) {

@@ -6,7 +6,7 @@ import react from "@vitejs/plugin-react";
 import { chromium } from "@playwright/test";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const output = `${root}/output/programa-export`;
+const output = `${root}/node_modules/.cache/programa-export`;
 await mkdir(output, { recursive: true });
 // Observe the actual capture DOM, and inject one capture failure after temporary
 // styles are applied. The exporter, html2canvas and jsPDF otherwise run unchanged.

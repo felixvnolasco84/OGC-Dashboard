@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router";
 import AppSidebar from "./ui/SidebarComponent";
 import { useQuery } from "convex/react";
@@ -18,10 +18,12 @@ import { Button } from "./ui/button";
 import { Sparkles, WifiOff } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { OnlineBitacoraRepositoryProvider } from "@/lib/bitacora-offline/context";
+import { scheduleBackgroundTask, warmOptionalCode } from "@/lib/background-preload";
 
 const queryClient = new QueryClient()
 function WebsiteLayout() {
   const currentUser = useQuery(api.users.getCurrentUser);
+  const currentUserId = currentUser?._id;
   const isViewer = currentUser?.role === "viewer";
   const isAdmin = currentUser?.role === "admin";
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -32,6 +34,11 @@ function WebsiteLayout() {
     | Id<"desarrollos">
     | undefined;
   const isBitacoraRoute = Boolean(routeProjectId && location.pathname === `/proyecto/${routeProjectId}/bitacora`);
+
+  useEffect(() => {
+    if (!currentUserId || !isOnline) return;
+    return scheduleBackgroundTask(warmOptionalCode);
+  }, [currentUserId, isOnline]);
 
   useEffect(() => {
     mainScrollRef.current?.scrollTo({ top: 0, left: 0 });
@@ -81,7 +88,7 @@ function WebsiteLayout() {
                   <h1 className="text-xl font-medium">Este módulo requiere conexión</h1>
                   <p className="max-w-md text-sm text-muted-foreground">Por ahora, sólo Bitácora está disponible sin internet.</p>
                 </div>
-              ) : <Outlet />}
+              ) : <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-card text-muted-foreground">Cargando...</div>}><Outlet /></Suspense>}
             </div>
           </main>
           <ModalProvider includeBitacora={isBitacoraRoute} />

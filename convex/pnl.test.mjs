@@ -5,6 +5,8 @@ import { getPaymentsByDateRange } from "./pagos";
 import { calculateIndirectosFromRecords, isAutomaticIndirectos, validateIndirectosPercentage } from "./indirectosRules";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { getByProyecto } from "./meticas_presupuesto";
+import { getFamiliaChartData } from "./transacciones";
+import { getAllWithMetrics } from "./desarrollos";
 
 const period = { periodYear: 2026, cutoffMonth: 2, usdToMxn: 17, eurToMxn: 18.5 };
 
@@ -378,4 +380,76 @@ it.skipIf(!snapshotPath)("matches the audited real-data January–October 2026 t
   expect(profitability.totals.honorarios).toBeCloseTo(pnl.totals.honorarios, 6);
   expect(structureAmount(pnl, "disp_honorarios")).toBe(0);
   expect(Object.values(pnl.monthlyOgcMovements).reduce((sum, month) => sum + month.honorarios, 0)).toBeCloseTo(pnl.totals.honorarios, 6);
+});
+
+
+describe("query read optimizations", () => {
+  it("reuses one partida read for current metrics and project summaries", async () => {
+    for (const query of [getByProyecto, getAllWithMetrics]) {
+      const f = database({ desarrollos: [{ _id: "project", nombre: "Obra", indirectos_porcentaje: 10 }] });
+      let partidaReads = 0;
+      const original = f.ctx.db.query;
+      f.ctx.db.query = table => {
+        const result = original(table);
+        if (table === "partidas") {
+          const collect = result.collect;
+          result.collect = async () => { partidaReads++; return collect(); };
+        }
+        return result;
+      };
+      const before = structuredClone(f.tables);
+      await query._handler(f.ctx, { proyecto_id: "project" });
+      expect(partidaReads).toBe(1);
+      expect(f.tables).toEqual(before);
+    }
+  });
+
+  it("reads each shared chart transaction once and preserves equal-date accumulation", async () => {
+    const f = database({
+      partidas: [{ _id: "a", proyecto: "project", nivel: 1, nombre: "A" }, { _id: "b", proyecto: "project", nivel: 1, nombre: "B" }],
+      transacciones: [
+        { _id: "same", fecha: "02/01/2026", status: "Pagado" },
+        { _id: "early", fecha: "2026-01-01", status: "Pagado" },
+        { _id: "pending", fecha: "01/01/2026", status: "Pendiente" },
+      ],
+      // Historical rows deliberately have no proyecto_id/classification fields.
+      pagos: [
+        { _id: "1", partida_id: "a", transaccion_id: "same", monto: .1 },
+        { _id: "2", partida_id: "a", transaccion_id: "early", monto: 2 },
+        { _id: "3", partida_id: "a", transaccion_id: "pending", monto: 20 },
+        { _id: "4", partida_id: "b", transaccion_id: "same", monto: .2 },
+        { _id: "5", partida_id: "b", transaccion_id: "missing", monto: 30 },
+      ],
+    });
+    const idsRead = [];
+    const get = f.ctx.db.get;
+    f.ctx.db.get = async id => { idsRead.push(id); return get(id); };
+    const result = await getFamiliaChartData._handler(f.ctx, { proyecto_id: "project" });
+    expect(result).toEqual({ dataPoints: [
+      { date: "01 Ene", monto: 2 }, { date: "02 Ene", monto: 2.1 }, { date: "02 Ene", monto: 2.3000000000000003 },
+    ], total: 2.3000000000000003 });
+    expect(idsRead.filter(id => id === "same")).toHaveLength(1);
+    expect(idsRead).toHaveLength(4);
+  });
+
+  it("preserves filtered historical payments, pending status behavior and empty ranges", async () => {
+    const f = database({
+      desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 0 }],
+      transacciones: [
+        { _id: "early", proyecto: "project", fecha: "01/01/2026", status: "Pagado" },
+        { _id: "late", proyecto: "project", fecha: "2026-02-02", status: "Pendiente" },
+      ],
+      pagos: [
+        { _id: "p1", transaccion_id: "early", partida_id: "work", monto: 10 },
+        { _id: "p2", transaccion_id: "late", partida_id: "work", monto: 20 },
+      ],
+    });
+    const all = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "project" });
+    expect(all.paymentsByPartida).toEqual({ work: 30 });
+    const january = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "project", end_date: "2026-01-31" });
+    expect(january.paymentsByPartida).toEqual({ work: 10 });
+    const empty = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "project", start_date: "2027-01-01" });
+    expect(empty.paymentsByPartida).toEqual({});
+    expect(empty.total).toBe(0);
+  });
 });

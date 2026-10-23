@@ -20,6 +20,14 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 1000 } });
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    // A pending secondary ledger cannot delay or blank the visible report.
+    await page.goto("http://127.0.0.1:4198/e2e/indirectos/preview.html?reportLoading=ledger");
+    await expect(page.getByText("Ingresos OGC YTD", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ledger movimientos OGC", exact: true }).click();
+    await expect(page.getByRole("dialog").getByText("Cargando datos...", { exact: true })).toBeVisible();
+    await page.evaluate(() => window.feeFixtureChange({ reportLoading: null }));
+    await expect(page.getByText("No hay movimientos OGC cargados.", { exact: true })).toBeVisible();
+
     // A stalled, inactive report must not block the initial monthly report.
     await page.goto("http://127.0.0.1:4198/e2e/indirectos/preview.html?reportLoading=profitability");
     await expect(page.getByText("Ingresos OGC YTD", { exact: true })).toBeVisible();

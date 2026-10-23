@@ -1,65 +1,68 @@
-import { StrictMode } from "react"; 
+import { StrictMode, Suspense } from "react";
+import { lazyWithPreload } from "./lib/background-preload";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import "./App.css";
 import "./index.css";
 import "./responsive.css";
 import WebsiteLayout from "./components/WebsiteLayout.tsx";
 import ScrollToTop from "./components/ui/ScrollToTop.tsx";
 import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route } from "react-router";
-import Legales from "./pages/Legales.tsx";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
-import ControlPage from "./pages/Control/ControlPage.tsx";
-import DocumentosPage from "./pages/Documentos/DocumentosPage.tsx";
-import PresupuestoPage from "./pages/Presupuesto/PresupuestoPage.tsx";
-import ProgramaObra from "./pages/Programa Obra/ProgramaObra.tsx";
-import ProyectosTablePage from "./pages/ProyectosTable/ProyectosTablePage.tsx";
-import TransaccionesTablePage from "./pages/TransaccionesTable/TransaccionesTablePage.tsx";
-import ProveedoresTablePage from "./pages/ProveedoresTable/ProveedoresTablePage.tsx";
-import ProyectoTransaccionesTablePage from "./pages/ProyectoTransaccionesTable/ProyectoTransaccionesTablePage.tsx";
-import ProyectoProveedoresTablePage from "./pages/ProyectoProveedoresTable/ProyectoProveedoresTablePage.tsx";
-import ProyectoDocumentosPage from "./pages/ProyectoDocumentos/ProyectoDocumentosPage.tsx";
-import PartidaDetails from "./pages/PartidaDetails/PartidaDetails.tsx";
-import AvisoPrivacidad from "./pages/AvisoPrivacidad.tsx";
-import Dashboard from "./pages/Dashboard/Dashboard.tsx";
-import AdminPage from "./pages/Admin/AdminPage.tsx";
-import AdminFlujoPage from "./pages/AdminFlujo/AdminFlujoPage.tsx";
-import AdminSalesFlujoPage from "./pages/AdminSalesFlujo/AdminSalesFlujoPage.tsx";
-import ProyectoFlujoPage from "./pages/ProyectoFlujo/ProyectoFlujoPage.tsx";
-import UserManagementPage from "./pages/UserManagement/UserManagementPage.tsx";
-import NewUserPage from "./pages/UserManagement/NewUserPage.tsx";
 import ProtectedRoute from "./components/Auth/ProtectedRoute.tsx";
 import RoleHomePage from "./components/Auth/RoleHomePage.tsx";
-import ReportesPage from "./pages/Reportes/ReportesPage.tsx";
-import SalesProyectosTablePage from "./pages/SalesProyectosTable/SalesProyectosTablePage.tsx";
-import SalesProyectoDocumentosPage from "./pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx";
-import SalesProyectoTransaccionesPage from "./pages/SalesProyectoTransacciones/SalesProyectoTransaccionesPage.tsx";
-import SalesProyectoFlujoPage from "./pages/SalesProyectoFlujo/SalesProyectoFlujoPage.tsx";
-import SalesPresupuestoTable from "./components/Tables/SalesPresupuestoTable.tsx";
-import ControlSalePage from "./pages/Control/ControlSalePage.tsx";
-import SalesTransaccionesTablePage from "./pages/TransaccionesTable/SalesTransaccionesTablePage.tsx";
-import SalesDocumentosPage from "./pages/Documentos/SalesDocumentosPage.tsx";
-import SignInPage from "./pages/SignIn/SignInPage.tsx";
-import SignUpPage from "./pages/SignUp/SignUpPage.tsx";
-import AcceptInvitationPage from "./pages/AcceptInvitation/AcceptInvitationPage.tsx";
-import SalesProjectManagementPage from "./pages/SalesProjectManagement/SalesProjectManagementPage.tsx";
-import SalesUserManagementPage from "./pages/SalesUserManagement/SalesUserManagementPage.tsx";
-import BitacoraPage from "./pages/Bitacora/BitacoraPage.tsx";
-import ProyectoRequisicionesPage from "./pages/ProyectoRequisiciones/ProyectoRequisicionesPage.tsx";
-import AutorizacionesObraPage from "./pages/AutorizacionesObra/AutorizacionesObraPage.tsx";
-import TareasPage from "./pages/Tareas/TareasPage.tsx";
-import ProyectoTareasPage from "./pages/Tareas/ProyectoTareasPage.tsx";
-import PlanosPage from "./pages/Planos/PlanosPage.tsx";
-import RFIListPage from "./pages/RFIs/RFIListPage.tsx";
-import RFINewPage from "./pages/RFIs/RFINewPage.tsx";
-import RFIDetailPage from "./pages/RFIs/RFIDetailPage.tsx";
-import ProfitAndLossPage from "./pages/ProfitAndLoss/ProfitAndLossPage.tsx";
 import { inspectOfflinePreparation } from "./lib/bitacora-offline/db.ts";
-import { OfflineAccessBlocked, OfflineBitacoraApp } from "./pages/Bitacora/OfflineBitacoraApp.tsx";
+import { OfflineAccessBlocked, OfflineBitacoraApp } from "./pages/Bitacora/lazy-offline-app";
 import PwaUpdatePrompt from "./components/pwa/PwaUpdatePrompt.tsx";
 import BitacoraOnlineStartup from "./components/Bitacora/BitacoraOnlineStartup.tsx";
+
+const App = lazyWithPreload(() => import("./App.tsx"));
+const Legales = lazyWithPreload(() => import("./pages/Legales.tsx"));
+const ControlPage = lazyWithPreload(() => import("./pages/Control/ControlPage.tsx"));
+const DocumentosPage = lazyWithPreload(() => import("./pages/Documentos/DocumentosPage.tsx"));
+const PresupuestoPage = lazyWithPreload(() => import("./pages/Presupuesto/PresupuestoPage.tsx"));
+const ProgramaObra = lazyWithPreload(() => import("./pages/Programa Obra/ProgramaObra.tsx"));
+const ProyectosTablePage = lazyWithPreload(() => import("./pages/ProyectosTable/ProyectosTablePage.tsx"));
+const TransaccionesTablePage = lazyWithPreload(() => import("./pages/TransaccionesTable/TransaccionesTablePage.tsx"));
+const ProveedoresTablePage = lazyWithPreload(() => import("./pages/ProveedoresTable/ProveedoresTablePage.tsx"));
+const ProyectoTransaccionesTablePage = lazyWithPreload(() => import("./pages/ProyectoTransaccionesTable/ProyectoTransaccionesTablePage.tsx"));
+const ProyectoProveedoresTablePage = lazyWithPreload(() => import("./pages/ProyectoProveedoresTable/ProyectoProveedoresTablePage.tsx"));
+const ProyectoDocumentosPage = lazyWithPreload(() => import("./pages/ProyectoDocumentos/ProyectoDocumentosPage.tsx"));
+const PartidaDetails = lazyWithPreload(() => import("./pages/PartidaDetails/PartidaDetails.tsx"));
+const AvisoPrivacidad = lazyWithPreload(() => import("./pages/AvisoPrivacidad.tsx"));
+const Dashboard = lazyWithPreload(() => import("./pages/Dashboard/Dashboard.tsx"));
+const AdminPage = lazyWithPreload(() => import("./pages/Admin/AdminPage.tsx"));
+const AdminFlujoPage = lazyWithPreload(() => import("./pages/AdminFlujo/AdminFlujoPage.tsx"));
+const AdminSalesFlujoPage = lazyWithPreload(() => import("./pages/AdminSalesFlujo/AdminSalesFlujoPage.tsx"));
+const ProyectoFlujoPage = lazyWithPreload(() => import("./pages/ProyectoFlujo/ProyectoFlujoPage.tsx"));
+const UserManagementPage = lazyWithPreload(() => import("./pages/UserManagement/UserManagementPage.tsx"));
+const NewUserPage = lazyWithPreload(() => import("./pages/UserManagement/NewUserPage.tsx"));
+const ReportesPage = lazyWithPreload(() => import("./pages/Reportes/ReportesPage.tsx"));
+const SalesProyectosTablePage = lazyWithPreload(() => import("./pages/SalesProyectosTable/SalesProyectosTablePage.tsx"));
+const SalesProyectoDocumentosPage = lazyWithPreload(() => import("./pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx"));
+const SalesProyectoTransaccionesPage = lazyWithPreload(() => import("./pages/SalesProyectoTransacciones/SalesProyectoTransaccionesPage.tsx"));
+const SalesProyectoFlujoPage = lazyWithPreload(() => import("./pages/SalesProyectoFlujo/SalesProyectoFlujoPage.tsx"));
+const SalesPresupuestoTable = lazyWithPreload(() => import("./components/Tables/SalesPresupuestoTable.tsx"));
+const ControlSalePage = lazyWithPreload(() => import("./pages/Control/ControlSalePage.tsx"));
+const SalesTransaccionesTablePage = lazyWithPreload(() => import("./pages/TransaccionesTable/SalesTransaccionesTablePage.tsx"));
+const SalesDocumentosPage = lazyWithPreload(() => import("./pages/Documentos/SalesDocumentosPage.tsx"));
+const SignInPage = lazyWithPreload(() => import("./pages/SignIn/SignInPage.tsx"));
+const SignUpPage = lazyWithPreload(() => import("./pages/SignUp/SignUpPage.tsx"));
+const AcceptInvitationPage = lazyWithPreload(() => import("./pages/AcceptInvitation/AcceptInvitationPage.tsx"));
+const SalesProjectManagementPage = lazyWithPreload(() => import("./pages/SalesProjectManagement/SalesProjectManagementPage.tsx"));
+const SalesUserManagementPage = lazyWithPreload(() => import("./pages/SalesUserManagement/SalesUserManagementPage.tsx"));
+const BitacoraPage = lazyWithPreload(() => import("./pages/Bitacora/BitacoraPage.tsx"));
+const ProyectoRequisicionesPage = lazyWithPreload(() => import("./pages/ProyectoRequisiciones/ProyectoRequisicionesPage.tsx"));
+const AutorizacionesObraPage = lazyWithPreload(() => import("./pages/AutorizacionesObra/AutorizacionesObraPage.tsx"));
+const TareasPage = lazyWithPreload(() => import("./pages/Tareas/TareasPage.tsx"));
+const ProyectoTareasPage = lazyWithPreload(() => import("./pages/Tareas/ProyectoTareasPage.tsx"));
+const PlanosPage = lazyWithPreload(() => import("./pages/Planos/PlanosPage.tsx"));
+const RFIListPage = lazyWithPreload(() => import("./pages/RFIs/RFIListPage.tsx"));
+const RFINewPage = lazyWithPreload(() => import("./pages/RFIs/RFINewPage.tsx"));
+const RFIDetailPage = lazyWithPreload(() => import("./pages/RFIs/RFIDetailPage.tsx"));
+const ProfitAndLossPage = lazyWithPreload(() => import("./pages/ProfitAndLoss/ProfitAndLossPage.tsx"));
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -82,6 +85,7 @@ const onlineApplication = (
         <HelmetProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-card text-muted-foreground">Cargando...</div>}>
             <Routes>
               {/* Public Authentication Routes - No Sidebar */}
               <Route path="/sign-in/*" element={<SignInPage />} />
@@ -309,6 +313,7 @@ const onlineApplication = (
                 <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
               </Route>
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </HelmetProvider>
       </ConvexProviderWithClerk>
@@ -325,18 +330,18 @@ async function bootstrapApplication() {
   }
 
   if (!match || !BITACORA_OFFLINE_ENABLED) {
-    root.render(<StrictMode><OfflineAccessBlocked /><PwaUpdatePrompt /></StrictMode>);
+    root.render(<StrictMode><Suspense fallback={null}><OfflineAccessBlocked /><PwaUpdatePrompt /></Suspense></StrictMode>);
     return;
   }
 
   const projectId = decodeURIComponent(match[1]);
   const { profile, reason } = await inspectOfflinePreparation(projectId);
   if (!profile) {
-    root.render(<StrictMode><OfflineAccessBlocked reason={reason} /><PwaUpdatePrompt /></StrictMode>);
+    root.render(<StrictMode><Suspense fallback={null}><OfflineAccessBlocked reason={reason} /><PwaUpdatePrompt /></Suspense></StrictMode>);
     return;
   }
 
-  root.render(<StrictMode><OfflineBitacoraApp projectId={projectId} profile={profile} client={convex} /><PwaUpdatePrompt /></StrictMode>);
+  root.render(<StrictMode><Suspense fallback={null}><OfflineBitacoraApp projectId={projectId} profile={profile} client={convex} /><PwaUpdatePrompt /></Suspense></StrictMode>);
 }
 
 void bootstrapApplication();

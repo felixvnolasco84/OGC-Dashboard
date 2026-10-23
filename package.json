@@ -18,6 +18,8 @@
     "test:reports": "vitest run --config vitest.config.ts --configLoader runner --no-isolate convex/reportLogbook.test.mjs convex/reportingRules.test.mjs",
     "test:pnl": "vitest run --config vitest.config.ts --configLoader runner convex/pnl.test.mjs",
     "test:pnl-ui": "node scripts/test-pnl-ui.mjs",
+    "test:performance-ui": "node scripts/test-performance-ui.mjs",
+    "test:loading-performance": "node --experimental-strip-types scripts/test-loading-performance.mjs",
     "test:payment-edits": "vitest run --config vitest.config.ts --configLoader runner convex/paymentEdit.test.mjs",
     "test:payment-edits-ui": "node scripts/test-payment-edit-ui.mjs",
     "test:transaction-concepts-ui": "node scripts/test-transaction-concepts-ui.mjs",

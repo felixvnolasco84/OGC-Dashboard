@@ -1,7 +1,9 @@
 import { useQuery } from "convex/react";
 import { Navigate } from "react-router";
 import { api } from "../../../convex/_generated/api";
-import ProyectosTablePage from "@/pages/ProyectosTable/ProyectosTablePage";
+import { lazyWithPreload } from "@/lib/background-preload";
+
+const ProyectosTablePage = lazyWithPreload(() => import("@/pages/ProyectosTable/ProyectosTablePage"));
 
 export default function RoleHomePage() {
   const currentUser = useQuery(api.users.getCurrentUser);

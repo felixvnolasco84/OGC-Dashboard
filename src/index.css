@@ -49,7 +49,7 @@
 /* Helvetica Neue Font Faces */
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueRoman.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueRoman.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -57,7 +57,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueItalic.ttf') format('truetype');
+  src: url('./fonts/HelveticaNeueItalic.woff2') format('woff2');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -65,7 +65,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueLight.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueLight.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -73,7 +73,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueLightItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueLightItalic.woff2') format('woff2');
   font-weight: 300;
   font-style: italic;
   font-display: swap;
@@ -81,7 +81,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueMedium.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueMedium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -89,7 +89,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueMediumItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueMediumItalic.woff2') format('woff2');
   font-weight: 500;
   font-style: italic;
   font-display: swap;
@@ -97,7 +97,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueBold.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueBold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -105,7 +105,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueBoldItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueBoldItalic.woff2') format('woff2');
   font-weight: 700;
   font-style: italic;
   font-display: swap;
@@ -113,7 +113,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueHeavy.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueHeavy.woff2') format('woff2');
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -121,7 +121,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueHeavyItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueHeavyItalic.woff2') format('woff2');
   font-weight: 800;
   font-style: italic;
   font-display: swap;
@@ -129,7 +129,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueBlack.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueBlack.woff2') format('woff2');
   font-weight: 900;
   font-style: normal;
   font-display: swap;
@@ -137,7 +137,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueBlackItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueBlackItalic.woff2') format('woff2');
   font-weight: 900;
   font-style: italic;
   font-display: swap;
@@ -145,7 +145,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueThin.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueThin.woff2') format('woff2');
   font-weight: 100;
   font-style: normal;
   font-display: swap;
@@ -153,7 +153,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueThinItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueThinItalic.woff2') format('woff2');
   font-weight: 100;
   font-style: italic;
   font-display: swap;
@@ -161,7 +161,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueUltraLight.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueUltraLight.woff2') format('woff2');
   font-weight: 200;
   font-style: normal;
   font-display: swap;
@@ -169,7 +169,7 @@
 
 @font-face {
   font-family: 'Helvetica Neue';
-  src: url('./fonts/HelveticaNeueUltraLightItalic.otf') format('opentype');
+  src: url('./fonts/HelveticaNeueUltraLightItalic.woff2') format('woff2');
   font-weight: 200;
   font-style: italic;
   font-display: swap;

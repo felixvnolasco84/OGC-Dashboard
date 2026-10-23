@@ -1,4 +1,5 @@
 import type { Infer } from "convex/values";
+import { mapReadBatches } from "./queryReads";
 import { assertBudgetReady } from "./budgetImportGuard";
 import { getTransactionConcept } from "./transactionConcept";
 import { query, mutation as baseMutation } from "./_generated/server";
@@ -2632,14 +2633,19 @@ export const getFamiliaChartData = query({
       };
     }> = [];
 
-    for (const partidaId of partidaIds) {
-      const pagos = await ctx.db
+    const paymentGroups = await mapReadBatches(partidaIds, partidaId => ctx.db
         .query("pagos")
         .withIndex("by_partida_id", (q) => q.eq("partida_id", partidaId))
-        .collect();
+        .collect());
+    const transactionIds = [...new Set(paymentGroups.flatMap(pagos => pagos.map(pago => pago.transaccion_id)))];
+    const transactions = await mapReadBatches(transactionIds, id => ctx.db.get(id));
+    const transactionsById = new Map(transactionIds.map((id, index) => [id, transactions[index]]));
 
+    // Keep the original partida/payment ordering so equal-date chart points
+    // and floating point accumulation remain unchanged.
+    for (const pagos of paymentGroups) {
       for (const pago of pagos) {
-        const transaction = await ctx.db.get(pago.transaccion_id);
+        const transaction = transactionsById.get(pago.transaccion_id);
         if (transaction && transaction.status === "Pagado") {
           allPagos.push({
             monto: pago.monto,

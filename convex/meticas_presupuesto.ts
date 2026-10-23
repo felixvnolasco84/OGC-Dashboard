@@ -12,13 +12,10 @@ export const getByProyecto = query({
     proyecto_id: v.id("desarrollos"),
   },
   handler: async (ctx, args) => {    
-    const metrics = await ctx.db
+    const [metrics, proyecto] = await Promise.all([ctx.db
       .query("meticas_presupuesto")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto_id))
-      .first();
-    
-    // Get honorarios_monto from the proyecto
-    const proyecto = await ctx.db.get(args.proyecto_id);
+      .first(), ctx.db.get(args.proyecto_id)]);
     
     if (!metrics) {
       return null;
@@ -27,18 +24,18 @@ export const getByProyecto = query({
     // Read current root totals instead of serving a stale metrics cache.
     // This also makes the query reactive to partida changes and includes the
     // same complete honorarios amount shown by PresupuestoTable, exactly once.
-    const nivel1Partidas = await ctx.db
-      .query("partidas")
-      .withIndex("by_nivel_proyecto", (q) => q.eq("nivel", 1).eq("proyecto", args.proyecto_id))
-      .collect();
-    const indirectos = await getBudgetIndirectos(ctx, proyecto);
+    const needsFeeRecords = proyecto?.indirectos_porcentaje !== undefined || Boolean(proyecto?.fee_concepts?.length);
+    const partidas = needsFeeRecords
+      ? await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", args.proyecto_id)).collect()
+      : await ctx.db.query("partidas").withIndex("by_nivel_proyecto", q => q.eq("nivel", 1).eq("proyecto", args.proyecto_id)).collect();
+    const indirectos = await getBudgetIndirectos(ctx, proyecto, { partidas });
     const honorariosActual = indirectos.honorariosMontoActual ?? proyecto?.honorarios_monto;
     const honorarios_monto = honorariosActual ?? 0;
     return {
       indirectos_monto: indirectos.automaticos,
       indirectos_manuales_sustituidos: indirectos.manualesSustituidos,
       ...metrics,
-      ...calculatePresupuestoMetrics(nivel1Partidas, honorariosActual, indirectos),
+      ...calculatePresupuestoMetrics(partidas, honorariosActual, indirectos),
       honorarios_monto,
     };
   },

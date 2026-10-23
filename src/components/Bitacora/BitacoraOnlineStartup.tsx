@@ -1,9 +1,9 @@
 import { useAuth } from "@clerk/clerk-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import type { ConvexReactClient } from "convex/react";
 import { findValidOfflineProfile } from "@/lib/bitacora-offline/db";
 import type { OfflineProfile } from "@/lib/bitacora-offline/types";
-import { OfflineBitacoraApp } from "@/pages/Bitacora/OfflineBitacoraApp";
+import { OfflineBitacoraApp } from "@/pages/Bitacora/lazy-offline-app";
 
 /** Preserve the existing direct-entry fallback without selecting another account. */
 export default function BitacoraOnlineStartup({ children, client, projectId, routePath }: {
@@ -34,7 +34,7 @@ export default function BitacoraOnlineStartup({ children, client, projectId, rou
     return () => { active = false; window.clearTimeout(timer); unsubscribe(); };
   }, [client, projectId, routePath, isLoaded, isSignedIn, userId]);
   if (projectId && routePath && isLoaded && isSignedIn && fallback?.clerkId === userId && window.location.pathname.replace(/\/$/, "") === routePath) {
-    return <OfflineBitacoraApp projectId={projectId} profile={fallback} client={client} />;
+    return <Suspense fallback={null}><OfflineBitacoraApp projectId={projectId} profile={fallback} client={client} /></Suspense>;
   }
   return children;
 }

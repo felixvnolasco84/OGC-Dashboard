@@ -68,7 +68,7 @@ export const getAllWithMetrics = query(async (ctx) => {
             let gastoTotal = metrics?.gasto_total || 0;
             if ((proyecto.indirectos_porcentaje !== undefined || proyecto.fee_concepts?.length)) {
                 const roots = await ctx.db.query("partidas").withIndex("by_proyecto", q => q.eq("proyecto", proyecto._id)).collect();
-                gastoTotal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto)).gasto_total;
+                gastoTotal = calculatePresupuestoMetrics(roots, proyecto.honorarios_monto, await getBudgetIndirectos(ctx, proyecto, { partidas: roots })).gasto_total;
             }
             
             return {

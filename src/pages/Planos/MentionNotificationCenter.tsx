@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { Bell, Check, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBackgroundReady } from "@/hooks/use-background-ready";
 import type { PlanoMentionNotification } from "./planosTypes";
 
 const COLORS = {
@@ -47,9 +48,10 @@ export default function MentionNotificationCenter({
   const [open, setOpen] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
   const markAttemptedRef = useRef(false);
+  const prepareList = useBackgroundReady();
   const notifications = useQuery(
     api.planos.getMentionNotifications,
-    projectId ? { proyecto: projectId, limit: 60 } : { limit: 60 },
+    open || prepareList ? (projectId ? { proyecto: projectId, limit: 60 } : { limit: 60 }) : "skip",
   ) as PlanoMentionNotification[] | undefined;
   const unreadCount = useQuery(
     api.planos.getUnreadMentionCount,

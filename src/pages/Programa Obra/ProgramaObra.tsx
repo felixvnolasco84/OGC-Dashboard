@@ -51,7 +51,6 @@ import ProgramaObraFamiliaEditor from "./ProgramaObraFamiliaEditor";
 import ProgramaObraComentarios from "./ProgramaObraComentarios";
 import ProgramaObraAvanceHistorial from "./ProgramaObraAvanceHistorial";
 import ProgramaObraExcelPreview from "./ProgramaObraExcelPreview";
-import { exportProgramaObraPdf } from "./ProgramaObraPdfExport";
 import ProgramaObraExportDialog, { type ProgramaObraExportSelection } from "./ProgramaObraExportDialog";
 import { selectGanttExportRows } from "./programa-obra-pdf-layout";
 import {
@@ -647,6 +646,7 @@ export default function ProgramaObra() {
         setActiveExport(selection);
       });
       if (!leftColumnsRef.current || !scrollContainerRef.current) throw new Error("No se pudo preparar el programa para exportar.");
+      const { exportProgramaObraPdf } = await import("./ProgramaObraPdfExport");
       await exportProgramaObraPdf({
         leftColumnsEl: leftColumnsRef.current,
         timelineEl: scrollContainerRef.current,
