@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { assertLegacyProjectionWrite, assertProjectionAccess } from "./projectionImportHistory";
 
 // Helper function to parse European formatted number (1.234.567,89 -> 1234567.89)
 function parseEuropeanNumber(str: string): number {
@@ -34,6 +35,7 @@ export const uploadWeeklyTotals = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await assertLegacyProjectionWrite(ctx, { kind: "expense", project_id: args.proyecto });
     const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const uploadedAt = Date.now();
 
@@ -80,6 +82,7 @@ export const uploadWeeklyTotals = mutation({
 export const getByProject = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const totals = await ctx.db
       .query("weekly_projected_totals")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -93,6 +96,7 @@ export const getByProject = query({
 export const getCumulativeTotals = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const totals = await ctx.db
       .query("weekly_projected_totals")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -125,6 +129,7 @@ export const getByDate = query({
     week_date: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const total = await ctx.db
       .query("weekly_projected_totals")
       .withIndex("by_proyecto_week", (q) =>
@@ -140,6 +145,7 @@ export const getByDate = query({
 export const deleteByProject = mutation({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertLegacyProjectionWrite(ctx, { kind: "expense", project_id: args.proyecto });
     const totals = await ctx.db
       .query("weekly_projected_totals")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -161,6 +167,7 @@ export const deleteByProject = mutation({
 export const getSummary = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const totals = await ctx.db
       .query("weekly_projected_totals")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))

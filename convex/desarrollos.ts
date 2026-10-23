@@ -9,6 +9,7 @@ import { getBudgetIndirectos } from "./indirectosBudget";
 import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { findProjectDocumentRoot } from "./projectDocumentFolders";
 import { deleteProjectImportHistory } from "./laborImportHistory";
+import { deleteProjectionHistory } from "./projectionImportHistory";
 import { deleteProjectIncomeHistory } from "./incomeImportHistory";
 import { deleteProjectProgramHistory } from "./programaObraImportHistory";
 import { query, mutation as rawMutation, QueryCtx } from "./_generated/server";
@@ -1593,6 +1594,7 @@ export const deleteProject = rawMutation({
         }
 
         await deleteProjectImportHistory(ctx, args.id);
+        await deleteProjectionHistory(ctx, { kind: "expense", project_id: args.id });
         await deleteProjectIncomeHistory(ctx, args.id);
         await deleteProjectProgramHistory(ctx, args.id);
         const budgetAttempts = await ctx.db.query("budget_creation_attempts").withIndex("by_proyecto", q => q.eq("proyecto", args.id)).collect();

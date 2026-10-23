@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { feeConceptConfigValidator } from "./feeConceptValidators";
 import { laborImportResultValidator, laborImportSourceValidator } from "./laborImportValidators";
+import { projectionTargetValidator, projectionFormatValidator, projectionRowValidator, projectionResultValidator } from "./projectionImportValidators";
 import { incomeImportResultValidator, incomeParserSummaryValidator } from "./incomeImportValidators";
 import { budgetFormValidator } from "./budgetImportRules";
 import { programImportResultValidator, programImportSourceValidator } from "./programaObraImportValidators";
@@ -695,6 +696,23 @@ export default defineSchema({
     .index("by_transaction", { fields: ["transaccion_id", "imported_at"] })
     .index("by_proyecto", { fields: ["proyecto"] }),
   
+  projection_import_attempts: defineTable({
+    target: projectionTargetValidator, scope: v.string(), request_id: v.string(), format: v.optional(projectionFormatValidator),
+    file_name: v.string(), file_hash: v.optional(v.string()), size: v.optional(v.number()), content_type: v.optional(v.string()),
+    storage_id: v.optional(v.id("_storage")), sheet_name: v.optional(v.string()), review_hash: v.optional(v.string()),
+    base_revision: v.string(), status: v.union(v.literal("processing"), v.literal("completed"), v.literal("unchanged"), v.literal("failed"), v.literal("legacy")),
+    imported_by: v.optional(v.id("users")), imported_by_name: v.string(), created_at: v.number(), completed_at: v.optional(v.number()),
+    result: v.optional(projectionResultValidator), error: v.optional(v.string()), legacy_upload_id: v.optional(v.string()),
+  }).index("by_scope_created", { fields: ["scope", "created_at"] })
+    .index("by_scope_request", { fields: ["scope", "request_id"] })
+    .index("by_scope_hash", { fields: ["scope", "file_hash"] }),
+  projection_import_items: defineTable({
+    scope: v.string(), attempt_id: v.id("projection_import_attempts"), row: projectionRowValidator,
+  }).index("by_attempt", { fields: ["attempt_id"] }).index("by_scope", { fields: ["scope"] }),
+  projection_import_states: defineTable({
+    scope: v.string(), target: projectionTargetValidator, active_attempt_id: v.optional(v.id("projection_import_attempts")),
+  }).index("by_scope", { fields: ["scope"] }),
+
   // Projected transactions from Excel upload (weekly cash flow projections)
   projected_transactions: defineTable({
     proyecto: v.id("desarrollos"),

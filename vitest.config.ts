@@ -36,6 +36,7 @@ export default defineConfig({
       "convex/autorizacionesPermissions.test.mjs",
       "convex/proveedoresPermissions.test.mjs",
       "convex/laborPaymentImports.test.mjs",
+      "convex/projectionImports.test.mjs",
     ],
     pool: "forks",
     fileParallelism: false,

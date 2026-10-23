@@ -1,125 +1,17 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { assertProjectionAccess, assertLegacyProjectionWrite, currentProjectionMetadata } from "./projectionImportHistory";
 
-// Helper function to format Excel serial date to D/M/YYYY
-function formatExcelDate(serial: number): string {
-  const date = new Date((serial - 25569) * 86400 * 1000);
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-}
-
-// Upload projected transactions from Excel API response
 export const uploadProjections = mutation({
-  args: {
-    proyecto: v.id("desarrollos"),
-    fileName: v.string(),
-    sheetName: v.string(),
-    projections: v.array(
-      v.object({
-        partida: v.string(),
-        total: v.optional(v.number()),
-        calculatedTotal: v.optional(v.number()),
-        rowIndex: v.optional(v.number()),
-        projectionCount: v.optional(v.number()),
-        weeklyProjections: v.array(
-          v.object({
-            week: v.number(), // Excel serial date
-            columnLetter: v.optional(v.string()), // Excel column (A, B, C, etc.)
-            amount: v.number(),
-            position: v.number(),
-          })
-        ),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const uploadedAt = Date.now();
-
-    // Delete any existing projections for this project
-    const existingProjections = await ctx.db
-      .query("projected_transactions")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .collect();
-
-    for (const projection of existingProjections) {
-      await ctx.db.delete(projection._id);
-    }
-
-    // Delete any existing weekly totals for this project
-    const existingWeeklyTotals = await ctx.db
-      .query("weekly_projected_totals")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .collect();
-
-    for (const total of existingWeeklyTotals) {
-      await ctx.db.delete(total._id);
-    }
-
-    // Insert all new projections and track weekly aggregates
-    const insertedIds: Id<"projected_transactions">[] = [];
-    const weeklyAggregates = new Map<number, { amount: number; position: number }>();
-    
-    for (const partidaProjection of args.projections) {
-      for (const weekProjection of partidaProjection.weeklyProjections) {
-        const id = await ctx.db.insert("projected_transactions", {
-          proyecto: args.proyecto,
-          partida: partidaProjection.partida,
-          week_date: weekProjection.week,
-          amount: weekProjection.amount,
-          position: weekProjection.position,
-          upload_id: uploadId,
-          file_name: args.fileName,
-          sheet_name: args.sheetName,
-          uploaded_at: uploadedAt,
-        });
-        insertedIds.push(id);
-
-        // Aggregate amounts by week_date
-        const existing = weeklyAggregates.get(weekProjection.week);
-        if (existing) {
-          existing.amount += weekProjection.amount;
-        } else {
-          weeklyAggregates.set(weekProjection.week, {
-            amount: weekProjection.amount,
-            position: weekProjection.position,
-          });
-        }
-      }
-    }
-
-    // Insert weekly projected totals
-    const weeklyTotalIds: Id<"weekly_projected_totals">[] = [];
-    for (const [weekDate, data] of weeklyAggregates.entries()) {
-      const id = await ctx.db.insert("weekly_projected_totals", {
-        proyecto: args.proyecto,
-        week_date: weekDate,
-        week_date_formatted: formatExcelDate(weekDate),
-        weekly_total: data.amount,
-        position: data.position,
-        upload_id: uploadId,
-        uploaded_at: uploadedAt,
-      });
-      weeklyTotalIds.push(id);
-    }
-
-    return {
-      success: true,
-      uploadId,
-      totalInserted: insertedIds.length,
-      weeklyTotalsCreated: weeklyTotalIds.length,
-      message: `Successfully uploaded ${insertedIds.length} projected transactions and created ${weeklyTotalIds.length} weekly totals`,
-    };
-  },
+  args: { attempt_id: v.optional(v.id("projection_import_attempts")) },
+  handler: async () => { throw new Error("Recarga la aplicación y confirma el Excel con respaldo desde Proyecciones."); },
 });
 
 // Get all projected transactions for a project
 export const getByProject = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const projections = await ctx.db
       .query("projected_transactions")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -133,6 +25,7 @@ export const getByProject = query({
 export const getGroupedByWeek = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const projections = await ctx.db
       .query("projected_transactions")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -159,6 +52,7 @@ export const getGroupedByWeek = query({
 export const getCumulativeProjections = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const projections = await ctx.db
       .query("projected_transactions")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
@@ -199,6 +93,7 @@ export const getByPartida = query({
     partida: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const projections = await ctx.db
       .query("projected_transactions")
       .withIndex("by_proyecto_partida", (q) =>
@@ -214,21 +109,7 @@ export const getByPartida = query({
 export const getUploadMetadata = query({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
-    const projections = await ctx.db
-      .query("projected_transactions")
-      .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))
-      .first();
-
-    if (!projections) {
-      return null;
-    }
-
-    return {
-      upload_id: projections.upload_id,
-      file_name: projections.file_name,
-      sheet_name: projections.sheet_name,
-      uploaded_at: projections.uploaded_at,
-    };
+    return currentProjectionMetadata(ctx, { kind: "expense", project_id: args.proyecto });
   },
 });
 
@@ -236,6 +117,8 @@ export const getUploadMetadata = query({
 export const deleteByProject = mutation({
   args: { proyecto: v.id("desarrollos") },
   handler: async (ctx, args) => {
+    await assertLegacyProjectionWrite(ctx, { kind: "expense", project_id: args.proyecto });
+    await assertProjectionAccess(ctx, { kind: "expense", project_id: args.proyecto });
     const projections = await ctx.db
       .query("projected_transactions")
       .withIndex("by_proyecto", (q) => q.eq("proyecto", args.proyecto))

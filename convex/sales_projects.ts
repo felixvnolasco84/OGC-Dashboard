@@ -1,6 +1,7 @@
 import { query, mutation as rawMutation } from "./_generated/server";
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { deleteProjectionHistory } from "./projectionImportHistory";
 import {
     getCurrentUserOrThrow,
     getScopedOrganizationId,
@@ -235,6 +236,7 @@ export const deleteProject = rawMutation({
             await ctx.db.delete(metricsRecord._id);
         }
 
+        await deleteProjectionHistory(ctx, { kind: "collection", project_id: args.id });
         // Delete the sales project
         await ctx.db.delete(args.id);
 

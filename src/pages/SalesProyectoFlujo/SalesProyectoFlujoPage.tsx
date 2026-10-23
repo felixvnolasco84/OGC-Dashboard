@@ -1,3 +1,4 @@
+import { ProjectionImportHistory, ProjectionSource } from "@/components/projections/ProjectionImportHistory";
 import { Table } from "@/components/ui/table";
 import { useParams } from "react-router";
 import { useQuery } from "convex/react";
@@ -29,6 +30,7 @@ const excelDateToString = (serial: number): string => {
 
 export default function SalesProyectoFlujoPage() {
   const { salesProyectoId } = useParams<{ salesProyectoId: string }>();
+  const projectionTarget = { kind: "collection" as const, project_id: salesProyectoId as Id<"sales_projects"> };
   const [selectedPartida, setSelectedPartida] = useState<string>("all");
 
   // Fetch sales project data
@@ -116,6 +118,7 @@ export default function SalesProyectoFlujoPage() {
           <div className="rounded-lg py-6 mb-6">
             <h1 className="text-2xl text-foreground mb-2">Flujo de Caja Proyectado</h1>
             <p className="text-sm text-muted-foreground">{salesProyecto.nombre}</p>
+            <div className="mt-3 flex flex-wrap gap-2"><ProjectionImportHistory target={projectionTarget} />{projections.length > 0 && <ProjectionSource target={projectionTarget} />}</div>
           </div>
 
           {/* Empty State */}
@@ -142,6 +145,7 @@ export default function SalesProyectoFlujoPage() {
         <div className="rounded-lg py-6">
           <h1 className="text-2xl text-foreground mb-2">Flujo de Caja Proyectado</h1>
           <p className="text-sm text-muted-foreground">{salesProyecto.nombre}</p>
+            <div className="mt-3 flex flex-wrap gap-2"><ProjectionImportHistory target={projectionTarget} />{projections.length > 0 && <ProjectionSource target={projectionTarget} />}</div>
         </div>
 
         {/* Upload Info */}
@@ -291,6 +295,7 @@ export default function SalesProyectoFlujoPage() {
                     <tr key={week.date} className={idx % 2 === 0 ? 'bg-card' : 'bg-background'}>
                       <td className="px-4 py-3 text-sm text-foreground">
                         {excelDateToString(week.date)}
+                        <div><ProjectionSource target={projectionTarget} week={week.date} partida={selectedPartida === "all" ? undefined : selectedPartida} /></div>
                       </td>
                       {selectedPartida === "all" ? (
                         <>

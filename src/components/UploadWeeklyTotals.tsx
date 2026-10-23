@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { weeklyTotalsData, calculateTotal, getNonZeroEntries } from "@/utils/uploadWeeklyTotals";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
   
   const uploadTotals = useMutation(api.weekly_projected_totals.uploadWeeklyTotals);
   const deleteTotals = useMutation(api.weekly_projected_totals.deleteByProject);
+  const managed = useQuery(api.projectionImportHistory.isManaged, proyectoId ? { target: { kind: "expense", project_id: proyectoId } } : "skip");
 
   const handleUpload = async () => {
     if (!proyectoId) {
@@ -158,10 +159,11 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
         )}
 
         {/* Action Buttons */}
+        {managed && <p className="border border-border p-3 text-sm">Este proyecto conserva historial de Excel. Actualiza sus cifras desde <a className="underline" href="/admin/flujo">Proyecciones de gasto</a>.</p>}
         <div className="flex gap-3">
           <Button
             onClick={handleUpload}
-            disabled={isUploading || !proyectoId}
+            disabled={isUploading || !proyectoId || managed !== false}
             className="flex-1"
           >
             <Upload className="mr-2 h-4 w-4" />
@@ -169,7 +171,7 @@ export function UploadWeeklyTotals({ proyectoId, proyectoNombre }: UploadWeeklyT
           </Button>
           <Button
             onClick={handleDelete}
-            disabled={isUploading || !proyectoId}
+            disabled={isUploading || !proyectoId || managed !== false}
             variant="destructive"
           >
             <Trash2 className="mr-2 h-4 w-4" />
