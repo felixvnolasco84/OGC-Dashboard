@@ -11,6 +11,7 @@ export default defineConfig({
     environment: "node",
     include: [
       "convex/budgetCreation.test.mjs",
+      "convex/bitacoraEdit.test.mjs",
       "src/components/Charts/FamiliaChart.test.mjs",
       "convex/rfiTransitions.test.mjs",
       "convex/requisicionStates.test.mjs",

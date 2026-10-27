@@ -17,6 +17,7 @@ export function toOnlineEntryView(entry: RemoteEntry): BitacoraEntryView {
   const clientId = entry.client_id ?? `legacy:${entry._id}`;
   return {
     ...entry, _id: clientId, client_id: clientId, server_id: entry._id,
+    status: entry.status ?? "Sin problemas",
     revision: entry.revision ?? 1, sync_state: "synced",
     fotos: (entry.fotos ?? []).filter(file => !file.deleted_at).map(onlineAttachment),
     documentos: (entry.documentos ?? []).filter(file => !file.deleted_at).map(onlineAttachment),
@@ -46,6 +47,7 @@ export async function saveEntryOnline(client: ConvexReactClient, projectId: stri
   entry: BitacoraEntryView | undefined, assertActive: () => void) {
   assertActive();
   if (args.entryClientId && (!entry?.server_id || entry.sync_state !== "synced")) throw new Error("El reporte tiene cambios locales pendientes. Sincronízalos antes de editar en línea.");
+  if (entry && args.expectedRevision !== undefined && args.expectedRevision !== entry.revision) throw new Error("El reporte cambió desde que abriste la edición. Tus cambios siguen en el formulario; vuelve a abrir el reporte para revisar la versión actual.");
   validatePreparedAttachments(args.newAttachments);
   const operationId = crypto.randomUUID();
   const clientId = entry?.client_id ?? crypto.randomUUID();
@@ -71,7 +73,7 @@ export async function saveEntryOnline(client: ConvexReactClient, projectId: stri
   assertActive();
   const result = await client.mutation(api.bitacoraOffline.applyOfflineOperation, {
     operationId, clientId, proyecto: projectId as Id<"desarrollos">,
-    operation: entry ? "update" : "create", baseRevision: entry?.revision ?? 0,
+    operation: entry ? "update" : "create", baseRevision: args.expectedRevision ?? entry?.revision ?? 0,
     logId: entry?.server_id as Id<"bitacora"> | undefined,
     payload: { categoria: args.fields.categoria, partida_id: args.fields.partidaId as Id<"partidas">,
       familias_tags: args.fields.familiasTags, responsable: args.fields.responsable, fecha: args.fields.fecha,

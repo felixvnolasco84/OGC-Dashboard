@@ -173,8 +173,13 @@ async function pushOutbox(client: ConvexReactClient, userId: string, projectId: 
         },
         addedAttachments,
         updatedAttachments: attachments
-          .filter((item) => !item.deleted && item.syncState === "synced")
-          .map((item) => ({ clientId: item.clientId, name: item.name, description: item.description })),
+          .filter((item) => !item.deleted && item.syncState === "synced" &&
+            ((item.originalName !== undefined && item.name !== item.originalName) ||
+             (item.originalDescription !== undefined && (item.description ?? "") !== item.originalDescription)))
+          .map((item) => ({ clientId: item.clientId,
+            ...(item.originalName !== undefined && item.name !== item.originalName ? { name: item.name } : {}),
+            ...(item.originalDescription !== undefined && (item.description ?? "") !== item.originalDescription ? { description: item.description ?? "" } : {}),
+          })),
         removedAttachmentClientIds: operation.removedAttachmentClientIds,
       }) as ApplyResult;
       options.assertActive?.();
@@ -191,7 +196,7 @@ async function pushOutbox(client: ConvexReactClient, userId: string, projectId: 
           });
           for (const attachment of attachments) {
             if (attachment.deleted) await bitacoraDb.attachments.delete(attachment.key);
-            else if (attachment.storageId) await bitacoraDb.attachments.update(attachment.key, { syncState: "synced" });
+            else await bitacoraDb.attachments.update(attachment.key, { syncState: "synced", originalName: attachment.name, originalDescription: attachment.description ?? "" });
           }
           await bitacoraDb.outbox.delete(operation.operationId);
         });

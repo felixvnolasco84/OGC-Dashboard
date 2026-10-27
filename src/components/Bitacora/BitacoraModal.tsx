@@ -9,6 +9,7 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  Pencil,
   Trash2,
   Upload,
   WifiOff,
@@ -33,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { BitacoraEntryView } from "@/lib/bitacora-offline/types";
 
 interface ManagedPhoto {
   id: string;
@@ -42,6 +44,7 @@ interface ManagedPhoto {
   thumbnailUrl?: string;
   file?: File;
   description: string;
+  originalDescription?: string;
   availableOffline: boolean;
   downloadRequested?: boolean;
 }
@@ -112,6 +115,8 @@ export default function BitacoraModal() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const initializedFor = useRef<string | null>(null);
+  const editSnapshot = useRef<BitacoraEntryView | null>(null);
+  const [saveError, setSaveError] = useState<string>();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -126,6 +131,7 @@ export default function BitacoraModal() {
   useEffect(() => {
     if (!modal.isOpen) {
       initializedFor.current = null;
+      editSnapshot.current = null;
       requestedPhotos.current.clear();
       setPhotos((current) => {
         current.filter((photo) => photo.type === "new" && photo.url).forEach((photo) => URL.revokeObjectURL(photo.url!));
@@ -137,6 +143,8 @@ export default function BitacoraModal() {
     const openingKey = `${modal.mode}:${existing?.client_id ?? modal.logEntry?._id ?? "new"}:${modal.fecha ?? ""}`;
     if (initializedFor.current === openingKey) return;
     initializedFor.current = openingKey;
+    editSnapshot.current = existing ?? null;
+    setSaveError(undefined);
     setCategoria(existing?.categoria ?? modal.logEntry?.categoria ?? modal.categoria ?? "");
     setPartidaId(existing?.partida_id ?? modal.logEntry?.partida_id ?? "");
     setFamilias(existing?.familias_tags ?? modal.logEntry?.familias_tags ?? []);
@@ -153,7 +161,8 @@ export default function BitacoraModal() {
       name: photo.nombre,
       url: photo.local_url || photo.url || undefined,
       thumbnailUrl: photo.thumbnail_url,
-      description: photo.descripcion || photo.nombre || "",
+      description: photo.descripcion ?? "",
+      originalDescription: photo.descripcion ?? "",
       availableOffline: photo.available_offline,
       downloadRequested: photo.download_requested,
     })));
@@ -194,7 +203,10 @@ export default function BitacoraModal() {
     }));
   }, [existing, modal.isOpen]);
 
-  const readOnly = modal.mode === "view" || (modal.mode === "edit" && !repository.canEdit);
+  const canEditExisting = Boolean(existing && repository.canEditEntry(existing));
+  const readOnly = modal.mode === "view" || (modal.mode === "edit" && !canEditExisting) || (modal.mode === "create" && !repository.canCreate);
+  const authorEdit = modal.mode === "edit" && !repository.canManageEntries;
+  const fieldsLocked = readOnly || authorEdit;
   const categoryOptions = Array.from(new Set([...categoryDefaults, categoria].filter(Boolean)));
   const responsibleOptions = Array.from(new Set([
     ...repository.assignableUsers.map((user) => user.name),
@@ -260,6 +272,7 @@ export default function BitacoraModal() {
   };
 
   const removePhoto = (photo: ManagedPhoto) => {
+    if (photo.type === "existing" && !repository.canManageEntries) return;
     if (photo.type === "new" && photo.url) URL.revokeObjectURL(photo.url);
     setPhotos((current) => current.filter((item) => item.id !== photo.id));
     setGalleryIndex(0);
@@ -271,16 +284,21 @@ export default function BitacoraModal() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (readOnly) return;
+    if (readOnly || submitting) return;
+    if (modal.mode === "edit" && (!existing || !editSnapshot.current)) {
+      setSaveError("El reporte ya no está disponible. Tus cambios siguen en el formulario.");
+      return;
+    }
     if (!categoria || !partidaId || !responsable.trim() || !fecha || !avance.trim()) {
       toast.error("Completa categoría, partida, responsable, fecha y avance del día.");
       return;
     }
-    if (photos.some((photo) => !photo.description.trim())) {
-      toast.error("Agrega una descripción a todas las fotografías.");
+    if (photos.some((photo) => !photo.description.trim() && (photo.type === "new" || photo.description !== photo.originalDescription))) {
+      toast.error("Agrega una descripción a las fotografías nuevas o modificadas.");
       return;
     }
     setSubmitting(true);
+    setSaveError(undefined);
     try {
       const newAttachments = [
         ...photos.filter((photo) => photo.type === "new" && photo.file).map((photo) => ({ file: photo.file!, kind: "photo" as const, description: photo.description })),
@@ -288,15 +306,16 @@ export default function BitacoraModal() {
       ];
       const result = await repository.saveEntry({
         entryClientId: modal.mode === "edit" ? existing?.client_id : undefined,
+        expectedRevision: modal.mode === "edit" ? editSnapshot.current?.revision : undefined,
         fields: {
-          categoria,
-          partidaId,
-          familiasTags: familias,
-          responsable: responsable.trim(),
-          fecha,
+          categoria: authorEdit ? editSnapshot.current!.categoria : categoria,
+          partidaId: authorEdit ? editSnapshot.current!.partida_id : partidaId,
+          familiasTags: authorEdit ? editSnapshot.current!.familias_tags : familias,
+          responsable: authorEdit ? editSnapshot.current!.responsable : responsable.trim(),
+          fecha: authorEdit ? editSnapshot.current!.fecha : fecha,
           avanceDia: avance.trim(),
           comentarios: comentarios.trim() || undefined,
-          status,
+          status: authorEdit ? editSnapshot.current!.status : status,
         },
         newAttachments,
         keptAttachmentClientIds: [
@@ -304,21 +323,23 @@ export default function BitacoraModal() {
           ...documents.filter((document) => document.type === "existing").map((document) => document.id),
         ],
         attachmentUpdates: [
-          ...photos.filter((photo) => photo.type === "existing").map((photo) => ({ clientId: photo.id, description: photo.description })),
-          ...documents.filter((document) => document.type === "existing").map((document) => ({ clientId: document.id, name: document.name })),
+          ...photos.filter((photo) => photo.type === "existing" && photo.description !== photo.originalDescription).map((photo) => ({ clientId: photo.id, description: photo.description.trim() })),
         ],
       });
       modal.onClose();
       toast.success(result.saved === "server" ? "Reporte guardado en el servidor." : repository.isOnline ? "Guardado localmente; se sincronizará enseguida." : "Guardado localmente sin conexión.");
       if (result.capacity?.warning) toast.warning("El almacenamiento local superará el 70% de su cuota.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar el reporte.");
+      const message = error instanceof Error ? error.message : "No se pudo guardar el reporte.";
+      setSaveError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
 
   const close = () => {
+    if (submitting) return;
     if (document.fullscreenElement) void document.exitFullscreen();
     modal.onClose();
   };
@@ -347,16 +368,19 @@ export default function BitacoraModal() {
             <DialogTitle variant="bitacora">{modalTitle}</DialogTitle>
             <DialogDescription variant="bitacora">{modal.mode === "view" ? "Visualización de registro" : "Registro diario de avance"}</DialogDescription>
           </div>
-          <Button type="button" size="sm" variant="ghost" onClick={close} aria-label="Cerrar modal"><X /></Button>
+          <Button type="button" size="sm" variant="ghost" onClick={close} disabled={submitting} aria-label="Cerrar modal"><X /></Button>
         </header>
 
-        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5 text-left md:p-9">
+        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" aria-busy={submitting}>
+          {saveError && <p role="alert" className="shrink-0 border-b border-destructive/30 bg-destructive/10 px-5 py-3 text-sm text-destructive">{saveError}</p>}
+          {modal.mode === "edit" && !canEditExisting && <p role="alert" className="shrink-0 border-b border-border px-5 py-3 text-sm text-muted-foreground">Este reporte ya no está disponible para edición con tus permisos actuales.</p>}
+          <div className="min-h-0 flex-1 overflow-y-auto p-5 text-left md:p-9">
+          <fieldset disabled={submitting} className="min-w-0 space-y-6">
             {repository.mode === "offline" && <div className="flex items-center gap-2 border border-border-strong bg-subtle px-3 py-2 text-xs text-muted-foreground"><WifiOff className="h-4 w-4" />Los cambios y archivos se guardarán en este dispositivo.</div>}
 
             <div className="space-y-2">
               <Label>Categoría <span className="text-destructive">*</span></Label>
-              <Select value={categoria} onValueChange={setCategoria} disabled={readOnly}>
+              <Select value={categoria} onValueChange={setCategoria} disabled={fieldsLocked}>
                 <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
                 <SelectContent>{categoryOptions.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
               </Select>
@@ -364,18 +388,18 @@ export default function BitacoraModal() {
 
             <div className="space-y-2">
               <Label>Partida (Nivel 1) <span className="text-destructive">*</span></Label>
-              {modal.mode === "view" ? <Input value={levelOne.find((item) => item.id === partidaId)?.name || existing?.departamento || "N/A"} disabled /> : (
-                <Select value={partidaId} onValueChange={(value) => { setPartidaId(value); setFamilias([]); }} disabled={readOnly}>
+              {fieldsLocked ? <Input value={levelOne.find((item) => item.id === partidaId)?.name || existing?.departamento || "N/A"} disabled /> : (
+                <Select value={partidaId} onValueChange={(value) => { setPartidaId(value); setFamilias([]); }} disabled={fieldsLocked}>
                   <SelectTrigger id="bitacora-partida"><SelectValue placeholder="Selecciona una partida" /></SelectTrigger>
                   <SelectContent>{levelOne.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                 </Select>
               )}
             </div>
 
-            {partidaId && (readOnly ? familias.length > 0 : familyOptions.length > 0) && (
+            {partidaId && (fieldsLocked ? familias.length > 0 : familyOptions.length > 0) && (
               <div className="space-y-2">
                 <Label>Familias (Tags)</Label>
-                {readOnly ? <div className="flex flex-wrap gap-2">{familias.map((tag) => <Badge key={tag} variant="neutral">{tag}</Badge>)}</div> : (
+                {fieldsLocked ? <div className="flex flex-wrap gap-2">{familias.map((tag) => <Badge key={tag} variant="neutral">{tag}</Badge>)}</div> : (
                   <div className="max-h-40 space-y-2 overflow-y-auto border border-border-strong p-3">
                     {familyOptions.map((family) => <label key={family} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={familias.includes(family)} onCheckedChange={() => setFamilias((current) => current.includes(family) ? current.filter((item) => item !== family) : [...current, family])} />{family}</label>)}
                   </div>
@@ -386,7 +410,7 @@ export default function BitacoraModal() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Fecha <span className="text-destructive">*</span></Label>
-                {modal.mode === "view" ? <Input value={fecha} disabled /> : (
+                {fieldsLocked ? <Input value={fecha} disabled /> : (
                   <div className="grid">
                     <DropdownMenu modal={false} open={calendarOpen} onOpenChange={setCalendarOpen}>
                       <DropdownMenuTrigger asChild><Button type="button" size="sm" variant="outline"><CalendarIcon />{fecha || "Selecciona una fecha"}</Button></DropdownMenuTrigger>
@@ -397,7 +421,7 @@ export default function BitacoraModal() {
               </div>
               <div className="space-y-2">
                 <Label>Responsable <span className="text-destructive">*</span></Label>
-                {repository.canEdit && modal.mode === "edit" && responsibleOptions.length > 0 ? (
+                {repository.canManageEntries && !readOnly && modal.mode === "edit" && responsibleOptions.length > 0 ? (
                   <Select value={responsable} onValueChange={setResponsable}><SelectTrigger><SelectValue placeholder="Selecciona un responsable" /></SelectTrigger><SelectContent>{responsibleOptions.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>
                 ) : <Input value={responsable} onChange={(event) => setResponsable(event.target.value)} disabled={modal.mode === "view" || modal.mode === "edit"} />}
               </div>
@@ -405,10 +429,10 @@ export default function BitacoraModal() {
 
             <div className="space-y-2">
               <Label>Estado <span className="text-destructive">*</span></Label>
-              <Select value={status} onValueChange={setStatus} disabled={readOnly}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from(new Set(["Sin problemas", "Con retrasos", "Problemas críticos", status].filter(Boolean))).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select>
+              <Select value={status} onValueChange={setStatus} disabled={fieldsLocked}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from(new Set(["Sin problemas", "Con retrasos", "Problemas críticos", status].filter(Boolean))).map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select>
             </div>
 
-            {(status !== "Sin problemas" || comentarios) && <div className="space-y-2"><Label>Retos / Incidencias</Label><Textarea value={comentarios} onChange={(event) => setComentarios(event.target.value)} disabled={readOnly} rows={3} variant="plain" placeholder="Describe los retos o incidencias del día…" /></div>}
+            {(!readOnly || status !== "Sin problemas" || comentarios) && <div className="space-y-2"><Label htmlFor="bitacora-incidencias">Retos / Incidencias</Label><Textarea id="bitacora-incidencias" value={comentarios} onChange={(event) => setComentarios(event.target.value)} disabled={readOnly} rows={3} variant="plain" placeholder="Describe los retos o incidencias del día…" /></div>}
 
             <div className="space-y-2">
               <Label>Avance del día <span className="text-destructive">*</span></Label>
@@ -441,9 +465,9 @@ export default function BitacoraModal() {
                       <div className="flex flex-col gap-4 sm:flex-row">
                         <div className="shrink-0">{photo.type === "new" && photo.url ? <img src={photo.url} alt="" className="h-24 w-24 border border-border object-cover md:h-36 md:w-36" /> : <ExistingPhotoPreview photo={photo} online={repository.isOnline} onDownload={() => void downloadAttachment(photo)} />}</div>
                         <div className="min-w-0 flex-1 space-y-2">
-                          <div className="flex items-center justify-between gap-3"><Label>Descripción de foto {index + 1} <span className="text-destructive">*</span></Label><Button type="button" size="sm" variant="destructive" onClick={() => removePhoto(photo)} aria-label="Eliminar fotografía"><Trash2 /></Button></div>
-                          <Textarea value={photo.description} onChange={(event) => setPhotos((current) => current.map((item) => item.id === photo.id ? { ...item, description: event.target.value } : item))} rows={4} variant={photo.description.trim() ? "description" : "descriptionError"} placeholder="Describe qué muestra esta fotografía…" />
-                          {!photo.description.trim() && <p className="text-xs text-destructive">La descripción es requerida.</p>}
+                          <div className="flex items-center justify-between gap-3"><Label htmlFor={`bitacora-photo-${photo.id}`}>Descripción de foto {index + 1} {photo.type === "new" && <span className="text-destructive">*</span>}</Label>{(photo.type === "new" || repository.canManageEntries) && <Button type="button" size="sm" variant="destructive" onClick={() => removePhoto(photo)} aria-label="Eliminar fotografía"><Trash2 /></Button>}</div>
+                          <Textarea id={`bitacora-photo-${photo.id}`} value={photo.description} onChange={(event) => setPhotos((current) => current.map((item) => item.id === photo.id ? { ...item, description: event.target.value } : item))} rows={4} variant={photo.description.trim() || (photo.type === "existing" && photo.description === photo.originalDescription) ? "description" : "descriptionError"} placeholder="Describe qué muestra esta fotografía…" />
+                          {!photo.description.trim() && (photo.type === "new" || photo.description !== photo.originalDescription) && <p className="text-xs text-destructive">La descripción es requerida.</p>}
                         </div>
                       </div>
                     </div>
@@ -454,12 +478,12 @@ export default function BitacoraModal() {
 
             <section className="space-y-3">
               <Label variant="section">Documentos {documents.length > 0 && `(${documents.length})`}</Label>
-              {modal.mode === "view" && documents.map((document) => {
+              {(readOnly || authorEdit) && documents.map((document) => {
                 const canOpen = document.availableOffline || repository.isOnline;
                 return <div key={document.id} className="flex items-center gap-2 border border-border p-3 text-sm"><FileText className="h-5 w-5 shrink-0 text-muted-foreground" />{canOpen && document.url ? <a href={document.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:underline">{document.name}</a> : <span className="min-w-0 flex-1 truncate text-muted-foreground">{document.name}</span>}{!document.availableOffline && <Button type="button" size="sm" variant="ghost" onClick={() => void downloadAttachment(document)} aria-label="Guardar documento offline"><Download /></Button>}</div>;
               })}
-              {modal.mode === "view" && documents.length === 0 && <p className="text-sm text-muted-foreground">Sin documentos.</p>}
-              {!readOnly && (
+              {(readOnly || authorEdit) && documents.length === 0 && <p className="text-sm text-muted-foreground">Sin documentos.</p>}
+              {!readOnly && !authorEdit && (
                 <div className="space-y-3">
                   <Button type="button" onClick={() => documentInputRef.current?.click()} variant="dropzone" size="dropzoneDocument"><FileText className="h-6 w-6 text-disabled-foreground" /><span className="block text-sm text-muted-foreground">Haz clic para agregar documentos</span><span className="block text-xs text-muted-foreground">PDF, DOC, DOCX, XLS, XLSX hasta 10MB</span></Button>
                   <input ref={documentInputRef} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx" className="hidden" onChange={(event) => addDocuments(event.target.files)} />
@@ -467,10 +491,11 @@ export default function BitacoraModal() {
                 </div>
               )}
             </section>
+          </fieldset>
           </div>
 
           <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border bg-background p-4 md:px-6">
-            {modal.mode === "view" ? <Button type="button" size="sm" variant="default" onClick={close}>Cerrar</Button> : <><Button type="button" size="sm" variant="outline" onClick={close} disabled={submitting}>Cancelar</Button><Button type="submit" size="sm" variant="default" disabled={submitting}>{submitting && <Loader2 className="animate-spin" />}{modal.mode === "create" ? "Crear Entrada" : "Guardar Cambios"}</Button></>}
+            {readOnly ? <>{modal.mode === "view" && canEditExisting && <Button type="button" size="sm" variant="outline" onClick={() => modal.onOpen({ proyectoId: repository.projectId, mode: "edit", logEntry: existing })}><Pencil />Editar</Button>}<Button type="button" size="sm" variant="default" onClick={close}>Cerrar</Button></> : <><Button type="button" size="sm" variant="outline" onClick={close} disabled={submitting}>Cancelar</Button><Button type="submit" size="sm" variant="default" disabled={submitting}>{submitting && <Loader2 className="animate-spin" />}{modal.mode === "create" ? "Crear Entrada" : "Guardar Cambios"}</Button></>}
           </footer>
         </form>
       </DialogContent>

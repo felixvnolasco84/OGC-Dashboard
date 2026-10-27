@@ -40,6 +40,13 @@ class BitacoraOfflineDatabase extends Dexie {
       syncMetadata: "key, [userId+projectId], status",
       assignableUsers: "key, [userId+projectId], targetUserId",
     });
+    this.version(2).stores({}).upgrade(async (transaction) => {
+      // Refresh ownership from the server without discarding pending work or blobs.
+      await transaction.table("syncMetadata").toCollection().modify({ version: 0 });
+      await transaction.table("entries").toCollection().modify((entry: LocalEntry) => {
+        if (!entry.serverId) entry.createdBy = entry.userId;
+      });
+    });
   }
 }
 

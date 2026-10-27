@@ -53,6 +53,7 @@ export interface LocalEntry extends BitacoraFields {
   projectId: string;
   clientId: string;
   serverId?: string;
+  createdBy?: string;
   revision: number;
   baseRevision: number;
   syncVersion: number;
@@ -76,6 +77,8 @@ export interface LocalAttachment {
   name: string;
   description?: string;
   mimeType?: string;
+  originalName?: string;
+  originalDescription?: string;
   size: number;
   url?: string;
   blob?: Blob;
@@ -139,6 +142,7 @@ export interface RemoteEntry {
   _id: string;
   proyecto: string;
   client_id: string;
+  created_by?: string;
   revision: number;
   sync_version: number;
   updated_at: number;
@@ -167,6 +171,7 @@ export interface PreparedAttachment {
 export interface BitacoraSaveArgs {
   fields: BitacoraFields;
   entryClientId?: string;
+  expectedRevision?: number;
   newAttachments: PreparedAttachment[];
   keptAttachmentClientIds?: string[];
   attachmentUpdates?: Array<{ clientId: string; name?: string; description?: string }>;
@@ -180,6 +185,7 @@ export interface BitacoraSaveResult {
 export interface BitacoraEntryView {
   _id: string;
   client_id: string;
+  created_by?: string;
   server_id?: string;
   revision: number;
   sync_state: SyncState;

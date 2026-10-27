@@ -11,6 +11,8 @@ import { BitacoraAccessError, BitacoraScopeChanged, classifyPreparationFailure, 
 import type { BitacoraEntryView, BitacoraSaveArgs, BitacoraSaveResult, LocalAttachment, OfflineProfile, PreparationFailure, PreparationPhase, RemoteEntry } from "./types";
 import { browserConnection, canUseOnlineBitacora } from "./connection";
 import { deleteEntryOnline, mergeOnlineEntries, saveEntryOnline, toOnlineEntryView } from "./online";
+import { canEditBitacora } from "../../../convex/bitacoraRules";
+import { assertEntryEdit } from "./permissions";
 
 interface OnlineUser { clerkId?: string; name?: string; email?: string; role?: string }
 interface RepositoryContextValue {
@@ -28,7 +30,8 @@ interface RepositoryContextValue {
   isReady: boolean; isOnline: boolean; networkOnline: boolean; backendConnected: boolean; hasClient: boolean;
   isReading: boolean; isBusy: boolean; phase: PreparationPhase; failure?: PreparationFailure;
   profileExpired: boolean; prolonged: boolean; canRetry: boolean;
-  canCreate: boolean; canEdit: boolean;
+  canCreate: boolean; canManageEntries: boolean;
+  canEditEntry: (entry: BitacoraEntryView) => boolean;
   pendingCount: number; pausedCount: number; errorCount: number; conflictCount: number;
   attachmentCount: number; offlineAttachmentCount: number; downloadErrorCount: number;
   syncStatus: "idle" | "syncing" | "error" | "conflict";
@@ -251,7 +254,9 @@ function BaseBitacoraRepositoryProvider({ children, projectId, client, onlineUse
     profileExpired: Boolean(profile && profile.clerkId === userId && profile.expiresAt <= now), prolonged,
     canRetry: Boolean(client && userId && isOnline && !attempt.busy && failure !== "session" && failure !== "forbidden"),
     canCreate: Boolean(isReady && profile && ["admin", "user", "finance", "contratista"].includes(profile.role)),
-    canEdit: Boolean(isReady && profile?.role === "admin"),
+    canManageEntries: Boolean(isReady && profile?.role === "admin"),
+    canEditEntry: (entry) => Boolean(isReady && profile && !entry.locally_deleted && !entry.server_deleted &&
+      canEditBitacora(profile.role, profile.clerkId, entry.created_by)),
     pendingCount: isReady ? data?.outbox.filter((item) => item.status !== "paused").length ?? 0 : 0,
     pausedCount: isReady ? data?.outbox.filter((item) => item.status === "paused").length ?? 0 : 0,
     errorCount: isReady ? data?.entries.filter((entry) => entry.syncState === "error").length ?? 0 : 0,
@@ -265,7 +270,7 @@ function BaseBitacoraRepositoryProvider({ children, projectId, client, onlineUse
     deleteEntry: async (id) => { const { userId, profile } = requireProfile(); await deleteEntryLocally(userId, projectId, profile.role, id); void retrySync(); return "local"; },
     retrySync,
     acceptServer: async (id) => { const { userId } = await requireEntryScope(id); await acceptServerVersion(userId, id); },
-    reapplyLocal: async (id) => { const { userId } = await requireEntryScope(id); await reapplyLocalVersion(userId, id); void retrySync(); },
+    reapplyLocal: async (id) => { const { userId, profile } = await requireEntryScope(id); await reapplyLocalVersion(userId, id, profile.role); void retrySync(); },
     restoreAsNew: async (id) => { const { userId, profile } = await requireEntryScope(id); await restoreConflictAsNew(userId, id, profile.role); void retrySync(); },
     makeAttachmentAvailableOffline: async (id) => {
       const { userId } = requireProfile();
@@ -356,18 +361,22 @@ function AdaptiveBitacoraRepository({ children, client, onlineUser, isCurrentUse
     syncStatus: localWork ? local.syncStatus : "idle", lastSyncAt: undefined,
     canRetry: localWork && local.canRetry,
     canCreate: Boolean(ready && bootstrap && ["admin", "user", "finance", "contratista"].includes(bootstrap.user.role)),
-    canEdit: Boolean(ready && bootstrap?.user.role === "admin"),
+    canManageEntries: Boolean(ready && bootstrap?.user.role === "admin"),
+    canEditEntry: (entry) => Boolean(ready && bootstrap && !entry.locally_deleted && !entry.server_deleted &&
+      canEditBitacora(bootstrap.user.role, bootstrap.user.clerkId, entry.created_by)),
     canLoadMore: logs.status === "CanLoadMore", isLoadingMore: logs.status === "LoadingMore", loadMore: () => logs.loadMore(50),
     saveEntry: async (args) => {
       const assertActive = onlineGuard();
       assertActive();
       const entry = args.entryClientId ? findEntry(args.entryClientId) : undefined;
+      if (entry && bootstrap) assertEntryEdit(bootstrap.user.role, bootstrap.user.clerkId, entry, args);
       if (entry && entry.sync_state !== "synced") return local.saveEntry(args);
       return saveEntryOnline(client, local.projectId, args, entry, assertActive);
     },
     deleteEntry: async (id) => {
       const assertActive = onlineGuard();
       assertActive();
+      if (bootstrap?.user.role !== "admin") throw new Error("Solo un administrador puede eliminar reportes.");
       const entry = findEntry(id);
       if (entry.sync_state !== "synced") return local.deleteEntry(id);
       return deleteEntryOnline(client, local.projectId, entry, assertActive);

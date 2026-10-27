@@ -12,6 +12,14 @@ Bitácora usa IndexedDB como fuente de lectura y escritura. Convex se usa para p
 
 La autorización offline vence siete días después de la última preparación online. Los datos pendientes se conservan si vence; no se envían hasta que Clerk y Convex vuelvan a validar permisos.
 
+## Edición de reportes
+
+El autor identificado por `created_by` puede corregir avance e incidencias, añadir fotografías y corregir sus descripciones mientras conserve un rol de captura y acceso al proyecto. Fecha, responsable, clasificación, estado, documentos y eliminación de archivos o reportes quedan reservados a administradores. Los reportes históricos sin autor verificable solo pueden ser editados por administradores; el nombre del responsable no establece autoría. Los comentarios de conversación en la galería mantienen sus permisos actuales.
+
+La acción `Editar` está en el menú de cada reporte y en el detalle que se abre desde el calendario. Las fotos históricas sin descripción no impiden corregir notas. Las fotos nuevas y las descripciones modificadas deben tener texto. Guardar en línea espera confirmación del servidor; sin conexión conserva los cambios en la cola local. Un rechazo o conflicto mantiene el formulario y explica el motivo. Para revisar una nueva revisión se cierra y vuelve a abrir el reporte; los conflictos offline conservan la resolución manual existente, con los mismos permisos al reaplicar.
+
+La caché Dexie v2 fuerza una descarga completa al reconectar para incorporar autoría. Conserva archivos, capturas y cola; solo atribuye a la cuenta local los borradores que aún no tienen registro en el servidor. Descargar la misma revisión no reemplaza ediciones pendientes. Desplegar los cambios de `bitacoraOffline` junto con el cliente antes de habilitar esta edición para autores.
+
 ## Sincronización
 
 El orden es: renovar sesión, descargar cambios, detectar conflictos, subir originales, aplicar operaciones idempotentes y descargar confirmaciones. Un Web Lock serializa cada proyecto entre pestañas y Dexie propaga los cambios locales entre ellas. Cuando la PWA está abierta se reintenta al recuperar red, volver al primer plano, pulsar `Reintentar` o vencer el backoff.
@@ -23,6 +31,8 @@ Los archivos admitidos son JPEG, PNG, PDF, DOC, DOCX, XLS y XLSX, con máximo de
 ```bash
 npm run typecheck:convex
 npm run test:bitacora-offline
+npm run test:bitacora-edit
+npm run test:bitacora-edit-ui
 npm run build
 ```
 

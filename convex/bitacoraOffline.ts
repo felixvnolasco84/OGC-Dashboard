@@ -13,6 +13,9 @@ import {
 } from "./permissions";
 import {
   canCreateBitacora,
+  canEditBitacora,
+  bitacoraClassificationEqual,
+  validateBitacoraEdit,
   classifyBitacoraRevision,
   validateBitacoraAttachmentMetadata,
 } from "./bitacoraRules";
@@ -448,12 +451,12 @@ export const applyOfflineOperation = mutation({
       return { status: "forbidden" as const, message: "Rol de sólo lectura." };
     }
     if (
-      (args.operation === "update" || args.operation === "delete") &&
+      args.operation === "delete" &&
       !hasAdminAccess(access.user)
     ) {
       return {
         status: "forbidden" as const,
-        message: "Sólo un administrador puede editar o eliminar reportes.",
+        message: "Solo un administrador puede eliminar reportes.",
       };
     }
 
@@ -466,7 +469,8 @@ export const applyOfflineOperation = mutation({
     if (receipt) {
       if (
         receipt.client_id !== args.clientId ||
-        receipt.proyecto !== args.proyecto
+        receipt.proyecto !== args.proyecto ||
+        receipt.clerk_id !== access.user.clerkId
       ) {
         return {
           status: "validation_error" as const,
@@ -490,7 +494,7 @@ export const applyOfflineOperation = mutation({
     }
 
     if (args.operation === "create" && log) {
-      if (log.proyecto !== args.proyecto) {
+      if (log.proyecto !== args.proyecto || !canEditBitacora(access.user.role, access.user.clerkId, log.created_by)) {
         return {
           status: "validation_error" as const,
           message: "El identificador del reporte pertenece a otro proyecto.",
@@ -512,6 +516,10 @@ export const applyOfflineOperation = mutation({
           server: null,
         };
       }
+      if (args.operation === "update" && !canEditBitacora(access.user.role, access.user.clerkId, log.created_by)) {
+        return { status: "forbidden", message: "Solo el autor o un administrador puede editar este reporte." };
+      }
+      if ((log.client_id ?? `legacy:${log._id}`) !== args.clientId) return { status: "validation_error", message: "El identificador no corresponde a este reporte." };
       const revisionState = classifyBitacoraRevision(
         args.baseRevision,
         log.revision ?? 1,
@@ -539,19 +547,33 @@ export const applyOfflineOperation = mutation({
           message: "Responsable y avance del día son obligatorios.",
         };
       }
-      if (!await validatePartida(ctx, args.payload.partida_id, args.proyecto)) {
+      const documents = log && args.operation === "update"
+        ? (await ctx.db.query("documentos").withIndex("by_bitacora_id", q => q.eq("bitacora_id", log!._id)).collect()).filter(file => !file.deleted_at)
+        : [];
+      if (log && args.operation === "update") {
+        const error = validateBitacoraEdit({ role: access.user.role, clerkId: access.user.clerkId, createdBy: log.created_by,
+          previous: log, next: args.payload,
+          attachments: documents.map(file => ({ clientId: attachmentClientId(file), kind: file.type === "bitacora_foto" ? "photo" : "document", name: file.nombre, description: file.descripcion })),
+          addedAttachments: args.addedAttachments, updatedAttachments: args.updatedAttachments,
+          removedAttachmentClientIds: args.removedAttachmentClientIds,
+        });
+        if (error) return { status: "forbidden", message: error };
+      }
+      const classificationChanged = !log || args.operation === "create" || !bitacoraClassificationEqual(log, args.payload);
+      if (classificationChanged && !await validatePartida(ctx, args.payload.partida_id, args.proyecto)) {
         return {
           status: "validation_error" as const,
           message: "La partida no pertenece al proyecto o no es de nivel 1.",
         };
       }
       try {
-        await assertBudgetFamilyTags(ctx, args.proyecto, args.payload.partida_id, args.payload.familias_tags);
+        if (classificationChanged) await assertBudgetFamilyTags(ctx, args.proyecto, args.payload.partida_id, args.payload.familias_tags);
       } catch (error) {
         if (!(error instanceof ConvexError)) throw error;
         return { status: "validation_error" as const, message: String(error.data) };
       }
       for (const attachment of args.addedAttachments) {
+        if (attachment.kind === "photo" && !attachment.description?.trim()) return { status: "validation_error", message: "Agrega una descripción a cada fotografía nueva." };
         const validationError = await validateReservedAttachment(
           ctx,
           args.proyecto,

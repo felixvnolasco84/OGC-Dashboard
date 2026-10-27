@@ -395,8 +395,8 @@ export default function BitacoraPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => open("view", entry)}><Eye className="mr-2 h-4 w-4" />Ver detalles</DropdownMenuItem>
-                              {repository.canEdit && <DropdownMenuItem onClick={() => open("edit", entry)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>}
-                              {repository.canEdit && <DropdownMenuItem variant="destructive" onClick={() => setDeleteEntry(entry)}><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>}
+                              {repository.canEditEntry(entry) && <DropdownMenuItem onClick={() => open("edit", entry)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>}
+                              {repository.canManageEntries && <DropdownMenuItem variant="destructive" onClick={() => setDeleteEntry(entry)}><Trash2 className="mr-2 h-4 w-4" />Eliminar</DropdownMenuItem>}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -458,8 +458,8 @@ export default function BitacoraPage() {
                               )}
                               <div className="mt-3 flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => void repository.acceptServer(entry.client_id)}>Aceptar servidor</Button>
-                                <Button size="sm" variant="default" onClick={() => void repository.reapplyLocal(entry.client_id)}>{entry.locally_deleted ? "Confirmar eliminación" : "Reaplicar versión local"}</Button>
-                                {entry.server_deleted && !entry.locally_deleted && <Button size="sm" variant="outline" onClick={() => void repository.restoreAsNew(entry.client_id)}>Restaurar como nuevo reporte</Button>}
+                                {(entry.locally_deleted ? repository.canManageEntries : repository.canEditEntry(entry)) && !entry.server_deleted && <Button size="sm" variant="default" onClick={() => void repository.reapplyLocal(entry.client_id).catch((error: unknown) => toast.error(error instanceof Error ? error.message : "No se pudo reaplicar la versión local."))}>{entry.locally_deleted ? "Confirmar eliminación" : "Reaplicar versión local"}</Button>}
+                                {repository.canCreate && entry.server_deleted && !entry.locally_deleted && <Button size="sm" variant="outline" onClick={() => void repository.restoreAsNew(entry.client_id)}>Restaurar como nuevo reporte</Button>}
                               </div>
                             </div>
                           )}

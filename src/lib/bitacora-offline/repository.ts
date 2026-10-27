@@ -1,4 +1,6 @@
 import { bitacoraDb, estimateStorage, MAX_ATTACHMENT_BYTES, projectScopeKey, scopedKey } from "./db";
+import { assertEntryEdit, protectedBitacoraFields } from "./permissions";
+import { validateBitacoraEdit } from "../../../convex/bitacoraRules";
 import type {
   BitacoraEntryView,
   BitacoraFields,
@@ -55,11 +57,11 @@ export async function saveEntryLocally(args: {
   role: string;
   fields: BitacoraFields;
   entryClientId?: string;
+  expectedRevision?: number;
   newAttachments: PreparedAttachment[];
   keptAttachmentClientIds?: string[];
   attachmentUpdates?: Array<{ clientId: string; name?: string; description?: string }>;
 }) {
-  if (args.entryClientId && args.role !== "admin") throw new Error("Sólo un administrador puede editar reportes.");
   if (!args.entryClientId && !CREATE_ROLES.has(args.role)) throw new Error("Tu rol es de sólo lectura.");
   const capacity = await verifyStorageForFiles(args.newAttachments);
   const now = Date.now();
@@ -71,16 +73,19 @@ export async function saveEntryLocally(args: {
       const clientId = args.entryClientId ?? id();
       const key = scopedKey(args.userId, clientId);
       const previous = await bitacoraDb.entries.get(key);
+      if (args.entryClientId && !previous) throw new Error("El reporte ya no está disponible en este dispositivo.");
       if (previous && previous.projectId !== args.projectId) throw new Error("El reporte no pertenece a esta Bitácora.");
       const currentAttachments = await bitacoraDb.attachments
         .where("[userId+entryClientId]")
         .equals([args.userId, clientId])
         .toArray();
+      if (previous) assertEntryEdit(args.role, args.userId, toEntryView(previous, currentAttachments), args);
       const kept = new Set(args.keptAttachmentClientIds ?? currentAttachments.filter((item) => !item.deleted).map((item) => item.clientId));
       const attachmentUpdates = new Map((args.attachmentUpdates ?? []).map((item) => [item.clientId, item]));
       const removedServerIds: string[] = [];
 
       for (const attachment of currentAttachments) {
+        if (attachment.deleted) continue;
         if (kept.has(attachment.clientId)) continue;
         if (!attachment.serverId && !attachment.storageId) {
           await bitacoraDb.attachments.delete(attachment.key);
@@ -95,13 +100,14 @@ export async function saveEntryLocally(args: {
         const update = attachmentUpdates.get(attachment.clientId);
         if (!update) continue;
         await bitacoraDb.attachments.update(attachment.key, {
-          ...(update.name !== undefined ? { name: update.name.trim() } : {}),
-          ...(update.description !== undefined ? { description: update.description.trim() } : {}),
+          ...(update.name !== undefined ? { name: update.name, originalName: attachment.originalName ?? attachment.name } : {}),
+          ...(update.description !== undefined ? { description: update.description, originalDescription: attachment.originalDescription ?? attachment.description ?? "" } : {}),
         });
       }
 
       for (const prepared of args.newAttachments) {
         const clientAttachmentId = prepared.clientId ?? id();
+        if (await bitacoraDb.attachments.get(scopedKey(args.userId, clientAttachmentId))) throw new Error("El identificador del archivo ya está en uso.");
         const attachment: LocalAttachment = {
           key: scopedKey(args.userId, clientAttachmentId),
           userId: args.userId,
@@ -111,6 +117,8 @@ export async function saveEntryLocally(args: {
           kind: prepared.kind,
           name: prepared.file.name,
           description: prepared.description?.trim(),
+          originalName: prepared.file.name,
+          originalDescription: prepared.description?.trim() ?? "",
           mimeType: prepared.file.type,
           size: prepared.file.size,
           blob: prepared.file,
@@ -126,6 +134,7 @@ export async function saveEntryLocally(args: {
         projectId: args.projectId,
         clientId,
         serverId: previous?.serverId,
+        createdBy: previous ? previous.createdBy : args.userId,
         revision: previous?.revision ?? 0,
         baseRevision: previous?.baseRevision ?? previous?.revision ?? 0,
         syncVersion: previous?.syncVersion ?? 0,
@@ -206,12 +215,26 @@ export async function mergeRemoteEntries(userId: string, projectId: string, rows
       const clientId = remote.client_id ?? `legacy:${remote._id}`;
       const key = scopedKey(userId, clientId);
       const local = await bitacoraDb.entries.get(key);
-      if (local && local.syncState !== "synced" && remote.revision > local.baseRevision) {
+      if (local && local.syncState !== "synced") {
         await bitacoraDb.entries.update(key, {
-          syncState: "conflict",
-          syncError: "El reporte cambió en el servidor.",
-          serverSnapshot: remote,
+          createdBy: remote.created_by,
+          ...(remote.revision > local.baseRevision ? {
+            syncState: "conflict" as const,
+            syncError: "El reporte cambió en el servidor.",
+            serverSnapshot: remote,
+          } : {}),
         });
+        // A full refresh of the same revision must not replace a draft or its files.
+        if (remote.revision === local.baseRevision) {
+          for (const raw of [...(remote.fotos ?? []), ...(remote.documentos ?? [])]) {
+            const fileKey = scopedKey(userId, normalizeRemoteAttachment(raw).clientId);
+            const file = await bitacoraDb.attachments.get(fileKey);
+            if (file) await bitacoraDb.attachments.update(fileKey, {
+              originalName: raw.nombre ?? "Archivo", originalDescription: raw.descripcion ?? "",
+              url: raw.url ?? file.url,
+            });
+          }
+        }
         continue;
       }
 
@@ -221,6 +244,7 @@ export async function mergeRemoteEntries(userId: string, projectId: string, rows
         projectId,
         clientId,
         serverId: remote._id,
+        createdBy: remote.created_by,
         revision: remote.revision ?? 1,
         baseRevision: remote.revision ?? 1,
         syncVersion: remote.sync_version ?? 0,
@@ -235,7 +259,7 @@ export async function mergeRemoteEntries(userId: string, projectId: string, rows
         fecha: remote.fecha,
         avanceDia: remote.avance_dia,
         comentarios: remote.comentarios,
-        status: remote.status,
+        status: remote.status ?? "Sin problemas",
       };
       await bitacoraDb.entries.put(entry);
 
@@ -257,6 +281,8 @@ export async function mergeRemoteEntries(userId: string, projectId: string, rows
           kind: normalized.kind,
           name: raw.nombre ?? "Archivo",
           description: raw.descripcion,
+          originalName: raw.nombre ?? "Archivo",
+          originalDescription: raw.descripcion ?? "",
           size: cached?.size ?? 0,
           mimeType: cached?.mimeType,
           url: raw.url ?? undefined,
@@ -336,17 +362,47 @@ export async function restoreConflictAsNew(userId: string, entryClientId: string
   });
 }
 
-export async function reapplyLocalVersion(userId: string, entryClientId: string) {
+export async function reapplyLocalVersion(userId: string, entryClientId: string, role: string) {
   const entry = await bitacoraDb.entries.get(scopedKey(userId, entryClientId));
   if (!entry?.serverSnapshot) return;
   const snapshot = entry.serverSnapshot;
+  if (snapshot.deleted_at) throw new Error("El reporte fue eliminado. Puedes restaurarlo como un reporte nuevo.");
+  if (entry.deleted && role !== "admin") throw new Error("Solo un administrador puede eliminar reportes.");
+  const attachments = await bitacoraDb.attachments.where("[userId+entryClientId]").equals([userId, entryClientId]).toArray();
+  const snapshotFiles = [...(snapshot.fotos ?? []), ...(snapshot.documentos ?? [])];
+  const serverFiles = new Map(snapshotFiles.map(file => [normalizeRemoteAttachment(file).clientId, file]));
+  const renamed = (file: LocalAttachment) => file.originalName !== undefined && file.name !== file.originalName;
+  const described = (file: LocalAttachment) => file.originalDescription !== undefined
+    ? (file.description ?? "") !== file.originalDescription
+    : !file.serverId && serverFiles.has(file.clientId) && (file.description ?? "") !== (serverFiles.get(file.clientId)?.descripcion ?? "");
+  if (!entry.deleted) {
+    const error = validateBitacoraEdit({ role, clerkId: userId, createdBy: snapshot.created_by,
+      previous: snapshot, next: protectedBitacoraFields(entry),
+      attachments: snapshotFiles.map(file => ({ ...normalizeRemoteAttachment(file), name: file.nombre ?? "Archivo", description: file.descripcion })),
+      addedAttachments: attachments.filter(file => !file.deleted && !file.serverId && !serverFiles.has(file.clientId)),
+      updatedAttachments: attachments.filter(file => !file.deleted && (file.serverId || serverFiles.has(file.clientId)) && (renamed(file) || described(file)))
+        .map(file => ({ clientId: file.clientId, ...(renamed(file) ? { name: file.name } : {}), ...(described(file) ? { description: file.description ?? "" } : {}) })),
+      removedAttachmentClientIds: attachments.filter(file => file.deleted).map(file => file.clientId),
+    });
+    if (error) throw new Error(error);
+  }
   const existing = await bitacoraDb.outbox.where("entryClientId").equals(entryClientId).and((item) => item.userId === userId).first();
   const now = Date.now();
   await bitacoraDb.transaction("rw", [bitacoraDb.entries, bitacoraDb.attachments, bitacoraDb.outbox], async () => {
-    for (const raw of [...(snapshot.fotos ?? []), ...(snapshot.documentos ?? [])]) {
+    for (const raw of snapshotFiles) {
       const normalized = normalizeRemoteAttachment(raw);
       const key = scopedKey(userId, normalized.clientId);
-      if (await bitacoraDb.attachments.get(key)) continue;
+      const file = await bitacoraDb.attachments.get(key);
+      if (file) {
+        await bitacoraDb.attachments.update(key, {
+          serverId: raw._id, storageId: raw.storage_id ?? file.storageId, syncState: "synced",
+          originalName: raw.nombre ?? "Archivo", originalDescription: raw.descripcion ?? "",
+          name: renamed(file) ? file.name : raw.nombre ?? "Archivo",
+          description: described(file) ? file.description : raw.descripcion,
+          url: raw.url ?? file.url,
+        });
+        continue;
+      }
       await bitacoraDb.attachments.put({
         key,
         userId,
@@ -358,6 +414,8 @@ export async function reapplyLocalVersion(userId: string, entryClientId: string)
         kind: normalized.kind,
         name: raw.nombre ?? "Archivo",
         description: raw.descripcion,
+        originalName: raw.nombre ?? "Archivo",
+        originalDescription: raw.descripcion ?? "",
         size: 0,
         url: raw.url ?? undefined,
         deleted: false,
@@ -366,6 +424,7 @@ export async function reapplyLocalVersion(userId: string, entryClientId: string)
     }
     await bitacoraDb.entries.update(entry.key, {
       serverId: snapshot._id,
+      createdBy: snapshot.created_by,
       revision: snapshot.revision,
       baseRevision: snapshot.revision,
       syncState: "pending",
@@ -516,6 +575,7 @@ export function toEntryView(
   return {
     _id: entry.clientId,
     client_id: entry.clientId,
+    created_by: entry.createdBy,
     server_id: entry.serverId,
     revision: entry.revision,
     sync_state: entry.syncState,

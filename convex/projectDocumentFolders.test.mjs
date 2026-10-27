@@ -148,7 +148,7 @@ describe("project document organization", () => {
     const photo = await ctx.db.insert("_storage", { contentType: "image/png", size: 10 });
     const document = await ctx.db.insert("_storage", { contentType: "application/pdf", size: 10 });
     const addedAttachments = [
-      { clientId: "photo-1", storageId: photo, kind: "photo", name: "a.png" },
+      { clientId: "photo-1", storageId: photo, kind: "photo", name: "a.png", description: "Evidencia de obra" },
       { clientId: "document-1", storageId: document, kind: "document", name: "a.pdf" },
     ];
     for (const attachment of addedAttachments) await ctx.db.insert("bitacora_upload_reservations", {

@@ -13,28 +13,35 @@ import { cacheBootstrap, mergeRemoteEntries } from "../../../src/lib/bitacora-of
 import type { OfflineProfile, RemoteEntry } from "../../../src/lib/bitacora-offline/types";
 
 // Dedicated localhost origin, synthetic IndexedDB and a client without network methods.
-const scenario = new URLSearchParams(location.search).get("scenario") ?? "first";
-const adaptive = ["adaptive", "online-storage"].includes(scenario);
+const params = new URLSearchParams(location.search);
+const scenario = params.get("scenario") ?? "first";
+const editing = scenario === "edit";
+const adaptive = ["adaptive", "online-storage"].includes(scenario) || editing;
+let previewRole = editing ? params.get("role") ?? "user" : scenario === "viewer" ? "viewer" : "admin";
+const pixel = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
 const projectId = "qa-project";
 let currentUser = "qa-user";
 let release!: () => void;
 const gate = new Promise<void>((resolve) => { release = resolve; });
 let bootstrapCalls = 0;
 let mutationCalls = 0;
-const profile = (user = currentUser): OfflineProfile => ({ clerkId: user, userId: user, name: "Usuario de prueba", email: "qa@example.test", role: scenario === "viewer" ? "viewer" : "admin", projectIds: [projectId, "qa-project-b"], verifiedAt: Date.now(), expiresAt: Date.now() + 86_400_000 });
+const profile = (user = currentUser): OfflineProfile => ({ clerkId: user, userId: user, name: "Usuario de prueba", email: "qa@example.test", role: previewRole, projectIds: [projectId, "qa-project-b"], verifiedAt: Date.now(), expiresAt: Date.now() + 86_400_000 });
 const bootstrap = (id: string, user = currentUser) => ({ verifiedAt: Date.now(), expiresAt: Date.now() + 86_400_000, latestVersion: 1,
-  user: { clerkId: user, name: "Usuario de prueba", role: scenario === "viewer" ? "viewer" : "admin", allowed_desarrollos: [id] },
+  user: { clerkId: user, name: "Usuario de prueba", role: previewRole, allowed_desarrollos: [id] },
   project: { _id: id, nombre: id === "qa-project-b" ? "Proyecto B · prueba de aislamiento" : "Proyecto de prueba" },
   partidas: [{ _id: "qa-partida", nombre: "Estructura", nivel: 1 }], assignableUsers: [],
 });
-const row = (id = "qa-entry", stateProject = projectId): RemoteEntry => ({ _id: id, proyecto: stateProject, client_id: id, revision: 1, sync_version: 1, updated_at: Date.now(), uploaded_at: Date.now(), categoria: "Estructura", partida_id: "qa-partida", familias_tags: ["Concreto"], responsable: "Usuario de prueba", fecha: "09/10/2026", avance_dia: "Revisión de avance con datos simulados.", comentarios: "Registro utilizado únicamente para validar la interfaz.", status: "Sin problemas", documentos: [{ _id: `${id}-file`, client_id: `${id}-file`, kind: "document", nombre: "Evidencia de prueba.pdf", url: undefined }], fotos: [] });
+const row = (id = "qa-entry", stateProject = projectId): RemoteEntry => ({ _id: id, proyecto: stateProject, client_id: id,
+  created_by: editing && params.get("owner") === "legacy" ? undefined : editing ? params.get("owner") ?? currentUser : currentUser,
+  revision: 1, sync_version: 1, updated_at: Date.now(), uploaded_at: Date.now(), categoria: "Estructura", partida_id: "qa-partida", familias_tags: ["Concreto"], responsable: "Usuario de prueba", fecha: "09/10/2026", avance_dia: "Revisión de avance con datos simulados.", comentarios: "Registro utilizado únicamente para validar la interfaz.", status: "Sin problemas", documentos: [{ _id: `${id}-file`, client_id: `${id}-file`, kind: "document", nombre: "Evidencia de prueba.pdf", url: undefined }],
+  fotos: editing ? [{ _id: `${id}-photo`, client_id: `${id}-photo`, kind: "photo", nombre: "obra.png", descripcion: "", url: pixel }] : [] });
 let serverRows = [row()];
 let serverVersion = 1;
 const watches = new Map<string, { result: unknown; listeners: Set<() => void>; refresh: () => Promise<void> }>();
 const networkQuality = Object.assign(new EventTarget(), { effectiveType: "4g", downlink: 10, rtt: 50 });
 if (adaptive) Object.defineProperty(navigator, "connection", { configurable: true, value: networkQuality });
 const renewSession = async () => scenario === "session" ? null : "token-simulado";
-let connected = scenario !== "backend" && scenario !== "offline";
+let connected = scenario !== "backend" && scenario !== "offline" && !(editing && params.has("offline"));
 const listeners = new Set<(state: { isWebSocketConnected: boolean }) => void>();
 const mock = {
   connectionState: () => ({ isWebSocketConnected: connected }),
@@ -63,13 +70,31 @@ const mock = {
     return { localQueryResult: () => watch!.result, journal: () => undefined,
       onUpdate: (listener: () => void) => { watch!.listeners.add(listener); if (watch!.result === undefined) void watch!.refresh(); return () => watch!.listeners.delete(listener); } };
   },
-  mutation: async (reference: Parameters<typeof getFunctionName>[0], args: { operation: string; clientId: string; logId?: string; payload?: { categoria: string; partida_id: string; familias_tags: string[]; responsable: string; fecha: string; avance_dia: string; comentarios?: string; status: string } }) => {
+  mutation: async (reference: Parameters<typeof getFunctionName>[0], args: { operation: string; clientId: string; logId?: string; baseRevision: number;
+    addedAttachments?: Array<{ clientId: string; storageId: string; kind: "photo" | "document"; name: string; description?: string }>;
+    updatedAttachments?: Array<{ clientId: string; name?: string; description?: string }>; removedAttachmentClientIds?: string[];
+    payload?: { categoria: string; partida_id: string; familias_tags: string[]; responsable: string; fecha: string; avance_dia: string; comentarios?: string; status: string } }) => {
     mutationCalls += 1;
+    const name = getFunctionName(reference);
+    if (editing && name.endsWith("generateBitacoraUploadUrl")) return 'data:application/json,%7B%22storageId%22%3A%22preview-storage%22%7D';
+    if (editing && name.endsWith("registerBitacoraUpload")) return null;
     if (!adaptive || !getFunctionName(reference).endsWith("applyOfflineOperation")) throw new Error("Las mutaciones de backend están bloqueadas en esta validación.");
     const previous = serverRows.find(entry => entry.client_id === args.clientId);
+    if (editing && params.has("reject")) return { status: "forbidden", message: "El servidor rechazó el guardado de prueba." };
+    if (editing && previous && previous.revision !== args.baseRevision) return { status: "conflict", reason: "changed", server: previous };
     serverVersion += 1;
+    const files = (kind: "photo" | "document") => {
+      const removed = new Set(args.removedAttachmentClientIds ?? []);
+      return [...(kind === "photo" ? previous?.fotos ?? [] : previous?.documentos ?? [])
+        .filter(file => !removed.has(file.client_id!)).map(file => {
+          const update = args.updatedAttachments?.find(item => item.clientId === file.client_id);
+          return { ...file, nombre: update?.name ?? file.nombre, descripcion: update?.description ?? file.descripcion };
+        }), ...(args.addedAttachments ?? []).filter(file => file.kind === kind).map(file => ({ _id: file.clientId, client_id: file.clientId,
+          kind, nombre: file.name, descripcion: file.description, storage_id: file.storageId, url: kind === "photo" ? pixel : undefined }))];
+    };
     const entry = { ...row(args.logId ?? `simulated-${serverVersion}`), ...previous, ...args.payload,
       client_id: args.clientId, revision: (previous?.revision ?? 0) + 1, sync_version: serverVersion,
+      ...(editing ? { created_by: previous ? previous.created_by : currentUser, fotos: files("photo"), documentos: files("document") } : {}),
       deleted_at: args.operation === "delete" ? Date.now() : undefined,
     };
     serverRows = [...serverRows.filter(item => item.client_id !== args.clientId), entry];
@@ -115,6 +140,10 @@ function App() {
         </select></label>
         <button className="underline" onClick={() => { release(); setStatus("Respuesta simulada liberada"); }}>Completar preparación</button>
         <button className="underline" onClick={() => { connected = true; listeners.forEach((listener) => listener({ isWebSocketConnected: true })); }}>Reconectar backend simulado</button>
+        {editing && <>
+          <button className="underline" onClick={async () => { serverVersion += 1; serverRows = serverRows.map(entry => ({ ...entry, revision: entry.revision + 1, sync_version: serverVersion, avance_dia: "Cambio remoto posterior" })); await Promise.all([...watches.values()].map(watch => watch.refresh())); }}>Cambiar revisión remota</button>
+          <button className="underline" onClick={async () => { previewRole = "viewer"; await Promise.all([...watches.values()].map(watch => watch.refresh())); }}>Revocar edición</button>
+        </>}
         {adaptive && <>
           <button className="underline" onClick={() => { connected = false; listeners.forEach(listener => listener({ isWebSocketConnected: false })); }}>Desconectar backend simulado</button>
           <button className="underline" onClick={() => { networkQuality.downlink = 0.2; networkQuality.rtt = 1500; networkQuality.dispatchEvent(new Event("change")); }}>Simular conexión lenta</button>
@@ -128,16 +157,17 @@ function App() {
     </div>
     <BitacoraRepositoryProvider preferOnline={adaptive} projectId={id} client={offline ? undefined : mock} onlineUser={offline ? undefined : { clerkId: user }} initialProfile={offline ? profile(user) : undefined}
       renewSession={renewSession}>
-      <BitacoraPage />{adaptive && <BitacoraModal />}<Probe />
+      <BitacoraPage /><BitacoraModal /><Probe />
     </BitacoraRepositoryProvider>
     <Toaster />
   </MemoryRouter></ConvexProvider>;
 }
 
 async function main() {
-  await bitacoraDb.delete(); await bitacoraDb.open();
+  if (!editing) await bitacoraDb.delete();
+  await bitacoraDb.open();
   localStorage.removeItem("ogc:bitacora:last-user");
-  if (["updating", "offline", "expired", "backend", "conflicts", "viewer", "scope", "expiry"].includes(scenario)) {
+  if ((editing && !await bitacoraDb.entries.count()) || ["updating", "offline", "expired", "backend", "conflicts", "viewer", "scope", "expiry"].includes(scenario)) {
     await cacheBootstrap({ clerkId: currentUser, projectId, bootstrap: bootstrap(projectId) });
     if (scenario !== "viewer") await mergeRemoteEntries(currentUser, projectId, [row()]);
     await bitacoraDb.syncMetadata.put({ key: `${currentUser}:${projectId}`, userId: currentUser, projectId, version: 1, prepared: true, lastSyncAt: Date.now() - 3_600_000, status: "idle" });
