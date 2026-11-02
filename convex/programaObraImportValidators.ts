@@ -12,6 +12,7 @@ export const programImportRowValidator = v.object({
   finiquito_porcentaje: v.optional(v.number()), peso: v.optional(v.number()),
 });
 export const programImportReviewValidator = v.object({
+  archive_absent: v.optional(v.boolean()),
   date_resolutions: v.array(v.object({
     partida_index: v.number(), child_index: v.number(), partida: v.string(), child: v.string(),
     parent_finish: v.string(), child_finish: v.string(), choice: v.union(v.literal("parent"), v.literal("child")),
@@ -26,6 +27,7 @@ export const programImportResultValidator = v.object({
   status: v.union(v.literal("created"), v.literal("updated"), v.literal("unchanged")),
   created: v.number(), updated: v.number(), unchanged: v.number(), errors: v.array(v.string()),
   partidas: counts, familias: counts, activity_effects: v.number(),
+  archived: v.optional(v.number()),
   revision_id: v.id("programa_obra_revisions"), version: v.number(),
 });
 export type ProgramImportResult = Infer<typeof programImportResultValidator>;

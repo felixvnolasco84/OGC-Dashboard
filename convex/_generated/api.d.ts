@@ -102,6 +102,7 @@ import type * as providerRules from "../providerRules.js";
 import type * as providerStats from "../providerStats.js";
 import type * as providerStatsRules from "../providerStatsRules.js";
 import type * as providerUtils from "../providerUtils.js";
+import type * as queryReads from "../queryReads.js";
 import type * as reportGeneration from "../reportGeneration.js";
 import type * as reportInsights from "../reportInsights.js";
 import type * as reportLogbook from "../reportLogbook.js";
@@ -241,6 +242,7 @@ declare const fullApi: ApiFromModules<{
   providerStats: typeof providerStats;
   providerStatsRules: typeof providerStatsRules;
   providerUtils: typeof providerUtils;
+  queryReads: typeof queryReads;
   reportGeneration: typeof reportGeneration;
   reportInsights: typeof reportInsights;
   reportLogbook: typeof reportLogbook;

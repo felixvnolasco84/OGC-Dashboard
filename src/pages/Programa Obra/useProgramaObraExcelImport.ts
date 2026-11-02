@@ -8,7 +8,7 @@ import type { ExcelPartida, ExcelRow } from "./ProgramaObraExcelPreview";
 
 const API_BASE_URL = "https://ogc-excel-reader.vercel.app";
 type Feedback = {
-  created: number; updated: number; unchanged?: number; activity_effects?: number; errors: string[];
+  created: number; updated: number; unchanged?: number; archived?: number; activity_effects?: number; errors: string[];
   partidas?: { created: number; updated: number; unchanged?: number; skipped: number; total: number };
   familias?: { created: number; updated: number; unchanged?: number; skipped: number; total: number };
 };
@@ -69,7 +69,7 @@ export function useProgramaObraExcelImport(projectId: Id<"desarrollos"> | undefi
   }, [projectId, clear]);
 
   const handlePreviewConfirm = useCallback((rows: ExcelRow[], review: ProgramImportReview) => {
-    reviewRef.current = review; setImportRows(rows); setPreviewOpen(false);
+    reviewRef.current = { ...review, archive_absent: true }; setImportRows(rows); setPreviewOpen(false);
   }, []);
 
   const handleImportApply = useCallback(async (rows: ExcelRow[], fingerprint: string) => {

@@ -849,7 +849,8 @@ export default function ProgramaObra() {
         {/* Upload result feedback */}
         {uploadResult && (() => {
           const hasErrors = uploadResult.errors.length > 0;
-          const hasSuccess = uploadResult.created + uploadResult.updated + (uploadResult.activity_effects ?? 0) > 0;
+          const processed = uploadResult.created + uploadResult.updated + (uploadResult.archived ?? 0);
+          const hasSuccess = uploadResult.created + uploadResult.updated + (uploadResult.archived ?? 0) + (uploadResult.activity_effects ?? 0) > 0;
           const p = uploadResult.partidas;
           const f = uploadResult.familias;
           return (
@@ -869,7 +870,8 @@ export default function ProgramaObra() {
                   </span>
                   {hasSuccess && (
                     <span className="text-muted-foreground">
-                      {uploadResult.created + uploadResult.updated} registro{uploadResult.created + uploadResult.updated !== 1 ? "s" : ""} procesado{uploadResult.created + uploadResult.updated !== 1 ? "s" : ""}
+                      {processed} registro{processed !== 1 ? "s" : ""} procesado{processed !== 1 ? "s" : ""}
+                      {!!uploadResult.archived && ` · ${uploadResult.archived} concepto${uploadResult.archived === 1 ? " archivado" : "s archivados"}`}
                     </span>
                   )}
                 </div>

@@ -1574,6 +1574,7 @@ export default defineSchema({
     proyecto: v.id("desarrollos"), detalle_id: v.id("programa_obra_detalle"),
     front_id: v.id("programa_obra_fronts"), name: v.string(),
     progress: v.number(), share: v.number(), mandatory: v.boolean(), archived: v.boolean(),
+    archived_by_import: v.optional(v.boolean()),
     responsible_id: v.optional(v.id("users")),
     current_start: v.optional(v.string()), current_finish: v.optional(v.string()),
     actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()),
@@ -1634,7 +1635,7 @@ export default defineSchema({
   programa_obra_import_items: defineTable({
     proyecto: v.id("desarrollos"), attempt_id: v.id("programa_obra_import_attempts"),
     target_key: v.string(), name: v.string(),
-    kind: v.union(v.literal("row"), v.literal("activity_effect")),
+    kind: v.union(v.literal("row"), v.literal("activity_effect"), v.literal("archive_effect")),
     outcome: v.union(v.literal("created"), v.literal("updated"), v.literal("unchanged")),
     // An ordinal in the reviewed data is not a physical Excel row coordinate.
     review_index: v.optional(v.number()), row_json: v.optional(v.string()),

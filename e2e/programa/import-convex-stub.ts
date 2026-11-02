@@ -11,7 +11,9 @@ const listeners = new Set<() => void>();
 const notify = () => { tick++; listeners.forEach(fn => fn()); };
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => listeners.delete(fn); };
 const counts = { created: 0, updated: 1, unchanged: 1, skipped: 0, total: 2 };
-const result = { status: "updated", created: 0, updated: 1, unchanged: 1, errors: [], partidas: { ...counts, updated: 0, unchanged: 1, total: 1 }, familias: { ...counts, unchanged: 0, total: 1 }, activity_effects: 1, version: 2, revision_id: "revision" };
+const result = { status: "updated", created: 0, updated: 1, unchanged: 1, errors: [], partidas: { ...counts, updated: 0, unchanged: 1, total: 1 }, familias: { ...counts, unchanged: 0, total: 1 }, activity_effects: 1, version: 2, revision_id: "revision",
+  ...(scenario === "archive-only" ? { updated: 0, unchanged: 2, activity_effects: 0, archived: 1 } : {}),
+};
 const source = { file_name: "Programa original · revisión de cimentación y columnas octubre 2026.xlsx", file_hash: "a".repeat(64), sheet_name: "Programa" };
 const makeAttempt = (id: string, status: string) => ({ _id: id, proyecto: "project", request_id: id, status,
   source, imported_by: "actor", imported_by_name: "María · usuario ficticio", created_at: Date.UTC(2026, 9, 21, 18),
@@ -46,7 +48,7 @@ export function useQuery(reference: Parameters<typeof getFunctionName>[0], args?
   const base = baseQuery(reference, args);
   if (args === "skip") return undefined;
   const name = getFunctionName(reference);
-  if (name === "programa_obra:previewExcelImport") return { fingerprint: "review-v1", rows: args!.rows.map((row: Data, index: number) => ({ index, name: [row.partida, row.familia].filter(Boolean).join(" / "), canonicalName: row.partida, status: "update", issues: [] })), canApply: true, warnings: [], absent: [{ id: "familyB", name: "Columnas conservadas" }], proposal: null };
+  if (name === "programa_obra:previewExcelImport") return { fingerprint: "review-v1", rows: args!.rows.map((row: Data, index: number) => ({ index, name: [row.partida, row.familia].filter(Boolean).join(" / "), canonicalName: row.partida, status: "update", issues: [] })), canApply: true, warnings: [], absent: [{ id: "familyB", name: "COLOCACION CALIZA" }], proposal: null };
   if (name.startsWith("programaObraImportHistory:")) return read(name, args!);
   if (name === "desarrollos:getById") return { ...(base as Data), nombre: "Obra ficticia · prueba de respaldo" };
   return base;

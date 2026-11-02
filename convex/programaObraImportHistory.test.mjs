@@ -29,7 +29,7 @@ async function fixture() {
     { nivel: 2, partida: "ESTRUCTURA", familia: "Columnas", fecha_inicio: "12/10/2026", fecha_fin: "20/10/2026", peso: 50 },
   ];
   const prepare = async (input = rows(), options = {}) => {
-    const preview = await writer.query(api.programa_obra.previewExcelImport, { proyecto: ids.project, rows: input });
+    const preview = await writer.query(api.programa_obra.previewExcelImport, { proyecto: ids.project, rows: input, archive_absent: options.review?.archive_absent });
     const payload = { proyecto: ids.project, rows: input, expected_fingerprint: options.fingerprint ?? preview.fingerprint, review: options.review ?? { date_resolutions: [] } };
     const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(input), "Programa");
     const ext = options.ext ?? "xlsx";
@@ -57,6 +57,123 @@ async function fixture() {
 }
 
 describe("program workbook originals and atomic audit", () => {
+  const fullReview = { date_resolutions: [], archive_absent: true };
+
+  it("archives COLOCACION CALIZA when the new marble programme only contains its current concepts", async () => {
+    const f = await fixture();
+    await f.test.run(ctx => ctx.db.patch(f.ids.root, { nombre: "MÁRMOL" }));
+    const rows = [
+      { ...f.rows()[0], partida: "MÁRMOL" },
+      { ...f.rows()[1], partida: "MÁRMOL", familia: "COLOCACION CALIZA FACHADA 01" },
+      { ...f.rows()[2], partida: "MÁRMOL", familia: "COLOCACION CALIZA FACHADA 02" },
+    ];
+    await f.apply((await f.prepare([...rows, { ...rows[1], familia: "COLOCACION CALIZA" }], { review: fullReview })).input);
+    const before = await f.snapshot(), old = before.programa_obra_detalle.find(d => d.familia === "COLOCACION CALIZA");
+    await f.test.run(ctx => ctx.db.patch(old._id, { avance_porcentaje: 80, actual_start: "2026-10-01" }));
+    const budget = await f.test.run(ctx => ctx.db.get(f.ids.root));
+    const preview = await f.writer.query(api.programa_obra.previewExcelImport, { proyecto: f.ids.project, rows, archive_absent: true });
+    expect(preview.absent).toEqual([{ id: old._id, name: "MÁRMOL / COLOCACION CALIZA", type: "familia" }]);
+    const p = await f.prepare(rows, { review: fullReview });
+    const result = await f.apply(p.input);
+    expect(result).toMatchObject({ status: "updated", archived: 1, updated: 0, unchanged: 3 });
+    expect(await f.apply(p.input)).toEqual(result);
+    await expect(f.apply({ ...p.input, review: { ...fullReview, archive_absent: false } })).rejects.toThrow(/otra revisión/);
+    const after = await f.snapshot();
+    expect(after.programa_obra_detalle).toHaveLength(3);
+    expect(after.programa_obra_detalle.find(d => d._id === old._id)).toMatchObject({ archived: true, avance_porcentaje: 80, actual_start: "2026-10-01" });
+    expect(after.programa_obra_detalle.filter(d => !d.archived).map(d => d.familia)).toEqual(rows.slice(1).map(r => r.familia));
+    expect(await f.test.run(ctx => ctx.db.get(f.ids.root))).toEqual(budget);
+    const program = await f.writer.query(api.programa_obra.getExecutionProgram, { proyecto: f.ids.project });
+    expect(program.summaries.details.map(d => d.id)).not.toContain(old._id);
+    expect(program.summaries.overall.progress).toBe(0);
+    const items = await f.writer.query(api.programaObraImportHistory.listAttemptItems, { attempt_id: p.input.attempt_id, paginationOpts: page });
+    expect(items.page.find(i => i.target_key === `detail:${old._id}`)).toMatchObject({ kind: "archive_effect", archived: true });
+    expect(items.page.filter(i => i.kind === "row")).toHaveLength(3);
+    expect((await f.apply((await f.prepare(rows, { review: fullReview })).input))).toMatchObject({ status: "unchanged", archived: 0 });
+  });
+
+  for (const enabled of [false, true]) it(`restores imported identities and split fronts without reviving manually archived activities (${enabled})`, async () => {
+    const f = await fixture(); await f.apply((await f.prepare()).input);
+    const state = await f.snapshot(), detail = state.programa_obra_detalle[1];
+    const activityIds = await f.test.run(async ctx => {
+      await ctx.db.insert("programa_obra_config", { proyecto: f.ids.project, enabled, version: 1, weekdays: [1, 2, 3, 4, 5], holidays: [] });
+      const front = await ctx.db.insert("programa_obra_fronts", { proyecto: f.ids.project, name: "General", archived: false });
+      const ids = [];
+      for (const [i, archived] of [false, false, true].entries()) ids.push(await ctx.db.insert("programa_obra_activities", {
+        proyecto: f.ids.project, detalle_id: detail._id, front_id: front, name: `Columnas ${i}`,
+        progress: 40, actual_start: "2026-10-12", current_start: "2026-10-12", current_finish: "2026-10-20",
+        share: 50, mandatory: true, archived, requires_review: false,
+      }));
+      return ids;
+    });
+    const original = await f.test.run(async ctx => Promise.all(activityIds.map(id => ctx.db.get(id))));
+    const p = await f.prepare(f.rows().slice(0, 2), { review: fullReview });
+    expect(await f.apply(p.input)).toMatchObject({ archived: 1, version: 2 });
+    const program = await f.writer.query(api.programa_obra.getExecutionProgram, { proyecto: f.ids.project });
+    expect(program.activities.some(a => a.detalle_id === detail._id)).toBe(false);
+    expect(program.summaries.details.some(d => d.id === detail._id)).toBe(false);
+    const archived = await f.test.run(async ctx => Promise.all(activityIds.map(id => ctx.db.get(id))));
+    expect(archived.slice(0, 2).every(a => a.archived && a.archived_by_import && a.progress === 40)).toBe(true);
+    expect(archived[2]).toEqual(original[2]);
+    expect(await f.apply((await f.prepare(undefined, { review: fullReview })).input)).toMatchObject({ created: 0, archived: 0, version: 3 });
+    const restored = await f.snapshot();
+    expect(restored.programa_obra_detalle).toHaveLength(2);
+    expect(restored.programa_obra_detalle.find(d => d._id === detail._id).archived).toBe(false);
+    expect(await f.test.run(async ctx => Promise.all(activityIds.map(id => ctx.db.get(id))))).toEqual(original);
+    expect(await f.apply((await f.prepare(undefined, { review: fullReview })).input)).toMatchObject({ status: "unchanged", version: 3 });
+  });
+
+  it("archives an omitted partida and all its descendants without changing other projects or budget rows", async () => {
+    const f = await fixture(); await f.apply((await f.prepare()).input);
+    const ids = await f.test.run(async ctx => {
+      const { _id, _creationTime, ...partida } = await ctx.db.get(f.ids.root);
+      const root = await ctx.db.insert("partidas", { ...partida, nombre: "MÁRMOL" });
+      const schedule = await ctx.db.insert("programa_obra", { proyecto: f.ids.project, partida_id: root, orden: 1 });
+      const other = await ctx.db.insert("programa_obra", { proyecto: f.ids.other, partida_id: root, orden: 0 });
+      const detail = await ctx.db.insert("programa_obra_detalle", { proyecto: f.ids.project, programa_obra_id: schedule, nivel: 3, partida: "MÁRMOL", familia: "Fachada", subpartida: "Norte" });
+      return { root, schedule, detail, other };
+    });
+    expect(await f.apply((await f.prepare(undefined, { review: fullReview })).input)).toMatchObject({ archived: 2 });
+    expect(await f.test.run(ctx => ctx.db.get(ids.schedule))).toMatchObject({ archived: true });
+    expect(await f.test.run(ctx => ctx.db.get(ids.detail))).toMatchObject({ archived: true });
+    expect(await f.test.run(ctx => ctx.db.get(ids.other))).not.toHaveProperty("archived");
+    expect(await f.test.run(ctx => ctx.db.get(ids.root))).not.toBeNull();
+    const restoredRows = [...f.rows(), { nivel: 1, partida: "MÁRMOL" }, { nivel: 3, partida: "MÁRMOL", familia: "Fachada", subpartida: "Norte" }];
+    expect(await f.apply((await f.prepare(restoredRows, { review: fullReview })).input)).toMatchObject({ created: 0, updated: 2, archived: 0 });
+    expect(await f.test.run(ctx => ctx.db.get(ids.schedule))).toMatchObject({ archived: false });
+    expect(await f.test.run(ctx => ctx.db.get(ids.detail))).toMatchObject({ archived: false });
+  });
+
+  for (const relation of ["dependency", "requirement"]) it(`requires resolving a live ${relation} before archiving an omitted concept`, async () => {
+    const f = await fixture(); await f.apply((await f.prepare()).input);
+    await f.writer.mutation(api.programa_obra.initializeExecutionProgram, { proyecto: f.ids.project });
+    const state = await f.snapshot(), [a, b] = state.programa_obra_activities;
+    const relationId = await f.test.run(ctx => relation === "dependency"
+      ? ctx.db.insert("programa_obra_dependencies", { proyecto: f.ids.project, predecessor_id: b._id, successor_id: a._id, kind: "FS", lag_days: 0, lag_unit: "working" })
+      : ctx.db.insert("programa_obra_requirements", { proyecto: f.ids.project, activity_id: b._id, description: "Entrega pendiente", category: "materials", stage: "finish", blocking: true, resolved: false, responsible_id: f.ids.user, due_date: "2026-10-20" }));
+    const rows = f.rows().slice(0, 2);
+    const preview = await f.writer.query(api.programa_obra.previewExcelImport, { proyecto: f.ids.project, rows, archive_absent: true });
+    expect(preview.canApply).toBe(false);
+    expect(preview.archiveProblems).toHaveLength(1);
+    const p = await f.prepare(rows, { review: fullReview }), before = await f.snapshot();
+    await expect(f.apply(p.input)).rejects.toThrow(/Resuelve/);
+    expect(await f.snapshot()).toEqual(before);
+    await f.test.run(ctx => ctx.db.delete(relationId));
+    expect(await f.apply((await f.prepare(rows, { review: fullReview })).input)).toMatchObject({ archived: 1 });
+  });
+
+  it("keeps mapped renames active and rolls back archival if a later import step fails", async () => {
+    const f = await fixture(); await f.apply((await f.prepare()).input);
+    const state = await f.snapshot(), detail = state.programa_obra_detalle[1];
+    const renamed = [...f.rows().slice(0, 2), { ...f.rows()[2], familia: "Columnas actualizadas", detalle_id: detail._id }];
+    expect(await f.apply((await f.prepare(renamed, { review: fullReview })).input)).toMatchObject({ archived: 0, updated: 1 });
+    expect(await f.test.run(ctx => ctx.db.get(detail._id))).not.toHaveProperty("archived");
+    await f.test.run(ctx => ctx.db.insert("programa_obra_config", { proyecto: f.ids.project, enabled: false, version: 1, weekdays: [1, 2, 3, 4, 5], holidays: [] }));
+    const p = await f.prepare(f.rows().slice(0, 2), { review: fullReview }), before = await f.snapshot();
+    await expect(f.apply(p.input)).rejects.toThrow(/General/);
+    expect(await f.snapshot()).toEqual(before);
+  });
+
   for (const ext of ["xls", "xlsx"]) it(`preserves exact ${ext} bytes/name before configuration and links only reviewed rows`, async () => {
     const f = await fixture(), p = await f.prepare(undefined, { ext });
     const result = await f.apply(p.input);

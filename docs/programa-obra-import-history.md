@@ -2,6 +2,12 @@
 
 Al pulsar **Aplicar cambios revisados**, el programa registra una confirmación y respalda el `File` recibido, sin reconstruirlo ni modificarlo con los ajustes de la vista previa. Se conserva su nombre exacto, extensión, tamaño, SHA-256 y, cuando el lector la informa, la hoja. Seleccionar, leer o revisar el archivo no crea intentos.
 
+Las cargas desde la interfaz actualizan el programa completo: la revisión muestra los conceptos ausentes y, al confirmar, archiva las partidas, familias y subpartidas que dejaron de aparecer. También archiva sus actividades por frente para excluirlas del Gantt y de los avances agregados. Conserva presupuesto, avances registrados, fechas reales, archivos e historial. Si una actividad vigente depende de una ausente, o la ausente tiene requisitos bloqueantes pendientes, la revisión pide resolver esas relaciones antes de aplicar. Si un concepto reaparece, se reutiliza su identidad y se reactivan únicamente los frentes archivados por esta sincronización, sin recuperar actividades archivadas manualmente (por ejemplo, el frente original de una división).
+
+La decisión `review.archive_absent: true` queda vinculada a la confirmación y su auditoría. Los clientes anteriores que no envían esta decisión mantienen la importación parcial. Los archivados se registran como `archive_effect`, sin presentarlos como filas incluidas en el Excel, y el resultado informa el número de conceptos archivados. El historial distingue las omisiones conservadas en cargas anteriores de las archivadas en las nuevas.
+
+Publicación de esta corrección, 2 de noviembre de 2026: esquema y funciones desplegados en el entorno configurado `dev:animated-walrus-612`, con comprobación de tipos y validación del esquema. Verificación local: 74 pruebas de importación/ejecución, reglas puras, build y revisión visual a 1440, 390 y 320 px aprobados. Para actualizar un programa existente hay que volver a cargar y confirmar su Excel vigente con el frontend nuevo; el despliegue no modifica automáticamente los programas guardados.
+
 ## Arquitectura y decisiones
 
 - `programa_obra_import_attempts`: proyecto, identificador de confirmación, usuario de sesión y nombre al confirmar, fechas, metadatos del archivo, estado, resultado terminal y referencia a la revisión. Los estados son en proceso, completada, sin cambios, fallida e histórica.

@@ -668,8 +668,8 @@ export const getDetallesByProgramaObra = query({
 // ============================================================
 
 export const previewExcelImport = query({
-  args: { proyecto: v.id("desarrollos"), rows: v.array(programImportRowValidator) },
-  handler: async (ctx, args) => { await assertProjectAccess(ctx, args.proyecto); return previewProgramImport(ctx, args.proyecto, args.rows); },
+  args: { proyecto: v.id("desarrollos"), rows: v.array(programImportRowValidator), archive_absent: v.optional(v.boolean()) },
+  handler: async (ctx, args) => { await assertProjectAccess(ctx, args.proyecto); return previewProgramImport(ctx, args.proyecto, args.rows, args.archive_absent); },
 });
 
 export const bulkUpsertFromExcel = mutation({
@@ -687,13 +687,14 @@ export const bulkUpsertFromExcel = mutation({
     if (Date.now() >= attempt.created_at + PROGRAM_IMPORT_TIMEOUT) throw new Error("El intento de carga expiró.");
     await assertProgramAttemptFile(ctx, attempt);
     const execution = await executionContext(ctx, args.proyecto);
-    const preview = await previewProgramImport(ctx, args.proyecto, args.rows);
+    const preview = await previewProgramImport(ctx, args.proyecto, args.rows, args.review.archive_absent);
     if (!preview.canApply) throw new Error("Resuelve las filas inválidas y los pendientes de reprogramación antes de importar.");
     if ((execution.config && !args.expected_fingerprint) || (args.expected_fingerprint && preview.fingerprint !== args.expected_fingerprint)) throw new Error("El programa cambió; vuelve a revisar la previsualización del Excel.");
 
     let created = 0;
     let updated = 0;
     let unchanged = 0;
+    let archived = 0;
     const errors: string[] = [];
 
     // Granular tracking
@@ -724,7 +725,27 @@ export const bulkUpsertFromExcel = mutation({
     const nivel1Rows = args.rows.filter((r) => r.nivel === 1);
     const childRows = args.rows.filter((r) => r.nivel === 2 || r.nivel === 3);
 
-    // Import merges into the programme. Absent rows retain identity and visibility.
+    // Keep omitted records and their history, but remove them from the current programme.
+    if (args.review.archive_absent) {
+      for (const missing of preview.absent) {
+        const id = missing.id as Id<"programa_obra"> | Id<"programa_obra_detalle">;
+        const before = await ctx.db.get(id);
+        await ctx.db.patch(id, { archived: true });
+        archived++;
+        await ctx.db.insert("programa_obra_import_items", {
+          proyecto: args.proyecto, attempt_id: attempt._id,
+          target_key: `${missing.type === "partida" ? "schedule" : "detail"}:${id}`,
+          name: missing.name, kind: "archive_effect", outcome: "updated",
+          before_json: JSON.stringify(before), after_json: JSON.stringify(await ctx.db.get(id)),
+          effect_reason: "Archivado por ausencia en el nuevo Excel; conserva su historial",
+          imported_at: attempt.created_at,
+        });
+      }
+      const absentDetailIds = new Set(preview.absent.filter((r) => r.type === "familia").map((r) => r.id));
+      for (const activity of execution.activities) if (!activity.archived && absentDetailIds.has(activity.detalle_id)) {
+        await ctx.db.patch(activity._id, { archived: true, archived_by_import: true });
+      }
+    }
 
     // Cache: partida name → programa_obra _id
     const programaObraCache = new Map<string, string>();
@@ -781,6 +802,7 @@ export const bulkUpsertFromExcel = mutation({
         .first();
 
       const data = {
+        ...(existing?.archived ? { archived: false } : {}),
         fecha_inicio: row.fecha_inicio,
         fecha_fin: row.fecha_fin,
         anticipo_fecha: row.anticipo_fecha,
@@ -903,6 +925,7 @@ export const bulkUpsertFromExcel = mutation({
       );
 
       const detalleData = {
+        ...(existingDetalle?.archived ? { archived: false } : {}),
         fecha_inicio: row.fecha_inicio,
         fecha_fin: row.fecha_fin,
         anticipo_fecha: row.anticipo_fecha,
@@ -915,7 +938,10 @@ export const bulkUpsertFromExcel = mutation({
       };
 
       if (existingDetalle) {
-        for (const activity of execution.activities.filter((a) => a.detalle_id === existingDetalle._id && !a.archived && a.name === existingDetalle.familia)) {
+        for (const activity of execution.activities.filter((a) => a.detalle_id === existingDetalle._id && a.archived_by_import)) {
+          await ctx.db.patch(activity._id, { archived: false, archived_by_import: undefined });
+        }
+        for (const activity of execution.activities.filter((a) => a.detalle_id === existingDetalle._id && (!a.archived || a.archived_by_import) && a.name === existingDetalle.familia)) {
           const name = row.familia?.trim() || existingDetalle.familia;
           if (name !== activity.name) await ctx.db.patch(activity._id, { name });
         }
@@ -974,27 +1000,28 @@ export const bulkUpsertFromExcel = mutation({
         proyecto: args.proyecto, attempt_id: attempt._id, target_key: `activity:${after._id}`,
         name: after.name, kind: "activity_effect", outcome: before ? "updated" : "created",
         before_json: before ? JSON.stringify(before) : undefined, after_json: JSON.stringify(after),
-        effect_reason: !before ? "Actividad incorporada al programa durante la importación" : directlyReviewed ? "Ajuste de actividad de una familia revisada" : "Reprogramación por dependencias; no acredita una fila del Excel",
+        effect_reason: !before ? "Actividad incorporada al programa durante la importación" : after.archived_by_import ? "Actividad archivada por ausencia de su familia en el nuevo Excel" : directlyReviewed ? "Ajuste de actividad de una familia revisada" : "Reprogramación por dependencias; no acredita una fila del Excel",
         imported_at: attempt.created_at,
       });
     }
     if (errors.length) throw new Error(errors.join("\n"));
-    const changed = created + updated + activityEffects > 0;
+    const changed = created + updated + archived + activityEffects > 0;
     const version = changed ? await bumpProgramVersion(ctx, args.proyecto) : execution.config?.version ?? 0;
     const appliedSnapshot = JSON.stringify({ rows: args.rows, review: args.review, proposal: preview.proposal, absent: preview.absent, warnings: preview.warnings });
     if (new TextEncoder().encode(appliedSnapshot).length > 900_000) throw new Error("La revisión aplicada es demasiado extensa. Divide el Excel en cargas más pequeñas.");
     await ctx.db.insert("programa_obra_import_reviews", { proyecto: args.proyecto, attempt_id: attempt._id, kind: "applied", snapshot_json: appliedSnapshot });
     const revisionId = await ctx.db.insert("programa_obra_revisions", {
       proyecto: args.proyecto, kind: "import", actor_id: attempt.imported_by, created_at: Date.now(),
-      reason: changed ? "Importación revisada de Excel; las filas ausentes se conservan" : "Confirmación de Excel sin cambios en el programa",
+      reason: changed ? args.review.archive_absent ? "Actualización de Excel; los conceptos ausentes se archivaron" : "Importación parcial de Excel; las filas ausentes se conservan" : "Confirmación de Excel sin cambios en el programa",
       version, import_attempt_id: attempt._id,
-      snapshot_json: JSON.stringify({ import_attempt_id: attempt._id, row_count: args.rows.length, created, updated, unchanged, activity_effects: activityEffects }),
+      snapshot_json: JSON.stringify({ import_attempt_id: attempt._id, row_count: args.rows.length, created, updated, unchanged, archived, activity_effects: activityEffects }),
     });
     const result: ProgramImportResult = {
       status: !changed ? "unchanged" : updated > 0 || created === 0 ? "updated" : "created",
       created,
       updated,
       unchanged,
+      archived,
       errors,
       partidas: { created: partidasCreated, updated: partidasUpdated, unchanged: partidasUnchanged, skipped: partidasSkipped, total: nivel1Rows.length },
       familias: { created: familiasCreated, updated: familiasUpdated, unchanged: familiasUnchanged, skipped: familiasSkipped, total: childRows.length },

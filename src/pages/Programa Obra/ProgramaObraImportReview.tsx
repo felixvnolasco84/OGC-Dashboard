@@ -12,7 +12,7 @@ export default function ProgramaObraImportReview({ proyecto, rows, schedules, de
   onCancel: () => void; onApply: (rows: ExcelRow[], fingerprint: string) => Promise<void>; busy: boolean; recoverPending?: boolean;
 }) {
   const [mapped, setMapped] = useState(rows);
-  const preview = useQuery(api.programa_obra.previewExcelImport, { proyecto, rows: mapped });
+  const preview = useQuery(api.programa_obra.previewExcelImport, { proyecto, rows: mapped, archive_absent: true });
   const mapExisting = (index: number, value: string) => {
     const id = value === "__auto__" ? undefined : value;
     setMapped((current) => current.map((item, i) => i !== index ? item : item.nivel === 1
@@ -30,15 +30,16 @@ export default function ProgramaObraImportReview({ proyecto, rows, schedules, de
             <SelectContent className="max-w-[calc(100vw-2rem)]">
               <SelectItem value="__auto__">Detectar por nombre</SelectItem>
               {mapped[index].nivel === 1
-                ? schedules.filter((s) => !s.archived).map((s) => <SelectItem key={s._id} value={s._id}>{details.find((d) => d.programa_obra_id === s._id)?.partida ?? s._id}</SelectItem>)
-                : details.filter((d) => !d.archived && d.nivel === mapped[index].nivel).map((d) => <SelectItem key={d._id} value={d._id}>{d.partida} · {d.familia}{d.subpartida ? ` · ${d.subpartida}` : ""}</SelectItem>)}
+                ? schedules.map((s) => <SelectItem key={s._id} value={s._id}>{details.find((d) => d.programa_obra_id === s._id)?.partida ?? s._id}{s.archived ? " · Archivada" : ""}</SelectItem>)
+                : details.filter((d) => d.nivel === mapped[index].nivel).map((d) => <SelectItem key={d._id} value={d._id}>{d.partida} · {d.familia}{d.subpartida ? ` · ${d.subpartida}` : ""}{d.archived ? " · Archivada" : ""}</SelectItem>)}
             </SelectContent>
           </Select>
         </label>
         {row.issues.map((issue) => <p className="text-sm text-red-700" key={issue}>{issue}</p>)}
       </div>)}</div>
       {preview.warnings.map((warning) => <p className="text-sm text-amber-800" key={warning}>{warning}</p>)}
-      {!!preview.absent.length && <details className="border border-border p-3"><summary className="cursor-pointer text-sm">{preview.absent.length} registros ausentes: seguirán activos</summary><ul className="mt-2 list-disc pl-5 text-sm">{preview.absent.map((row) => <li key={row.id}>{row.name}</li>)}</ul><p className="mt-2 text-xs">Archívalos desde el detalle después de resolver sus relaciones.</p></details>}
+      {preview.archiveProblems?.map((problem) => <p role="alert" className="text-sm text-red-700" key={problem}>{problem}</p>)}
+      {!!preview.absent.length && <details open className="border border-border p-3"><summary className="cursor-pointer text-sm">{preview.absent.length} {preview.absent.length === 1 ? "concepto ausente: se archivará" : "conceptos ausentes: se archivarán"}</summary><ul className="mt-2 list-disc pl-5 text-sm">{preview.absent.map((row) => <li key={row.id}>{row.name}</li>)}</ul><p className="mt-2 text-xs">Dejarán de aparecer en el programa vigente y en sus avances. Se conservarán sus registros e historial.</p></details>}
       {preview.proposal && <div className="space-y-2"><h3 className="text-sm font-medium">Impacto en fechas</h3>{preview.proposal.changes.map((c) => <p className="text-sm" key={c.activity_id}>{c.name}: {c.old_start ?? "Sin inicio"} / {c.old_finish ?? "Sin fin"} → {c.start} / {c.finish}</p>)}{preview.proposal.problems.map((p, i) => <p className="text-sm text-red-700" key={i}>{p.message}</p>)}</div>}
     </>}
     {recoverPending && <p role="alert" className="text-sm">La confirmación quedó pendiente de respuesta. Comprueba el mismo intento para recuperar su resultado.</p>}

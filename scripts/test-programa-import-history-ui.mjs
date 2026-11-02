@@ -45,6 +45,8 @@ try {
       await page.getByRole("radio", { name: /Usar fecha de la partida/ }).click();
       await page.getByRole("button", { name: "Continuar a revisión" }).click();
       await expect(page.getByRole("heading", { name: "Revisar cambios del Excel" })).toBeVisible();
+      await expect(page.getByText("1 concepto ausente: se archivará", { exact: true })).toBeVisible();
+      await expect(page.getByText("COLOCACION CALIZA", { exact: true })).toBeVisible();
       await page.getByRole("combobox", { name: "Coincidencia existente de Estructura / Excavación", exact: true }).click();
       await page.getByRole("option", { name: "Estructura · Excavación", exact: true }).click();
       assert.equal((await read()).mutations.length, 0, "Parsing and both reviews must not create an attempt");
@@ -78,6 +80,7 @@ try {
       const started = state.mutations.find(m => m.name.endsWith(":startAttempt"));
       assert.equal(started.args.rows[1].fecha_fin, "31/10/2026"); assert.equal(started.args.rows[1].detalle_id, "familyA");
       assert.equal(started.args.review.date_resolutions[0].child_finish, "03/11/2026"); assert.equal(started.args.source.sheet_name, "Programa");
+      assert.equal(started.args.review.archive_absent, true, "Every upload must synchronise absent concepts after review");
       await history(); const pending = page.waitForEvent("download"); await page.getByRole("button", { name: "Descargar Excel", exact: true }).click();
       const saved = await pending; assert.equal(saved.suggestedFilename(), `Programa original · revisión ñ.${ext}`);
       const downloaded = []; for await (const chunk of await saved.createReadStream()) downloaded.push(chunk); assert.deepEqual(Buffer.concat(downloaded), files[ext]);
@@ -97,6 +100,9 @@ try {
       results.push({ width, scenario, status: state.attempts[0].status });
     }
     await open("success"); await validate("xlsx"); await page.getByRole("button", { name: "Cancelar", exact: true }).click(); assert.equal((await read()).attempts.length, 0);
+    await open("archive-only"); await validate("xlsx"); await page.getByRole("button", { name: "Aplicar cambios revisados", exact: true }).click();
+    await expect(page.getByText("Carga completada", { exact: true })).toBeVisible();
+    await expect(page.getByText("1 registro procesado · 1 concepto archivado", { exact: true })).toBeVisible();
     await open("viewer&viewer=1"); await history(); await expect(page.getByRole("button", { name: "Descargar Excel", exact: true }).first()).toBeEnabled();
     await page.keyboard.press("Escape"); await page.getByRole("button", { name: "Archivo", exact: true }).click(); await expect(page.getByRole("menuitem", { name: "Cargar Excel", exact: true })).toBeDisabled();
     await page.close();

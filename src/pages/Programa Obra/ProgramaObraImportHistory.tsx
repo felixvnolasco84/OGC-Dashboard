@@ -56,7 +56,7 @@ function AttemptCard({ attempt, available, children }: { attempt: Attempt; avail
       {attempt.source.sheet_name && <p className="mt-2 break-words">Hoja informada por el lector: {attempt.source.sheet_name}</p>}
       <p className="mt-2 break-all">SHA-256: {attempt.source.file_hash}</p>
     </details>}
-    {attempt.result && <p className="text-sm">{attempt.result.created} {attempt.result.created === 1 ? "alta" : "altas"} · {attempt.result.updated} {attempt.result.updated === 1 ? "actualización" : "actualizaciones"} · {attempt.result.unchanged} {attempt.result.unchanged === 1 ? "fila sin cambios" : "filas sin cambios"}{attempt.result.activity_effects > 0 && ` · ${attempt.result.activity_effects} ${attempt.result.activity_effects === 1 ? "efecto en actividades" : "efectos en actividades"}`}</p>}
+    {attempt.result && <p className="text-sm">{attempt.result.created} {attempt.result.created === 1 ? "alta" : "altas"} · {attempt.result.updated} {attempt.result.updated === 1 ? "actualización" : "actualizaciones"} · {attempt.result.unchanged} {attempt.result.unchanged === 1 ? "fila sin cambios" : "filas sin cambios"}{!!attempt.result.archived && ` · ${attempt.result.archived} concepto${attempt.result.archived === 1 ? " archivado" : "s archivados"}`}{attempt.result.activity_effects > 0 && ` · ${attempt.result.activity_effects} ${attempt.result.activity_effects === 1 ? "efecto en actividades" : "efectos en actividades"}`}</p>}
     {attempt.status === "legacy" && <p className="text-xs text-muted-foreground">Se conserva la revisión aplicada. No se guardó el archivo original de esa importación.</p>}
     {attempt.error && <p className="break-words text-sm text-destructive">{attempt.error}</p>}
     <DownloadOriginal id={attempt._id} available={available} />{children}
@@ -68,6 +68,7 @@ const valueFields: Array<[string, string]> = [
   ["suministro_fecha", "Suministro"], ["finiquito_fecha", "Finiquito"], ["finiquito_porcentaje", "Finiquito (%)"], ["peso", "Peso (%)"],
   ["orden", "Orden"], ["current_start", "Inicio vigente"], ["current_finish", "Fin vigente"], ["forecast_finish", "Fin previsto"],
   ["progress", "Avance (%)"], ["actual_start", "Inicio real"], ["actual_finish", "Fin real"],
+  ["archived", "Archivado"],
 ];
 function Values({ item }: { item: Doc<"programa_obra_import_items"> }) {
   const before = JSON.parse(item.before_json || "{}") as Record<string, unknown>;
@@ -88,12 +89,12 @@ function AttemptDetails({ id }: { id: Id<"programa_obra_import_attempts"> }) {
     <p className="text-xs text-muted-foreground">El respaldo conserva el Excel recibido. Estos valores y decisiones describen la revisión aplicada; su posición en la revisión no indica una fila física del archivo.</p>
     {!!decisions.length && <section className="space-y-2"><h4 className="text-sm font-medium">Decisiones de fechas</h4>{decisions.map((d, i) => <p className="break-words text-xs" key={i}>{d.partida} / {d.child}: {d.choice === "child" ? `extender partida hasta ${d.child_finish}` : `ajustar hijo hasta ${d.parent_finish}`} (originales: partida {d.parent_finish}, hijo {d.child_finish}).</p>)}</section>}
     {reviewed?.rows?.some((r: { programa_obra_id?: string; detalle_id?: string }) => r.programa_obra_id || r.detalle_id) && <details className="text-xs"><summary className="cursor-pointer">Coincidencias elegidas por ID</summary>{reviewed.rows.filter((r: { programa_obra_id?: string; detalle_id?: string }) => r.programa_obra_id || r.detalle_id).map((r: { partida: string; familia?: string; programa_obra_id?: string; detalle_id?: string }, i: number) => <p className="mt-2 break-all" key={i}>{r.partida}{r.familia && ` / ${r.familia}`} · {r.detalle_id ?? r.programa_obra_id}</p>)}</details>}
-    {!!snapshot?.absent?.length && <details className="text-xs"><summary className="cursor-pointer">{snapshot.absent.length} registros ausentes que se conservaron</summary><ul className="mt-2 space-y-1">{snapshot.absent.map((a: { id: string; name: string }) => <li className="break-words" key={a.id}>{a.name}</li>)}</ul></details>}
+    {!!snapshot?.absent?.length && <details className="text-xs"><summary className="cursor-pointer">{snapshot.absent.length} registros ausentes que {snapshot.review?.archive_absent ? "se archivaron" : "se conservaron"}</summary><ul className="mt-2 space-y-1">{snapshot.absent.map((a: { id: string; name: string }) => <li className="break-words" key={a.id}>{a.name}</li>)}</ul></details>}
     {snapshot?.warnings?.map((warning: string, i: number) => <p className="text-xs text-muted-foreground" key={i}>{warning}</p>)}
     {attempt?.status === "legacy" && <details className="text-xs"><summary className="cursor-pointer">Ver datos de la revisión histórica</summary>{(snapshot?.rows ?? []).map((r: { partida: string; familia?: string; fecha_inicio?: string; fecha_fin?: string }, i: number) => <p className="mt-2 break-words" key={i}>{r.partida}{r.familia && ` / ${r.familia}`} · {r.fecha_inicio ?? "Sin inicio"} / {r.fecha_fin ?? "Sin fin"}</p>)}</details>}
     {!result ? <p role="status" className="text-sm">Cargando registros…</p> : result.page.length === 0 ? <p className="text-sm text-muted-foreground">Este intento no tiene vínculos de filas o actividades registrados.</p> : <ul className="divide-y divide-border">{result.page.map(item => <li className="py-3" key={item._id}>
       <p className="break-words text-sm font-medium">{item.name}{item.deleted ? " · Registro eliminado" : item.archived ? " · Archivado" : ""}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{item.kind === "row" ? `Fila incluida · Posición ${(item.review_index ?? 0) + 1} en la revisión` : `Efecto en actividad · ${item.effect_reason}`} · {{ created: "Alta", updated: "Actualización", unchanged: "Sin cambios" }[item.outcome]}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{item.kind === "row" ? `Fila incluida · Posición ${(item.review_index ?? 0) + 1} en la revisión` : `${item.kind === "archive_effect" ? "Concepto ausente" : "Efecto en actividad"} · ${item.effect_reason}`} · {{ created: "Alta", updated: "Actualización", unchanged: "Sin cambios" }[item.outcome]}</p>
       <Values item={item} />
     </li>)}</ul>}
     <Pager cursors={cursors} setCursors={setCursors} result={result} />
