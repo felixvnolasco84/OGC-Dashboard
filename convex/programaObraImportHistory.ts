@@ -7,7 +7,7 @@ import { checkDesarrolloAccess, getCurrentUserOrThrow, assertCanWrite } from "./
 import { assertProgramCapability } from "./programaObraExecution";
 import {
   PROGRAM_IMPORT_MAX_BYTES, PROGRAM_IMPORT_TIMEOUT, programImportConfirmationArgs, programImportDigest,
-  programImportSourceValidator, programImportTargetValidator, type ProgramImportResult,
+  programImportSourceValidator, programImportTargetValidator, programStorageHashMatches, type ProgramImportResult,
 } from "./programaObraImportValidators";
 
 type Ctx = MutationCtx | QueryCtx;
@@ -39,13 +39,13 @@ export async function writableProgramAttempt(ctx: MutationCtx, id: Id<"programa_
 export async function assertProgramAttemptFile(ctx: Ctx, attempt: Doc<"programa_obra_import_attempts">) {
   const metadata = attempt.storage_id ? await ctx.db.system.get(attempt.storage_id) : null;
   if (!metadata) throw new Error("Archivo original no disponible. Guarda el Excel antes de importar.");
-  if (metadata.sha256.toLowerCase() !== attempt.source?.file_hash || metadata.size !== attempt.size) throw new Error("El archivo guardado no coincide con el Excel revisado (tamaño o SHA-256).");
+  if (!programStorageHashMatches(metadata.sha256, attempt.source?.file_hash) || metadata.size !== attempt.size) throw new Error("El archivo guardado no coincide con el Excel revisado (tamaño o SHA-256).");
   return metadata;
 }
 async function fileAvailable(ctx: Ctx, attempt: Doc<"programa_obra_import_attempts">) {
   if (!attempt.storage_id || !attempt.source) return false;
   const meta = await ctx.db.system.get(attempt.storage_id);
-  return !!meta && meta.size === attempt.size && meta.sha256.toLowerCase() === attempt.source.file_hash;
+  return !!meta && meta.size === attempt.size && programStorageHashMatches(meta.sha256, attempt.source.file_hash);
 }
 function confirmation(args: { rows: unknown; expected_fingerprint: string; review: unknown }) {
   return { rows: args.rows, expected_fingerprint: args.expected_fingerprint, review: args.review };

@@ -8,6 +8,8 @@ La decisión `review.archive_absent: true` queda vinculada a la confirmación y 
 
 Publicación de esta corrección, 2 de noviembre de 2026: esquema y funciones desplegados en el entorno configurado `dev:animated-walrus-612`, con comprobación de tipos y validación del esquema. Verificación local: 74 pruebas de importación/ejecución, reglas puras, build y revisión visual a 1440, 390 y 320 px aprobados. Para actualizar un programa existente hay que volver a cargar y confirmar su Excel vigente con el frontend nuevo; el despliegue no modifica automáticamente los programas guardados.
 
+Corrección de la verificación del original: los metadatos reales de `_storage` en este despliegue devuelven SHA-256 en Base64, mientras el navegador registra hexadecimal. Se comparan ahora los mismos 32 bytes admitiendo ambos formatos, tanto al adjuntar/confirmar como al consultar disponibilidad y reutilizar respaldos. Se mantiene la comprobación de tamaño y se rechazan bytes distintos, incluso con el mismo tamaño. Las pruebas conservan la huella nativa de Storage; el fixture anterior la sustituía por hexadecimal y ocultaba este caso. La regresión cubre ambos formatos, diferencias de mayúsculas en Base64, metadatos inválidos, descarga y reutilización, con 77 pruebas de importación/ejecución aprobadas.
+
 ## Arquitectura y decisiones
 
 - `programa_obra_import_attempts`: proyecto, identificador de confirmación, usuario de sesión y nombre al confirmar, fechas, metadatos del archivo, estado, resultado terminal y referencia a la revisión. Los estados son en proceso, completada, sin cambios, fallida e histórica.

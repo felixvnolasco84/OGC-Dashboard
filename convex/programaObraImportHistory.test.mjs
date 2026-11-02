@@ -5,7 +5,7 @@ import * as XLSX from "xlsx";
 import schema from "./schema";
 import { api, internal } from "./_generated/api";
 import { deleteProjectProgramHistory } from "./programaObraImportHistory";
-import { PROGRAM_IMPORT_TIMEOUT } from "./programaObraImportValidators";
+import { PROGRAM_IMPORT_TIMEOUT, programStorageHashMatches } from "./programaObraImportValidators";
 
 const modules = import.meta.glob(["./**/*.ts", "./_generated/*.js"]);
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -41,8 +41,8 @@ async function fixture() {
     const attach = async (blob = file) => {
       const storage_id = await test.run(async ctx => {
         const id = await ctx.storage.store(blob);
-        // Real Storage returns hex; convex-test 0.0.41 returns base64.
-        await ctx.db.patch(id, { sha256: digest(new Uint8Array(await blob.arrayBuffer())), contentType: blob.type });
+        // Keep Storage's native checksum format; only fill its emulated MIME metadata.
+        await ctx.db.patch(id, { contentType: blob.type });
         return id;
       });
       await writer.mutation(api.programaObraImportHistory.attachFile, { attempt_id: started.attempt_id, storage_id });
@@ -58,6 +58,49 @@ async function fixture() {
 
 describe("program workbook originals and atomic audit", () => {
   const fullReview = { date_resolutions: [], archive_absent: true };
+
+  it("compares Storage checksums in hex and Base64 without ignoring Base64 letter case", () => {
+    const bytes = Buffer.from("Original Excel bytes"), hash = digest(bytes);
+    const base64 = createHash("sha256").update(bytes).digest("base64");
+    expect(programStorageHashMatches(hash, hash)).toBe(true);
+    expect(programStorageHashMatches(hash.toUpperCase(), hash)).toBe(true);
+    expect(programStorageHashMatches(base64, hash)).toBe(true);
+    expect(programStorageHashMatches(base64.toLowerCase(), hash)).toBe(false);
+    for (const invalid of ["", "!".repeat(43) + "=", base64.slice(1), "a".repeat(63), "a".repeat(64), "a".repeat(43) + "="]) {
+      expect(programStorageHashMatches(invalid, hash)).toBe(false);
+    }
+    expect(programStorageHashMatches(base64, undefined)).toBe(false);
+    expect(programStorageHashMatches(base64, "invalid hash")).toBe(false);
+  });
+
+  it("still supports hex Storage metadata for attaching, confirming and reusing the original", async () => {
+    const f = await fixture(), p = await f.prepare(undefined, { attach: false });
+    const id = await f.test.run(async ctx => {
+      const id = await ctx.storage.store(new Blob([p.bytes]));
+      await ctx.db.patch(id, { sha256: digest(p.bytes), contentType: p.startArgs.content_type });
+      return id;
+    });
+    await f.writer.mutation(api.programaObraImportHistory.attachFile, { attempt_id: p.input.attempt_id, storage_id: id });
+    expect(await f.apply(p.input)).toMatchObject({ status: "created", created: 3 });
+    expect((await f.writer.query(api.programaObraImportHistory.getAttempt, { attempt_id: p.input.attempt_id })).file_available).toBe(true);
+    const again = await f.prepare();
+    expect(again.started.upload_url).toBeNull();
+    expect(await f.apply(again.input)).toMatchObject({ status: "unchanged" });
+  });
+
+  it("rejects different bytes of the same size and a separately mismatched size with native Storage hashes", async () => {
+    const f = await fixture(), p = await f.prepare(undefined, { attach: false }), before = await f.snapshot();
+    const changed = Buffer.from(p.bytes); changed[changed.length - 1] ^= 1;
+    await expect(p.attach(new Blob([changed]))).rejects.toThrow(/SHA-256/);
+    const id = await f.test.run(async ctx => {
+      const id = await ctx.storage.store(new Blob([p.bytes]));
+      await ctx.db.patch(id, { size: p.bytes.length + 1 });
+      return id;
+    });
+    await expect(f.writer.mutation(api.programaObraImportHistory.attachFile, { attempt_id: p.input.attempt_id, storage_id: id })).rejects.toThrow(/SHA-256/);
+    expect(await f.snapshot()).toEqual(before);
+    expect((await f.writer.query(api.programaObraImportHistory.getAttempt, { attempt_id: p.input.attempt_id })).storage_id).toBeUndefined();
+  });
 
   it("archives COLOCACION CALIZA when the new marble programme only contains its current concepts", async () => {
     const f = await fixture();

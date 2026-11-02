@@ -1,7 +1,18 @@
-import { v, type Infer } from "convex/values";
+import { Base64, v, type Infer } from "convex/values";
 
 export const PROGRAM_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
 export const PROGRAM_IMPORT_TIMEOUT = 30 * 60 * 1000;
+
+// Storage metadata can encode the same 32-byte digest as hex or Base64.
+// Never lowercase Base64: its letter case is part of the checksum.
+export function programStorageHashMatches(stored: string, expectedHex: string | undefined) {
+  if (!expectedHex || !/^[a-f0-9]{64}$/i.test(expectedHex)) return false;
+  if (/^[a-f0-9]{64}$/i.test(stored)) return stored.toLowerCase() === expectedHex.toLowerCase();
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(stored)) return false;
+  const bytes = Base64.toByteArray(stored);
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return bytes.length === 32 && hex === expectedHex.toLowerCase();
+}
 
 export const programImportRowValidator = v.object({
   programa_obra_id: v.optional(v.id("programa_obra")), detalle_id: v.optional(v.id("programa_obra_detalle")),
