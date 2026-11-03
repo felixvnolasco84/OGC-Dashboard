@@ -53,12 +53,12 @@ try {
     await row.focus(); await page.keyboard.press("Enter");
     await page.getByRole("dialog").waitFor();
     await page.getByText("Para iniciar o avanzar: Falta terminar o aceptar Pruebas hidrosanitarias.").waitFor();
-    await page.getByLabel("Inicio real", { exact: true }).fill(await page.getByLabel("Avance al día", { exact: true }).inputValue());
     await page.getByLabel("Avance acumulado (%)", { exact: true }).fill("25");
     await page.getByLabel("Motivo · obligatorio para corregir o solicitar excepción").fill("Frente segregado verificado en sitio");
     await page.getByRole("button", { name: "Solicitar excepción para este avance" }).click();
     const request = await page.evaluate(() => window.recordedMutations[0]);
     assert.match(request.name, /requestExecutionException$/); assert.equal(request.args.progress, 25); assert.equal(request.args.activity_id, "muebles2");
+    for (const field of ["actual_start", "actual_finish", "execution_date"]) assert.equal(request.args[field], undefined, "Exceptions can be requested without dates");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Detail overflow at ${width}px`);
     await page.screenshot({ path: `${root}/output/programa-obra-execution/detail-${width}.png`, fullPage: true });
     await page.keyboard.press("Escape"); await page.getByRole("dialog").waitFor({ state: "hidden" });
@@ -100,27 +100,68 @@ try {
       const open = () => width >= 850
         ? page.getByRole("button", { name: "Registrar avance de Colocación caliza" }).click()
         : page.getByRole("button", { name: /Editar avance real de Colocación caliza/ }).click();
+      const openUndated = async () => {
+        await open(); await page.getByRole("dialog").waitFor();
+        if (mode === "multiple") {
+          await page.getByRole("combobox", { name: "Frente de ejecución" }).click();
+          await page.getByRole("option", { name: /Piso 2/ }).click();
+        }
+      };
+      for (const progress of ["25", "100"]) {
+        await openUndated();
+        assert.equal(await page.getByLabel("Inicio real · opcional", { exact: true }).inputValue(), "");
+        assert.equal(await page.getByLabel("Avance al día · opcional", { exact: true }).inputValue(), "");
+        await page.getByLabel("Avance acumulado (%)", { exact: true }).fill(progress);
+        if (progress === "100") {
+          assert.equal(await page.getByLabel("Terminación real · opcional", { exact: true }).inputValue(), "");
+          await page.screenshot({ path: `${root}/test-results/programa-date-bounds/progress-undated-${mode}-${width}.png`, fullPage: true, animations: "disabled" });
+        }
+        await page.getByRole("button", { name: "Guardar avance", exact: true }).click();
+        await page.getByRole("dialog").waitFor({ state: "hidden" });
+        const capture = await page.evaluate(() => window.recordedMutations.at(-1));
+        assert.equal(capture.args.progress ?? capture.args.avance_porcentaje, Number(progress));
+        assert.match(capture.name, mode === "legacy" ? /updateDetalleAvance$/ : /updateExecutionProgress$/);
+        if (mode !== "legacy") assert.equal(capture.args.activity_id, "piso2");
+        for (const field of ["actual_start", "actual_finish", "execution_date"]) assert.equal(capture.args[field], undefined);
+        assert.match(await page.locator('[data-testid="progress-gantt"] [data-programa-item]').getAttribute("title"), /Inicio real: Sin fecha · Terminación real: Sin fecha/);
+      }
+      // A reporting cutoff alone must not fill the physical dates, and clearing it preserves it.
+      await openUndated();
+      await page.getByLabel("Avance al día · opcional", { exact: true }).fill("2026-09-30");
+      assert.equal(await page.getByLabel("Terminación real · opcional", { exact: true }).inputValue(), "");
+      await page.getByRole("button", { name: "Guardar avance", exact: true }).click();
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await openUndated();
+      assert.equal(await page.getByLabel("Avance al día · opcional", { exact: true }).inputValue(), "2026-09-30");
+      await page.getByLabel("Avance al día · opcional", { exact: true }).fill("");
+      await page.getByRole("button", { name: "Guardar avance", exact: true }).click();
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await openUndated();
+      assert.equal(await page.getByLabel("Avance al día · opcional", { exact: true }).inputValue(), "2026-09-30");
+      assert.equal(await page.getByLabel("Inicio real · opcional", { exact: true }).inputValue(), "");
+      assert.equal(await page.getByLabel("Terminación real · opcional", { exact: true }).inputValue(), "");
+      await page.goto(`http://127.0.0.1:4186/e2e/programa/preview.html?progress=${mode}`);
       await open(); await page.getByRole("dialog").waitFor();
       if (mode === "multiple") {
-        assert.equal(await page.getByLabel("Inicio real", { exact: true }).count(), 0, "Multiple fronts require an explicit selection");
+        assert.equal(await page.getByLabel("Inicio real · opcional", { exact: true }).count(), 0, "Multiple fronts require an explicit selection");
         await page.getByRole("combobox", { name: "Frente de ejecución" }).click();
         await page.getByRole("option", { name: /Piso 3/ }).click();
         assert.equal(await page.getByLabel("Avance acumulado (%)", { exact: true }).inputValue(), "35");
         await page.getByLabel("Avance acumulado (%)", { exact: true }).fill("45");
-        await page.getByLabel("Avance al día", { exact: true }).fill("2026-09-30");
+        await page.getByLabel("Avance al día · opcional", { exact: true }).fill("2026-09-30");
         await page.getByLabel("Avance acumulado (%)", { exact: true }).press("Enter");
         await page.getByRole("dialog").waitFor({ state: "hidden" });
         assert.equal((await page.evaluate(() => window.recordedMutations[0])).args.activity_id, "piso3");
       } else {
-        await page.getByLabel("Inicio real", { exact: true }).fill("2099-01-01");
+        await page.getByLabel("Inicio real · opcional", { exact: true }).fill("2099-01-01");
         await page.getByLabel("Avance acumulado (%)", { exact: true }).fill("100");
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click();
         await page.getByRole("alert").getByText(/fecha futura/).waitFor();
         assert.equal(await page.evaluate(() => (window.recordedMutations ?? []).length), 0);
-        await page.getByLabel("Inicio real", { exact: true }).fill("2026-09-01");
-        await page.getByLabel("Avance al día", { exact: true }).fill("2026-09-30");
-        assert.equal(await page.getByLabel("Terminación real", { exact: true }).inputValue(), "2026-09-30");
-        await page.getByLabel("Terminación real", { exact: true }).fill("2026-09-29");
+        await page.getByLabel("Inicio real · opcional", { exact: true }).fill("2026-09-01");
+        await page.getByLabel("Avance al día · opcional", { exact: true }).fill("2026-09-30");
+        assert.equal(await page.getByLabel("Terminación real · opcional", { exact: true }).inputValue(), "");
+        await page.getByLabel("Terminación real · opcional", { exact: true }).fill("2026-09-29");
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
         await page.screenshot({ path: `${root}/output/programa-obra-execution/progress-${mode}-${width}.png`, fullPage: true });
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click();
@@ -130,21 +171,21 @@ try {
         assert.equal(capture.args.actual_start, "2026-09-01"); assert.equal(capture.args.actual_finish, "2026-09-29"); assert.equal(capture.args.execution_date, "2026-09-30");
         assert.equal(await page.locator('[data-testid="progress-gantt"] [data-delay-kind]').count(), 0, "Late capture of on-time work must not appear red");
         await open();
-        await page.getByLabel("Inicio real", { exact: true }).fill("2026-09-08");
+        await page.getByLabel("Inicio real · opcional", { exact: true }).fill("2026-09-08");
         await page.getByLabel("Motivo · obligatorio para corregir o solicitar excepción").fill("Fecha verificada");
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click(); await page.getByRole("dialog").waitFor({ state: "hidden" });
         assert.equal(await page.locator('[data-delay-kind="start"]').count(), 0, "Seven-day start tolerance is preserved");
         await open();
-        await page.getByLabel("Inicio real", { exact: true }).fill("2026-09-12");
+        await page.getByLabel("Inicio real · opcional", { exact: true }).fill("2026-09-12");
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click();
         await page.getByRole("alert").getByText(/motivo/).waitFor();
         await page.getByLabel("Motivo · obligatorio para corregir o solicitar excepción").fill("Inicio confirmado");
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click(); await page.getByRole("dialog").waitFor({ state: "hidden" });
         assert.equal(await page.locator('[data-delay-kind="start"]').count(), 1);
         await open();
-        await page.getByLabel("Inicio real", { exact: true }).fill("2026-09-01");
-        await page.getByLabel("Avance al día", { exact: true }).fill("2026-10-06");
-        await page.getByLabel("Terminación real", { exact: true }).fill("2026-10-05");
+        await page.getByLabel("Inicio real · opcional", { exact: true }).fill("2026-09-01");
+        await page.getByLabel("Avance al día · opcional", { exact: true }).fill("2026-10-06");
+        await page.getByLabel("Terminación real · opcional", { exact: true }).fill("2026-10-05");
         await page.getByLabel("Motivo · obligatorio para corregir o solicitar excepción").fill("Terminación confirmada");
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click(); await page.getByRole("dialog").waitFor({ state: "hidden" });
         assert.equal(await page.locator('[data-delay-kind="start"]').count(), 0);
@@ -152,7 +193,7 @@ try {
         assertPlannedDelay((await ganttGeometry(page))["fam-familyA"]);
         await open();
         await page.getByLabel("Avance acumulado (%)", { exact: true }).fill("50");
-        assert.equal(await page.getByLabel("Terminación real", { exact: true }).count(), 0);
+        assert.equal(await page.getByLabel("Terminación real · opcional", { exact: true }).count(), 0);
         await page.getByLabel("Motivo · obligatorio para corregir o solicitar excepción").fill("Corrección de porcentaje");
         await page.getByRole("button", { name: "Guardar avance", exact: true }).click(); await page.getByRole("dialog").waitFor({ state: "hidden" });
         assert.equal(await page.locator('[data-delay-kind="finish"]').count(), 1, "Incomplete overdue work remains delayed");

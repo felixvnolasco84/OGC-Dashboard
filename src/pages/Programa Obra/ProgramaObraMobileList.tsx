@@ -46,7 +46,7 @@ function ActivityCard({ item, ...props }: Omit<Props, "items"> & { item: Program
         <div><dt className="text-muted-foreground">Inicio</dt><dd className="mt-0.5 text-foreground">{schedule?.fecha_inicio || "Sin fecha"}</dd></div>
         <div><dt className="text-muted-foreground">Fin programado</dt><dd className="mt-0.5 text-foreground">{schedule?.fecha_fin || "Sin fecha"}</dd></div>
         {item.level === 1 && <>
-          <div><dt className="text-muted-foreground">Inicio real</dt><dd>{item.detalleSchedule?.actual_start ?? "Desconocido"}</dd></div>
+          <div><dt className="text-muted-foreground">Inicio real</dt><dd>{item.detalleSchedule?.actual_start ?? "Sin fecha"}</dd></div>
           <div><dt className="text-muted-foreground">Avance al día</dt><dd>{item.detalleSchedule?.progress_as_of ?? "Sin fecha"}</dd></div>
           {item.detalleSchedule?.actual_finish && <div><dt className="text-muted-foreground">Terminación real</dt><dd>{item.detalleSchedule.actual_finish}</dd></div>}
         </>}

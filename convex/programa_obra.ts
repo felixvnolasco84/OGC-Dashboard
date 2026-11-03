@@ -6,7 +6,7 @@ import { assertBudgetParent } from "./partidaReferences";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { assertProgramCapability, bumpProgramVersion, executionContext, updateLegacyExecutionProgress } from "./programaObraExecution";
-import { programDate, programToday, projectProgramDates } from "../src/lib/programa-obra-rules";
+import { programDate, projectProgramDates } from "../src/lib/programa-obra-rules";
 import { resolveProgressRecord } from "../src/lib/programa-obra-progress";
 import { previewProgramImport } from "./programaObraImport";
 import { assertProgramAttemptFile, assertProgramConfirmation, writableProgramAttempt } from "./programaObraImportHistory";
@@ -514,7 +514,7 @@ export const updateDetalleAvance = mutation({
 
     const previousValue = detalle.avance_porcentaje;
     const { actual_start, actual_finish, progress_as_of, changed } = resolveProgressRecord({ ...detalle, progress: previousValue ?? 0 }, {
-      progress: args.avance_porcentaje, execution_date: args.execution_date ?? programToday(), actual_start: args.actual_start, actual_finish: args.actual_finish, reason: args.reason,
+      progress: args.avance_porcentaje, execution_date: args.execution_date, actual_start: args.actual_start, actual_finish: args.actual_finish, reason: args.reason,
     });
     if (!changed) {
       return { success: true };

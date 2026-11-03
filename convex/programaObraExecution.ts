@@ -7,7 +7,7 @@ import {
   aggregateProgramProgress, programDate, programToday, proposeProgramDates,
   requireProgramDate, summarizeProgram, topologicalActivities, validateCalendar, validateProgress, recordedProgressBlockers,
 } from "../src/lib/programa-obra-rules";
-import { resolveProgressRecord } from "../src/lib/programa-obra-progress";
+import { resolveProgressRecord, type ProgressInput } from "../src/lib/programa-obra-progress";
 
 type Ctx = QueryCtx | MutationCtx;
 type Capability = "plan" | "accept" | "exceptions";
@@ -347,13 +347,13 @@ export const getExecutionHistory = query({
   },
 });
 
-export async function recordExecutionProgress(ctx: MutationCtx, args: { activity_id: Id<"programa_obra_activities">; progress: number; execution_date: string; actual_start?: string; actual_finish?: string; reason?: string }, exceptionId?: Id<"programa_obra_exceptions">) {
+export async function recordExecutionProgress(ctx: MutationCtx, args: ProgressInput & { activity_id: Id<"programa_obra_activities"> }, exceptionId?: Id<"programa_obra_exceptions">, evaluationDate = programToday()) {
   await assertCanWrite(ctx); const activity = await activityDoc(ctx, args.activity_id);
   const { actual_start, actual_finish, progress_as_of: date, correctsKnownDates, changed } = resolveProgressRecord(activity, args);
   if (correctsKnownDates && !exceptionId) await assertProgramCapability(ctx, activity.proyecto, "plan");
   const context = await executionContext(ctx, activity.proyecto);
   if (context.config?.enabled && !activity.responsible_id) throw new Error("Asigna un responsable a la actividad antes de registrar ejecución.");
-  const blockers = recordedProgressBlockers(activity, args.progress, { actual_start, actual_finish, progress_as_of: date }, context.activities, context.dependencies, context.requirements, context.calendar);
+  const blockers = recordedProgressBlockers(activity, args.progress, { actual_start, actual_finish, progress_as_of: date }, context.activities, context.dependencies, context.requirements, context.calendar, evaluationDate);
   if (context.config?.enabled && blockers.length && !exceptionId) throw new Error(`Avance bloqueado: ${blockers.map((b) => b.message).join(" ")} Solicita una excepción para este registro.`);
   if (args.progress < activity.progress && !args.reason?.trim()) throw new Error("Explica el motivo de la reducción o reapertura.");
   if (!changed) return { success: true };
@@ -373,24 +373,25 @@ export async function recordExecutionProgress(ctx: MutationCtx, args: { activity
   return { success: true };
 }
 export const updateExecutionProgress = mutation({
-  args: { activity_id: v.id("programa_obra_activities"), progress: v.number(), execution_date: v.string(), actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()), reason: v.optional(v.string()) },
+  args: { activity_id: v.id("programa_obra_activities"), progress: v.number(), execution_date: v.optional(v.string()), actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()), reason: v.optional(v.string()) },
   handler: recordExecutionProgress,
 });
 
 export const requestExecutionException = mutation({
-  args: { activity_id: v.id("programa_obra_activities"), progress: v.number(), execution_date: v.string(), actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()), reason: v.string() },
+  args: { activity_id: v.id("programa_obra_activities"), progress: v.number(), execution_date: v.optional(v.string()), actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()), reason: v.string() },
   handler: async (ctx, args) => {
     const user = await assertCanWrite(ctx), activity = await activityDoc(ctx, args.activity_id); validateProgress(args.progress);
     const context = await executionContext(ctx, activity.proyecto);
-    const { actual_start, actual_finish, progress_as_of: date, correctsKnownDates } = resolveProgressRecord(activity, args);
+    const requested_at = Date.now(), evaluationDate = programToday(requested_at);
+    const { actual_start, actual_finish, progress_as_of: date, correctsKnownDates } = resolveProgressRecord(activity, args, evaluationDate);
     const reason = textValue(args.reason);
     if (correctsKnownDates) await assertProgramCapability(ctx, activity.proyecto, "plan");
     if (!context.config?.enabled || args.progress <= activity.progress) throw new Error("La solicitud debe corresponder a un incremento válido en el programa activo.");
-    const blockers = recordedProgressBlockers(activity, args.progress, { actual_start, actual_finish, progress_as_of: date }, context.activities, context.dependencies, context.requirements, context.calendar);
+    const blockers = recordedProgressBlockers(activity, args.progress, { actual_start, actual_finish, progress_as_of: date }, context.activities, context.dependencies, context.requirements, context.calendar, evaluationDate);
     if (!blockers.length) throw new Error("Este avance no necesita excepción.");
     const pending = await ctx.db.query("programa_obra_exceptions").withIndex("by_proyecto", (q) => q.eq("proyecto", activity.proyecto)).collect();
     if (pending.some((e) => e.activity_id === activity._id && e.status === "pending" && e.version === context.config!.version)) throw new Error("Ya existe una solicitud pendiente para esta actividad.");
-    const id = await ctx.db.insert("programa_obra_exceptions", { proyecto: activity.proyecto, activity_id: activity._id, old_progress: activity.progress, progress: args.progress, execution_date: date, actual_start, actual_finish, reason, blockers_json: JSON.stringify(blockers), version: context.config.version, status: "pending", requested_by: user._id, requested_at: Date.now() });
+    const id = await ctx.db.insert("programa_obra_exceptions", { proyecto: activity.proyecto, activity_id: activity._id, old_progress: activity.progress, progress: args.progress, execution_date: date, actual_start, actual_finish, reason, blockers_json: JSON.stringify(blockers), version: context.config.version, status: "pending", requested_by: user._id, requested_at });
     await event(ctx, activity.proyecto, "exception_requested", reason, { exception_id: id, blockers }, activity._id); return id;
   },
 });
@@ -403,11 +404,12 @@ export const decideExecutionException = mutation({
       await eligibleUser(ctx, request.proyecto, request.requested_by);
       const context = await executionContext(ctx, request.proyecto), activity = await activityDoc(ctx, request.activity_id);
       if (!context.config?.enabled || context.config.version !== request.version || activity.progress !== request.old_progress) throw new Error("El programa cambió; rechaza esta solicitud y pide un registro actualizado.");
-      const dates = resolveProgressRecord(activity, request);
-      const blockers = recordedProgressBlockers(activity, request.progress, dates, context.activities, context.dependencies, context.requirements, context.calendar);
+      const evaluationDate = programToday(request.requested_at);
+      const dates = resolveProgressRecord(activity, request, evaluationDate);
+      const blockers = recordedProgressBlockers(activity, request.progress, dates, context.activities, context.dependencies, context.requirements, context.calendar, evaluationDate);
       if (JSON.stringify(blockers) !== request.blockers_json) throw new Error("Los requisitos cambiaron; revisa una nueva solicitud.");
       if (dates.correctsKnownDates) await assertRequesterCanPlan(ctx, activity.proyecto, request.requested_by);
-      await recordExecutionProgress(ctx, { activity_id: activity._id, progress: request.progress, execution_date: request.execution_date, actual_start: request.actual_start, actual_finish: request.actual_finish, reason: `Excepción autorizada: ${reason}. Solicitud: ${request.reason}` }, request._id);
+      await recordExecutionProgress(ctx, { activity_id: activity._id, progress: request.progress, execution_date: request.execution_date, actual_start: request.actual_start, actual_finish: request.actual_finish, reason: `Excepción autorizada: ${reason}. Solicitud: ${request.reason}` }, request._id, evaluationDate);
     }
     await ctx.db.patch(request._id, { status: args.approve ? "approved" : "rejected", decided_by: user._id, decided_at: Date.now(), decision_reason: reason });
     await event(ctx, request.proyecto, "exception_decided", reason, { exception_id: request._id, approved: args.approve }, request.activity_id);
@@ -479,6 +481,5 @@ export async function updateLegacyExecutionProgress(ctx: MutationCtx, detalle: D
     return false;
   }
   if (activities.length !== 1) throw new Error("Selecciona el frente concreto en Actividades para registrar avance.");
-  if (!date) throw new Error("Registra la fecha de ejecución en el detalle de la actividad.");
   await recordExecutionProgress(ctx, { activity_id: activities[0]._id, progress, execution_date: date, reason, actual_start, actual_finish }); return true;
 }

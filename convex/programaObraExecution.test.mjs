@@ -200,7 +200,8 @@ function fixture() {
     normalizeId: (table, id) => list(table).some((row) => row._id === id) ? id : null,
   } };
   const call = async (fn, args) => { const before = structuredClone(tables); try { return await fn._handler(ctx, args); } catch (e) { tables = before; throw e; } };
-  const advance = (id, progress, date = "2026-09-15", reason) => call(program.updateExecutionProgress, { activity_id: id, progress, execution_date: date, reason });
+  // Existing dated scenarios explicitly supply known physical dates.
+  const advance = (id, progress, date = "2026-09-15", reason) => call(program.updateExecutionProgress, { activity_id: id, progress, execution_date: date, actual_start: get(id).actual_start ?? date, actual_finish: progress === 100 ? get(id).actual_finish ?? date : undefined, reason });
   const importRows = async (rows, expected_fingerprint) => {
     const review = { date_resolutions: [] };
     const attempt_id = await ctx.db.insert("programa_obra_import_attempts", {
@@ -214,6 +215,91 @@ function fixture() {
 }
 
 describe("execution mutations and queries", () => {
+  it.each(["legacy detail", "activity", "legacy activity"])("records partial and complete progress without dates through %s", async (mode) => {
+    const f = fixture();
+    if (mode === "legacy detail") { f.list("programa_obra_activities").length = 0; f.get("config").enabled = false; }
+    for (const progress of [25, 100]) {
+      if (mode === "activity") await f.call(program.updateExecutionProgress, { activity_id: "A", progress });
+      else await f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: progress });
+      expect(f.get("familyA")).toMatchObject({ avance_porcentaje: progress });
+      for (const field of ["actual_start", "actual_finish", "progress_as_of"]) {
+        expect(f.get("familyA")[field]).toBeUndefined();
+        if (mode !== "legacy detail") expect(f.get("A")[field]).toBeUndefined();
+      }
+      const entry = f.list("programa_obra_avance_historial").at(-1);
+      expect(entry).toMatchObject({ new_value: progress, changed_by_id: "editor" });
+      expect(entry.created_at).toBeGreaterThan(0);
+      expect(entry.execution_date).toBeUndefined();
+    }
+  });
+  it.each([
+    {}, { actual_start: "2026-09-01" }, { actual_finish: "2026-09-02" }, { execution_date: "2026-09-15" },
+    { actual_start: "2026-09-01", actual_finish: "2026-09-02" },
+    { actual_start: "2026-09-01", execution_date: "2026-09-15" },
+    { actual_finish: "2026-09-02", execution_date: "2026-09-15" },
+  ])("does not infer any omitted date from %j", (dates) => {
+    const resolved = resolveProgressRecord({ progress: 0 }, { progress: 100, ...dates }, "2026-10-08");
+    expect(resolved).toMatchObject({ actual_start: dates.actual_start, actual_finish: dates.actual_finish, progress_as_of: dates.execution_date });
+  });
+  it("preserves recorded dates when omitted, and still validates corrections", async () => {
+    const f = fixture();
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 25, actual_start: "2026-09-01", execution_date: "2026-09-15" });
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 50 });
+    expect(f.get("A")).toMatchObject({ progress: 50, actual_start: "2026-09-01", progress_as_of: "2026-09-15" });
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100, actual_finish: "2026-09-10" });
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100 });
+    expect(f.get("A")).toMatchObject({ actual_start: "2026-09-01", actual_finish: "2026-09-10", progress_as_of: "2026-09-15" });
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100, actual_finish: "2026-09-11" })).rejects.toThrow(/motivo/);
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100, actual_finish: "2026-09-11", reason: "Corrección" })).rejects.toThrow(/autorización/);
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "A", progress: 50 })).rejects.toThrow(/motivo/);
+  });
+  it.each([
+    { actual_start: "2026-02-30" }, { actual_finish: "2026-02-30" }, { execution_date: "" },
+    { actual_start: "2099-01-01" }, { actual_finish: "2099-01-01" }, { execution_date: "2099-01-01" },
+    { actual_start: "2026-09-10", actual_finish: "2026-09-01" },
+    { actual_start: "2026-09-10", execution_date: "2026-09-01" },
+    { actual_finish: "2026-09-10", execution_date: "2026-09-01" },
+    { progress: 25, actual_finish: "2026-09-10" },
+  ])("validates supplied dates even when other dates are absent: %j", (input) => {
+    expect(() => resolveProgressRecord({ progress: 0 }, { progress: 100, ...input }, "2026-10-08")).toThrow();
+  });
+  it("does not infer physical dates from reporting cutoffs in the Gantt history", () => {
+    expect(getRecordedProgressTiming(100, { progress_as_of: "2026-09-15" }, [{ old_value: 0, new_value: 100, created_at: Date.now(), execution_date: "2026-09-15" }])).toMatchObject({ progressStartKnown: false, progressStartedAt: undefined, completionKnown: false, completedAt: undefined });
+  });
+  it("still enforces dependencies and waits when progress is reported without dates", async () => {
+    const f = fixture();
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "B", progress: 25 })).rejects.toThrow(/bloqueado/);
+    await f.call(program.updateExecutionProgress, { activity_id: "A", progress: 100 });
+    f.get("dependency").lag_days = 2;
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "B", progress: 25 })).rejects.toThrow(/Falta la fecha real/);
+    f.get("dependency").kind = "SS";
+    await expect(f.call(program.updateExecutionProgress, { activity_id: "B", progress: 25 })).rejects.toThrow(/Falta registrar el inicio real/);
+  });
+  it.each([25, 100])("keeps an undated %s%% exception tied to the request day across approval", async (progress) => {
+    const clock = vi.spyOn(Date, "now");
+    try {
+      clock.mockReturnValue(Date.parse("2026-09-15T12:00:00-06:00"));
+      const f = fixture();
+      Object.assign(f.get("A"), { progress: 100, actual_finish: "2026-09-15" });
+      Object.assign(f.get("dependency"), { lag_days: 2, lag_unit: "natural" });
+      const id = await f.call(program.requestExecutionException, { activity_id: "B", progress, reason: "Trabajo verificado" });
+      const request = f.get(id);
+      expect(request.execution_date).toBeUndefined();
+      expect(request.actual_start).toBeUndefined();
+      expect(request.actual_finish).toBeUndefined();
+      expect(request.blockers_json).toMatch(/espera/);
+      clock.mockReturnValue(Date.parse("2026-09-20T12:00:00-06:00"));
+      f.as("admin");
+      await f.call(program.decideExecutionException, { exception_id: id, approve: true, reason: "Verificado" });
+      expect(f.get(id).status).toBe("approved");
+      expect(f.get("B").progress).toBe(progress);
+      expect(f.get("B").actual_start).toBeUndefined();
+      expect(f.get("B").actual_finish).toBeUndefined();
+      expect(f.get("B").progress_as_of).toBeUndefined();
+      expect(!!f.get("B").review_incident).toBe(progress === 100);
+      expect(f.list("programa_obra_events").find((e) => e.type === "progress")).toMatchObject({ actor_id: "admin", created_at: Date.now(), execution_date: undefined });
+    } finally { clock.mockRestore(); }
+  });
   it("records past physical dates separately from today's capture in legacy details", async () => {
     const f = fixture(); f.list("programa_obra_activities").length = 0; f.get("config").enabled = false;
     await f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 100, actual_start: "2026-09-01", actual_finish: "2026-09-02", execution_date: "2026-09-15" });
@@ -413,8 +499,7 @@ describe("execution mutations and queries", () => {
   it("legacy mutation cannot arbitrarily update an aggregate with several fronts", async () => {
     const f = fixture();
     await expect(f.call(updateDetalleAvance, { detalle_id: "familyB", avance_porcentaje: 20, execution_date: "2026-09-15" })).rejects.toThrow(/frente/);
-    await expect(f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 20 })).rejects.toThrow(/fecha/);
-    await f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 20, execution_date: "2026-09-15" });
+    await f.call(updateDetalleAvance, { detalle_id: "familyA", avance_porcentaje: 20 });
     expect(f.get("A").progress).toBe(20);
   });
   it("reports and the program use the same progress including missing and zero weights", async () => {

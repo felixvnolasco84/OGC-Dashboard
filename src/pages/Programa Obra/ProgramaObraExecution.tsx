@@ -1024,12 +1024,12 @@ function ExecutionActivity({
             <p>
               Inicio real
               <br />
-              <strong>{activity.actual_start ?? "Desconocido"}</strong>
+              <strong>{activity.actual_start ?? "Sin fecha"}</strong>
             </p>
             <p>
               Terminación real
               <br />
-              <strong>{activity.actual_finish ?? "Desconocida"}</strong>
+              <strong>{activity.actual_finish ?? "Sin fecha"}</strong>
             </p>
           </div>
           {model.capabilities.write && (
@@ -2178,7 +2178,7 @@ function ExecutionApprovals({
               "Actividad archivada"}
           </button>
           <p>
-            {e.old_progress} % → {e.progress} % · Ejecución {e.execution_date}
+            {e.old_progress} % → {e.progress} % · Ejecución {e.execution_date ?? "Sin fecha"}
           </p>
           <p>{e.reason}</p>
           <ul className="list-disc pl-4">

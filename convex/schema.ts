@@ -1599,7 +1599,7 @@ export default defineSchema({
   }).index("by_proyecto", ["proyecto"]).index("by_activity", ["activity_id"]),
   programa_obra_exceptions: defineTable({
     proyecto: v.id("desarrollos"), activity_id: v.id("programa_obra_activities"),
-    old_progress: v.number(), progress: v.number(), execution_date: v.string(),
+    old_progress: v.number(), progress: v.number(), execution_date: v.optional(v.string()),
     actual_start: v.optional(v.string()), actual_finish: v.optional(v.string()),
     reason: v.string(), blockers_json: v.string(), version: v.number(),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),

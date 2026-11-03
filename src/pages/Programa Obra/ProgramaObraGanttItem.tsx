@@ -310,7 +310,7 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   return (
     <div
       data-programa-item={item.id}
-      title={`Inicio real: ${item.progressStartedAt != null ? formatRecordedStart(item.progressStartedAt) : "Desconocido"} · Terminación real: ${item.completedAt != null ? formatRecordedStart(item.completedAt) : "Desconocida"} · Avance al día: ${item.detalleSchedule?.progress_as_of ?? "Sin fecha"}`}
+      title={`Inicio real: ${item.progressStartedAt != null ? formatRecordedStart(item.progressStartedAt) : "Sin fecha"} · Terminación real: ${item.completedAt != null ? formatRecordedStart(item.completedAt) : "Sin fecha"} · Avance al día: ${item.detalleSchedule?.progress_as_of ?? "Sin fecha"}`}
       className={cn(
         "absolute top-0 bottom-0 flex items-start",
         isHovered ? "z-40" : "z-10"

@@ -6,7 +6,7 @@ import ProgramaObraProgressEditor from "../../src/pages/Programa Obra/ProgramaOb
 import ProgramaObraMobileList from "../../src/pages/Programa Obra/ProgramaObraMobileList";
 import ProgramaObraGanttItem from "../../src/pages/Programa Obra/ProgramaObraGanttItem";
 import { TooltipProvider } from "../../src/components/ui/tooltip";
-import { getRecordedProgressTiming } from "../../src/lib/programa-obra-progress";
+import { getRecordedProgressTiming, resolveProgressRecord } from "../../src/lib/programa-obra-progress";
 import type { ProgramaItem } from "../../src/pages/Programa Obra/programa-obra-types";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { activityBlockers, activityReleased, activityStatus, activityDelayed, programToday, DEFAULT_PROGRAM_CALENDAR } from "../../src/lib/programa-obra-rules";
@@ -95,7 +95,11 @@ function ProgressPreview({ mode }: { mode: string }) {
   useEffect(() => {
     const update = (event: Event) => {
       const { name, args } = (event as CustomEvent).detail;
-      if (/updateDetalleAvance$|updateExecutionProgress$/.test(name)) setRecord({ progress: args.progress ?? args.avance_porcentaje, actual_start: args.actual_start, actual_finish: args.actual_finish, progress_as_of: args.execution_date });
+      if (/updateDetalleAvance$|updateExecutionProgress$/.test(name)) setRecord((previous) => {
+        const progress = args.progress ?? args.avance_porcentaje;
+        const { actual_start, actual_finish, progress_as_of } = resolveProgressRecord(previous, { ...args, progress }, today);
+        return { progress, actual_start, actual_finish, progress_as_of };
+      });
     };
     window.addEventListener("programa-progress-test", update);
     return () => window.removeEventListener("programa-progress-test", update);
