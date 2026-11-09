@@ -48,6 +48,8 @@
     "test:rfi": "node --experimental-strip-types scripts/test-rfi-rules.mjs",
     "test:rfi-transitions": "vitest run --config vitest.config.ts --configLoader runner convex/rfiTransitions.test.mjs",
     "test:requisicion-notifications": "node --experimental-strip-types scripts/test-requisicion-notifications.mjs",
+    "test:whatsapp": "vitest run --config vitest.config.ts --configLoader runner convex/whatsapp.test.mjs",
+    "test:whatsapp-ui": "node scripts/test-whatsapp-ui.mjs",
     "test:requisiciones-ui": "node scripts/test-requisiciones-ui.mjs",
     "test:requisicion-states": "vitest run --config vitest.config.ts --configLoader runner convex/requisicionStates.test.mjs",
     "test:requisicion-integration": "vitest run --config vitest.config.ts --configLoader runner convex/requisicionIntegration.test.mjs",

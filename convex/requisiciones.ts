@@ -7,6 +7,7 @@ import { assertRequisicionBudgetItems } from "./partidaReferences";
 import { assertRequisicionStateChange } from "./requisicionStateRules";
 import { assertRequestedRequisicionItems, assertRequisicionType, requisicionItemsChanged } from "./requisicionInputRules";
 import { renderRequisicionEmail } from "./requisicionEmailTemplates";
+import { recordWhatsappNotification } from "./whatsapp";
 import { canAddRemissionPhotos, getRequisicionNotificationConfig, isValidRemissionPhoto, notificationForStatusTransition, requisitionDetailUrl, shouldNotifyRequisitionUser, validateOnsitePaymentRequest, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 
 // Convex self-references in actions can create circular inference without this narrowed escape hatch.
@@ -46,6 +47,7 @@ async function recordAutomaticNotification(ctx: MutationCtx, args: {
     const project = await ctx.db.get(args.requisicion.proyecto);
     if (!project) return;
     const users = await ctx.db.query("users").collect();
+    await recordWhatsappNotification(ctx, { ...args, project, users });
     const actorEmail = args.actor.email.trim().toLowerCase();
     const recipientsByEmail = new Map<string, Doc<"users">>();
     for (const user of users) {

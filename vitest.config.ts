@@ -16,6 +16,7 @@ export default defineConfig({
       "convex/rfiTransitions.test.mjs",
       "convex/requisicionStates.test.mjs",
       "convex/requisicionIntegration.test.mjs",
+      "convex/whatsapp.test.mjs",
       "convex/projectDocumentFolders.test.mjs",
       "src/lib/bitacora-offline/**/*.test.ts",
       "convex/paymentAccounts.test.mjs",

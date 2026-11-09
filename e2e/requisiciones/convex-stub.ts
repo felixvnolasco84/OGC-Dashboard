@@ -19,6 +19,7 @@ if (params.has("rejected")) requisiciones = requisiciones.map(req => req._id ===
 const provider = { _id: "provider", razon_social: "ProveedorDeMaterialesConNombreExtensoSinEspacios".repeat(3), rfc: "RFC1234567890", direccion: "Dirección de prueba " + longName, nombre_contacto: "Contacto del proveedor", telefono_contacto: "5551234567", banco: "Banco de prueba", cuenta: "12345678901234567890", clabe: "123456789012345678", created_by: "current" };
 const events = [{ _id: "event", subject: "Aviso de prueba " + longName, actor_name: "Administración", sent_at: 1790784000000, status: "partial", sent_count: 10, failed_count: 1, deliveries: [{ _id: "delivery", channel: "email", status: "failed", recipient_email: "correoextensodepruebapararequisiciones@proveedordematerialesdeconstruccion.example", error: "Error simulado" }] }];
 let revision = 0;
+let whatsappEnabled = false;
 const listeners = new Set<() => void>();
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 const publish = () => { revision++; listeners.forEach((listener) => listener()); };
@@ -36,6 +37,7 @@ export function useQuery(reference: Parameters<typeof getFunctionName>[0], args?
         case "requisicion_history:getUnreadRequisiciones": return { pending: 12 };
         case "requisiciones:getEmailRecipients": return [{ _id: "recipient", email: "prueba@example.test" }];
         case "requisiciones:getNotificationEventsByProyecto": return events;
+        case "whatsapp:projectSettings": return { enabled: whatsappEnabled, can_manage: (params.get("role") || "admin") === "admin" };
         default: throw new Error(`Consulta sin simular: ${getFunctionName(reference)}`);
     }
 }
@@ -44,6 +46,7 @@ export function useMutation(reference: Parameters<typeof getFunctionName>[0]) {
     return async (args: Record<string, unknown>) => {
         const name = getFunctionName(reference);
         state.recordedMutations.push({ name, args });
+        if (name === "whatsapp:setProjectEnabled") { whatsappEnabled = Boolean(args.enabled); publish(); return; }
         if (["requisiciones:updateStatus", "requisiciones:updateStatusEntrega"].includes(name)) {
             if (state.holdStatus) await new Promise<void>((resolve) => { state.releaseStatus = resolve; });
             if (state.failStatus) throw new Error("Fallo simulado al guardar el estado");

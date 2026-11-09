@@ -55,6 +55,8 @@ import {
     type RequisicionNotificationType,
 } from "@/lib/requisicionNotificationMatrix";
 import RequisicionItems from "./RequisicionItems";
+import WhatsappProjectSettings from "@/components/Whatsapp/WhatsappProjectSettings";
+import WhatsappNotificationHistory from "@/components/Whatsapp/WhatsappNotificationHistory";
 import RequisicionContextMenu, { type RequisicionActionGroup } from "./RequisicionContextMenu";
 import ProviderFormDialog, { type ProviderWithMeta } from "@/components/providers/ProviderFormDialog";
 
@@ -1719,12 +1721,14 @@ export default function ProyectoRequisicionesPage() {
                             <DialogHeader className="min-w-0 pr-10 text-left">
                                 <DialogTitle className="flex items-center gap-2 text-xl font-normal text-foreground">
                                     <Mail className="h-5 w-5 text-muted-foreground" />
-                                    Notificaciones por correo
+                                    Notificaciones de requisiciones
                                 </DialogTitle>
                                 <DialogDescription>
                                     Envía una actualización con plantilla OGC a los usuarios con acceso a este proyecto.
                                 </DialogDescription>
                             </DialogHeader>
+
+                            {proyectoId && (currentUser?.role === "admin" || currentUser?.role === "finance") && <WhatsappProjectSettings proyecto={proyectoId as Id<"desarrollos">} />}
 
                             <div className="space-y-2">
                                 <Label>Tipo de notificación</Label>
@@ -1816,7 +1820,8 @@ export default function ProyectoRequisicionesPage() {
                                         <p className="text-xs text-muted-foreground">Aun no hay envios registrados para este proyecto.</p>
                                     ) : (
                                         notificationEvents.map((event) => {
-                                            const readCount = event.deliveries.filter((delivery) => Boolean(delivery.read_at)).length;
+                                            if (event.channel === "whatsapp") return <WhatsappNotificationHistory key={event._id} event={event} />;
+                                            const readCount = event.deliveries.filter((delivery) => delivery.channel === "in_app" && Boolean(delivery.read_at)).length;
                                             return (
                                                 <div key={event._id} className="border border-border bg-card p-3">
                                                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1863,7 +1868,7 @@ export default function ProyectoRequisicionesPage() {
                                     ) : (
                                         <Send className="mr-2 h-4 w-4" />
                                     )}
-                                    Enviar
+                                    Enviar correo
                                 </Button>
                             </div>
                         </div>

@@ -26,9 +26,15 @@ export default defineSchema({
     invited_by: v.optional(v.id("users")),    
     created_at: v.number(),
     last_login: v.optional(v.number()),
+    whatsapp_phone: v.optional(v.string()),
+    whatsapp_enabled: v.optional(v.boolean()),
+    whatsapp_consent_at: v.optional(v.number()),
+    whatsapp_consent_by: v.optional(v.id("users")),
+    whatsapp_opted_out_at: v.optional(v.number()),
   }).index("by_clerk_id", { fields: ["clerkId"] })
     .index("by_email", { fields: ["email"] })
-    .index("by_organization", { fields: ["organization_id"] }),
+    .index("by_organization", { fields: ["organization_id"] })
+    .index("by_whatsapp_phone", ["whatsapp_phone"]),
   partidas: defineTable({
     nivel: v.number(),
     nombre: v.string(),
@@ -54,6 +60,7 @@ export default defineSchema({
     .index("by_proyecto_nivel_partida", { fields: ["proyecto", "nivel", "partida_nombre"] })
     .index("by_proyecto_nivel_partida_familia", { fields: ["proyecto", "nivel", "partida_nombre", "familia"] }),
   desarrollos: defineTable({
+    whatsapp_requisiciones_enabled: v.optional(v.boolean()),
     initial_budget_attempt_id: v.optional(v.id("budget_creation_attempts")),
     initial_budget_status: v.optional(v.union(v.literal("incomplete"), v.literal("completed"))),
     nombre: v.string(),
@@ -1198,11 +1205,13 @@ export default defineSchema({
     created_at: v.number(),
     sent_at: v.optional(v.number()),
     source_history_id: v.optional(v.id("requisicion_history")),
+    whatsapp_result: v.optional(v.string()),
   }).index("by_proyecto", { fields: ["proyecto"] })
     .index("by_requisicion", { fields: ["requisicion_id"] })
     .index("by_proyecto_created", { fields: ["proyecto", "created_at"] })
     .index("by_actor", { fields: ["actor_id"] })
-    .index("by_status", { fields: ["status"] }),
+    .index("by_status", { fields: ["status"] })
+    .index("by_source_channel", ["source_history_id", "channel"]),
 
   // Notification deliveries - One row per recipient and channel
   notification_deliveries: defineTable({
@@ -1213,6 +1222,16 @@ export default defineSchema({
     recipient_name: v.string(),
     recipient_email: v.string(),
     channel: v.string(), // email, in_app, sms, whatsapp, etc.
+    recipient_phone: v.optional(v.string()),
+    attempt_count: v.optional(v.number()),
+    attempt_token: v.optional(v.string()),
+    next_attempt_at: v.optional(v.number()),
+    queued_at: v.optional(v.number()),
+    claimed_at: v.optional(v.number()),
+    accepted_at: v.optional(v.number()),
+    delivered_at: v.optional(v.number()),
+    provider_read_at: v.optional(v.number()),
+    provider_error: v.optional(v.string()),
     status: v.string(), // pending, sent, failed, read
     provider_message_id: v.optional(v.string()),
     error: v.optional(v.string()),
@@ -1225,7 +1244,14 @@ export default defineSchema({
     .index("by_recipient", { fields: ["recipient_user_id"] })
     .index("by_recipient_proyecto", { fields: ["recipient_user_id", "proyecto"] })
     .index("by_status", { fields: ["status"] })
-    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] }),
+    .index("by_proyecto_created", { fields: ["proyecto", "created_at"] })
+    .index("by_provider_message", ["provider_message_id"]),
+
+  // Receipts may arrive before Make returns the provider message ID.
+  whatsapp_receipts: defineTable({
+    provider_message_id: v.string(), phone: v.string(), status: v.string(),
+    occurred_at: v.number(), error: v.optional(v.string()), expires_at: v.number(),
+  }).index("by_message", ["provider_message_id"]).index("by_expiry", ["expires_at"]),
 
   // Tareas - Project task assignment and follow-up
   tareas: defineTable({

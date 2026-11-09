@@ -1,0 +1,172 @@
+[
+  {
+    "name": "ogc_requisicion_creada_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se registró la requisición {{1}} del proyecto {{2}} en OGC.\nResponsable: {{3}}\nEstado de revisión: {{4}}\nAbre la requisición para consultar las partidas solicitadas. Para dejar de recibir actualizaciones de requisiciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "req_ejemplo_001",
+              "Obra de ejemplo",
+              "Responsable de ejemplo",
+              "Nueva requisición"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Ver requisición",
+            "url": "https://ogc-dashboard.vercel.app/{{1}}",
+            "example": [
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto_ejemplo/requisiciones?requisicion=req_ejemplo_001"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_revisada_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "La revisión de la requisición {{1}} del proyecto {{2}} se actualizó en OGC.\nResponsable: {{3}}\nResultado de revisión: {{4}}\nAbre la requisición para consultar las partidas y observaciones registradas. Para dejar de recibir actualizaciones de requisiciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "req_ejemplo_001",
+              "Obra de ejemplo",
+              "Responsable de ejemplo",
+              "Aprobada"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Ver requisición",
+            "url": "https://ogc-dashboard.vercel.app/{{1}}",
+            "example": [
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto_ejemplo/requisiciones?requisicion=req_ejemplo_001"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_pago_obra_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se registró una solicitud de pago en obra para la requisición {{1}} del proyecto {{2}} en OGC.\nResponsable: {{3}}\nEstado de pago: {{4}}\nAbre la requisición para consultar el importe y el motivo del pago solicitado. Para dejar de recibir actualizaciones de requisiciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "req_ejemplo_001",
+              "Obra de ejemplo",
+              "Responsable de ejemplo",
+              "Pago en obra solicitado"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Ver requisición",
+            "url": "https://ogc-dashboard.vercel.app/{{1}}",
+            "example": [
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto_ejemplo/requisiciones?requisicion=req_ejemplo_001"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_pagada_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se confirmó un pago de la requisición {{1}} del proyecto {{2}} en OGC.\nResponsable: {{3}}\nEstado de pago: {{4}}\nAbre la requisición para consultar el comprobante del pago registrado. Para dejar de recibir actualizaciones de requisiciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "req_ejemplo_001",
+              "Obra de ejemplo",
+              "Responsable de ejemplo",
+              "Pago confirmado"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Ver requisición",
+            "url": "https://ogc-dashboard.vercel.app/{{1}}",
+            "example": [
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto_ejemplo/requisiciones?requisicion=req_ejemplo_001"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_entrega_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "La recepción de materiales de la requisición {{1}} del proyecto {{2}} se actualizó en OGC.\nResponsable: {{3}}\nEstado de recepción: {{4}}\nAbre la requisición para consultar las cantidades y evidencias registradas. Para dejar de recibir actualizaciones de requisiciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "req_ejemplo_001",
+              "Obra de ejemplo",
+              "Responsable de ejemplo",
+              "Completo"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "BUTTONS",
+        "buttons": [
+          {
+            "type": "URL",
+            "text": "Ver requisición",
+            "url": "https://ogc-dashboard.vercel.app/{{1}}",
+            "example": [
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto_ejemplo/requisiciones?requisicion=req_ejemplo_001"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

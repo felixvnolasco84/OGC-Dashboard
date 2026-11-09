@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { Loader2, Shield, User, Eye, DollarSign, UserPlus, Trash2, Package } from "lucide-react";
 import { Id } from "../../../convex/_generated/dataModel";
+import WhatsappContactSettings from "@/components/Whatsapp/WhatsappContactSettings";
 
 export default function UserManagementPage() {
   const users = useQuery(api.users.getAllUsers);
@@ -263,6 +264,7 @@ export default function UserManagementPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
+                  <WhatsappContactSettings key={selectedUserRecord._id} user={selectedUserRecord} />
                   {/* Role Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="role">Rol</Label>

@@ -143,6 +143,9 @@ import type * as transactionConcept from "../transactionConcept.js";
 import type * as users from "../users.js";
 import type * as weekly_avance_real from "../weekly_avance_real.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
+import type * as whatsapp from "../whatsapp.js";
+import type * as whatsappHttp from "../whatsappHttp.js";
+import type * as whatsappRules from "../whatsappRules.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -283,6 +286,9 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   weekly_avance_real: typeof weekly_avance_real;
   weekly_projected_totals: typeof weekly_projected_totals;
+  whatsapp: typeof whatsapp;
+  whatsappHttp: typeof whatsappHttp;
+  whatsappRules: typeof whatsappRules;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

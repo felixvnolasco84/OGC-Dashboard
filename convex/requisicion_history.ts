@@ -290,6 +290,7 @@ export const markAsRead = mutation({
       )
       .filter((q) =>
         q.and(
+          q.eq(q.field("channel"), "in_app"),
           q.eq(q.field("status"), "sent"),
           q.eq(q.field("read_at"), undefined)
         )

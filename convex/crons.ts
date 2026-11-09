@@ -6,6 +6,7 @@ import { internal } from "./_generated/api";
 const convexInternal = internal as any;
 
 const crons = cronJobs();
+crons.hourly("clean unmatched WhatsApp receipts", { minuteUTC: 10 }, internal.whatsapp.cleanupReceipts, {});
 crons.daily("reconcile income Excel uploads", { hourUTC: 9, minuteUTC: 30 }, internal.incomeImportHistory.cleanupUnattachedUploads, {});
 crons.daily("reconcile initial budget uploads", { hourUTC: 9, minuteUTC: 0 }, internal.budgetCreationHistory.cleanup, {});
 

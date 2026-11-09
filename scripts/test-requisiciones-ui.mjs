@@ -80,6 +80,8 @@ async function menuAction(page, id, label) {
     await page.getByRole("menuitem", { name: label, exact: true }).click();
 }
 async function closeDialog(page) {
+    // Radix registers dismissal after the portal mounts; visibility can precede that effect.
+    await page.locator('[role="dialog"], [role="alertdialog"]').evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
@@ -218,7 +220,10 @@ try {
         await snapshot(page, `notifications-${width}`);
         await page.getByRole("dialog").getByRole("button", { name: "Ver requisiciones", exact: true }).scrollIntoViewIfNeeded();
         await snapshot(page, `notifications-preview-${width}`);
-        await page.getByRole("dialog").getByRole("button", { name: "Enviar", exact: true }).click();
+        await expect(page.getByRole("switch", { name: "WhatsApp automático" })).not.toBeChecked();
+        await page.getByRole("switch", { name: "WhatsApp automático" }).click();
+        await expect(page.getByRole("switch", { name: "WhatsApp automático" })).toBeChecked();
+        await page.getByRole("dialog").getByRole("button", { name: "Enviar correo", exact: true }).click();
         await closeDialog(page);
         assert.equal(await page.evaluate(() => window.recordedMutations.some((entry) => entry.name === "requisiciones:sendEmailNotification")), true);
         await page.getByRole("tab", { name: /^Aprobadas/ }).click();
@@ -393,7 +398,7 @@ try {
         await snapshot(page, `short-provider-${width}`);
         await closeDialog(page);
         await page.getByRole("button", { name: "Notificaciones", exact: true }).click();
-        await page.getByRole("dialog").getByRole("button", { name: "Enviar", exact: true }).scrollIntoViewIfNeeded();
+        await page.getByRole("dialog").getByRole("button", { name: "Enviar correo", exact: true }).scrollIntoViewIfNeeded();
         await snapshot(page, `short-notifications-${width}`);
         await closeDialog(page);
         await card(page).evaluate((element, point) => element.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: point.x, clientY: point.y, button: 2 })), { x: width - 2, y: height - 2 });
