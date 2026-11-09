@@ -67,7 +67,7 @@ El titular autorizó datos ficticios y el receptor terminado en **6020**. Se cre
 
 Se conservan dos incidencias iniciales en el historial: el fallo confirmado de facturación `131042` y un resultado incierto del conector nativo (respuesta HTML inesperada). Este último permanece **Requiere revisión**, sin reenvío. La creación exitosa corresponde a una requisición ficticia independiente, no a la repetición del intento incierto.
 
-Pendiente de confirmación del titular: enlace autenticado desde el teléfono y BAJA real. El piloto mantiene habilitado únicamente su proyecto de prueba hasta terminar esas comprobaciones. La interfaz está validada localmente; su publicación se está completando.
+Pendiente de confirmación del titular: enlace autenticado desde el teléfono y BAJA real. El piloto mantiene habilitado su proyecto de prueba hasta terminar esas comprobaciones. La interfaz se publicó en el dashboard mediante el commit `61396273`; Vercel confirmó el despliegue y se verificaron los módulos públicos de Gestión de Usuarios y Requisiciones contra el backend esperado.
 
 ## Validación técnica
 
