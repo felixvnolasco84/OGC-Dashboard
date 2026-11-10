@@ -1,4 +1,4 @@
-# Estado de WhatsApp — 9 de noviembre de 2026
+# Estado de WhatsApp — 10 de noviembre de 2026
 
 ## Meta y emisor
 
@@ -67,7 +67,11 @@ El titular autorizó datos ficticios y el receptor terminado en **6020**. Se cre
 
 Se conservan dos incidencias iniciales en el historial: el fallo confirmado de facturación `131042` y un resultado incierto del conector nativo (respuesta HTML inesperada). Este último permanece **Requiere revisión**, sin reenvío. La creación exitosa corresponde a una requisición ficticia independiente, no a la repetición del intento incierto.
 
-Pendiente de confirmación del titular: enlace autenticado desde el teléfono y BAJA real. El piloto mantiene habilitado su proyecto de prueba hasta terminar esas comprobaciones. La interfaz se publicó en el dashboard mediante el commit `61396273`; Vercel confirmó el despliegue y se verificaron los módulos públicos de Gestión de Usuarios y Requisiciones contra el backend esperado.
+El 10 de noviembre, el titular confirmó que **Ver requisición** funciona tras iniciar sesión y que envió **BAJA**. Se comprobó en el backend que el contacto quedó deshabilitado y con fecha de baja registrada. Un evento ficticio posterior recorrió el productor real y terminó **Omitido**, con **cero intentos de envío** y evento **Sin destinatarios habilitados**.
+
+El proyecto ficticio quedó desactivado para WhatsApp y ambos usuarios ficticios tienen WhatsApp deshabilitado. Se conservó el historial del piloto, incluidas las incidencias. Se retiró el módulo interno temporal de pruebas del backend desplegado y se verificó que sus funciones ya no existen; no se publicaron en Git.
+
+La interfaz se publicó en el dashboard mediante el commit `61396273`; Vercel confirmó el despliegue y se verificaron los módulos públicos de Gestión de Usuarios y Requisiciones contra el backend esperado. El piloto de los cinco eventos, enlaces y baja está completado.
 
 ## Validación técnica
 
