@@ -1,6 +1,7 @@
 import React from "react";
 import { AxisOptions, Chart } from "react-charts";
 import { Settings } from "lucide-react";
+import { parseProjectDate } from "../../../convex/reportingUtils";
 
 interface ChartDataPoint {
     date: string;
@@ -91,45 +92,19 @@ export default function FamiliaChart({
     const gradientId = React.useMemo(() => `familia-chart-gradient-${toSafeId(chartId)}`, [chartId]);
     const chartColor = color.toUpperCase() === "#3B82F6" ? referenceChartColor : color;
 
-    // Use real data from queries (filtered by configuration)
-    const rawData = data;
-
-    // Queries return chronological cumulative balances; keep the closing balance per day.
-    const chartData = React.useMemo(() => {
-        const dataMap = new Map<string, ChartDataPoint>();
-
-        rawData.forEach((point) => {
-            dataMap.set(point.date, point);
-        });
-
-        return Array.from(dataMap.values());
-    }, [rawData]);
-
     // Transform data for react-charts format
     const transformedData: ReactChartsSeries[] = React.useMemo(() => {
-        if (chartData.length === 0) return [];
+        if (data.length === 0) return [];
 
-        // Parse dates from API format "YYYY-MM-DD Mon" or "DD Mon"
-        const parseDateString = (dateStr: string): Date => {
-            if (!dateStr || typeof dateStr !== 'string') {
-                console.warn('Invalid date string:', dateStr);
-                return new Date();
-            }
+        const parseDateString = (dateStr: string): Date | null => {
+            // Parse full calendar dates locally to avoid UTC shifting a point to the previous day.
+            const isoDate = parseProjectDate(dateStr);
+            if (isoDate) return new Date(`${isoDate}T00:00:00`);
+            if (!dateStr || typeof dateStr !== 'string') return null;
 
             const parts = dateStr.trim().split(' ');
 
-            // Format: "YYYY-MM-DD Mon" (e.g., "2025-11-06 Ene")
-            if (parts.length >= 2 && parts[0].includes('-')) {
-                const datePart = parts[0]; // "2025-11-06"
-                const [year, month, day] = datePart.split('-').map(n => parseInt(n, 10));
-
-                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                    // Month is 1-based in the string, but Date constructor expects 0-based
-                    return new Date(year, month - 1, day);
-                }
-            }
-
-            // Format: "DD Mon" (e.g., "06 Ene")
+            // Backward compatibility for legacy, single-year "DD Mon" labels.
             if (parts.length === 2) {
                 const monthMap: { [key: string]: number } = {
                     'Ene': 0, 'Enero': 0, 'Jan': 0, 'January': 0,
@@ -154,35 +129,27 @@ export default function FamiliaChart({
                 }
             }
 
-            // Fallback: try to parse as ISO date or return current date
-            console.warn('Unable to parse date string, using fallback:', dateStr);
-            const fallbackDate = new Date(dateStr);
-            return isNaN(fallbackDate.getTime()) ? new Date() : fallbackDate;
+            return null;
         };
 
-        // Sort data by date to prevent vertical spikes
-        const sortedData = [...chartData].sort((a, b) => {
-            const dateA = parseDateString(a.date);
-            const dateB = parseDateString(b.date);
-            return dateA.getTime() - dateB.getTime();
+        // Query values are already cumulative. Keep the closing balance for each full date,
+        // including the year, and normalize date representations before deduplicating.
+        const dailyBalances = new Map<number, ReactChartsDataPoint>();
+        data.forEach((point) => {
+            const date = parseDateString(point.date);
+            if (!date) return;
+            dailyBalances.set(date.getTime(), { primary: date, secondary: point.monto });
         });
 
-        // Plot the API balance directly so the curve ends at the reported total.
-        const cumulativeData = sortedData.map((d) => ({
-            primary: parseDateString(d.date),
-            secondary: d.monto,
-        }));
+        const cumulativeData = Array.from(dailyBalances.values())
+            .sort((a, b) => a.primary.getTime() - b.primary.getTime());
+        if (cumulativeData.length === 0) return [];
 
-        const series: ReactChartsSeries[] = [];
-
-        // Single series for this familia with cumulative data
-        series.push({
+        return [{
             label: title,
             data: cumulativeData,
-        });
-
-        return series;
-    }, [chartData, title]);
+        }];
+    }, [data, title]);
 
     const primaryAxis = React.useMemo<AxisOptions<ReactChartsDataPoint>>(
         () => {

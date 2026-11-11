@@ -426,7 +426,7 @@ describe("query read optimizations", () => {
     f.ctx.db.get = async id => { idsRead.push(id); return get(id); };
     const result = await getFamiliaChartData._handler(f.ctx, { proyecto_id: "project" });
     expect(result).toEqual({ dataPoints: [
-      { date: "01 Ene", monto: 2 }, { date: "02 Ene", monto: 2.1 }, { date: "02 Ene", monto: 2.3000000000000003 },
+      { date: "2026-01-01", monto: 2 }, { date: "2026-01-02", monto: 2.1 }, { date: "2026-01-02", monto: 2.3000000000000003 },
     ], total: 2.3000000000000003 });
     expect(idsRead.filter(id => id === "same")).toHaveLength(1);
     expect(idsRead).toHaveLength(4);

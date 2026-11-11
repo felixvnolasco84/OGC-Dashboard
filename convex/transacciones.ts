@@ -2685,21 +2685,18 @@ export const getFamiliaChartData = query({
       const pago = sortedPagos[i];
       cumulativeMonto += pago.monto;
 
-      // Format date as "DD Mon" (handle both DD/MM/YYYY and YYYY-MM-DD formats)
-      let day: string, month: string;
+      // Preserve the year so the chart cannot merge or interleave different years.
+      let day: string, month: string, year: string;
       
       if (pago.transaction.fecha.includes('/')) {
         // Format: "DD/MM/YYYY"
-        [day, month] = pago.transaction.fecha.split('/');
+        [day, month, year] = pago.transaction.fecha.split('/');
       } else {
         // Format: "YYYY-MM-DD"
-        const parts = pago.transaction.fecha.split('-');
-        [, month, day] = parts; // Extract year, month, day
+        [year, month, day] = pago.transaction.fecha.split('-');
       }
-      
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-      const monthName = monthNames[parseInt(month, 10) - 1] || 'Ene';
-      const dateLabel = `${day} ${monthName}`;
+
+      const dateLabel = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
       dataPoints.push({
         date: dateLabel,

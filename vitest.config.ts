@@ -13,6 +13,7 @@ export default defineConfig({
       "convex/budgetCreation.test.mjs",
       "convex/bitacoraEdit.test.mjs",
       "src/components/Charts/FamiliaChart.test.mjs",
+      "convex/familiaChartData.test.mjs",
       "convex/rfiTransitions.test.mjs",
       "convex/requisicionStates.test.mjs",
       "convex/requisicionIntegration.test.mjs",

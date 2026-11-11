@@ -67,6 +67,36 @@ describe("FamiliaChart cumulative spending", () => {
             .toEqual([[1, 500], [2, 1_000], [3, 1_700]]);
     });
 
+    it("keeps overlapping calendar dates in different years in chronological order", () => {
+        const { options } = renderChart([
+            { date: "2025-01-05", monto: 1_000 },
+            { date: "2025-10-04", monto: 2_000 },
+            { date: "2025-12-31", monto: 3_000 },
+            { date: "2026-01-05", monto: 4_000 },
+            { date: "2026-10-04", monto: 5_000 },
+        ], 5_000);
+
+        expect(options.data[0].data.map(point => [
+            point.primary.getFullYear(), point.primary.getMonth() + 1,
+            point.primary.getDate(), point.secondary,
+        ])).toEqual([
+            [2025, 1, 5, 1_000], [2025, 10, 4, 2_000], [2025, 12, 31, 3_000],
+            [2026, 1, 5, 4_000], [2026, 10, 4, 5_000],
+        ]);
+    });
+
+    it("groups different date representations into the same calendar day's closing balance", () => {
+        const { options } = renderChart([
+            { date: "2026-07-05", monto: 1_000 },
+            { date: "05/07/2026", monto: 1_500 },
+            { date: "2026-07-05 Jul", monto: 1_200 },
+            { date: "06 Jul 2026", monto: 2_000 },
+        ], 2_000);
+
+        expect(options.data[0].data.map(point => [point.primary.getDate(), point.secondary]))
+            .toEqual([[5, 1_200], [6, 2_000]]);
+    });
+
     it("distinguishes fractional millions on the axis and shows exact tooltip amounts", () => {
         const { options } = renderChart([{ date: "04 Oct", monto: 1_700_000 }], 1_700_000);
         const { scale, tooltip } = options.secondaryAxes[0].formatters;
