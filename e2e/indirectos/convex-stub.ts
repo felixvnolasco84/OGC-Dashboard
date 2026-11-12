@@ -20,6 +20,19 @@ const monthlyOgcMovements = { "2026-10": { honorarios: 15000, indirectos: 10000,
 const totals = { honorarios: 15000, indirectos: 10000, indirectosLegacyCosto: 0, costosRealesIndirectos: 7000, saldoIndirectos: 3000, ingresosOgc: 25000, costosOgc: 7000, costosEstructuraOgc: 7000, costosEstructuraMasIndirectos: 7000, ebitda: 18000, ebitdaMargin: .72, margen: 18000, margenPercent: .72, estructuraPercent: .28, structureBreakdown, activeProjects: 1, currentMonthMargen: 18000, currentMonthIngresos: 25000, currentMonthCostos: 7000, currentMonthMargenPercent: .72, wip: { presupuesto: 200000, costoReal: 125000, pagado: 150000, saldo: 25000, ejecutadoPercent: .625, backlogPendiente: 75000 } };
 const pnl = { totals, monthlyOgcMovements, structureGroups: [{ key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS" }], period: { year: 2026, cutoffMonth: 10, currentMonthKey: "2026-10" } };
 const profitability = { ...pnl, projects: [{ ...project, id: "project", ...totals, wip: { ...totals.wip, avance: .5, valorGanado: 100000, restante: 75000, eac: 250000, varianza: -50000, cpi: .8, ingresosBreakdown: [], runway: 4, averageMonthlyExpense: 100000 } }] };
+const profitabilityFixes = new URLSearchParams(location.search).get("reportScenario") === "profitabilityFixes";
+const accumulatedProject = {
+  ...profitability.projects[0], honorarios: 11069963.72, indirectos: 2665542.77,
+  ingresosOgc: 13735506.49, margen: 13728506.49, margenPercent: 13728506.49 / 13735506.49,
+};
+const correctedProfitability = {
+  ...profitability, projects: [accumulatedProject],
+  unassignedOgc: { ingresosOgc: 0, costosOgc: 12000, margen: -12000 },
+  totals: { ...totals, honorarios: accumulatedProject.honorarios, indirectos: accumulatedProject.indirectos,
+    ingresosOgc: accumulatedProject.ingresosOgc, costosOgc: 19000, costosEstructuraOgc: 19000, costosEstructuraMasIndirectos: 19000,
+    margen: 13716506.49, margenPercent: 13716506.49 / 13735506.49, ebitda: 13716506.49, ebitdaMargin: 13716506.49 / 13735506.49,
+    structureBreakdown: [...structureBreakdown, { key: "nomina", label: "NOMINA", amount: 12000 }] },
+};
 let revision = 0;
 let previewFailure = false;
 let mutationFailure = false;
@@ -114,15 +127,20 @@ function queryResult(name: string, args?: unknown): unknown {
   }
   if (name === "desarrollos:getPnlSummary") {
     reportQueries.push(name);
-    return reportLoading === "pnl" ? undefined : pnl;
+    return reportLoading === "pnl" ? undefined : profitabilityFixes ? { ...pnl, structureGroups: undefined } : pnl;
   }
   if (name === "desarrollos:getProfitabilitySummary") {
     reportQueries.push(name);
-    return reportLoading === "profitability" ? undefined : profitability;
+    return reportLoading === "profitability" ? undefined : profitabilityFixes ? correctedProfitability : profitability;
   }
   if (name === "ogc_movimientos:getAll") {
     ledgerQueries.push(name);
-    return reportLoading === "ledger" ? undefined : [];
+    if (reportLoading === "ledger") return undefined;
+    return profitabilityFixes ? [
+      { _id: "nomina", tipo: "costo_estructura", categoria: "NOMINA", descripcion: "Nómina corporativa de prueba", monto: 12000, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },
+      { _id: "disp", tipo: "costo_estructura", categoria: "DISP HONORARIOS", descripcion: "Dispersión excluida de prueba", monto: 9000, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },
+      { _id: "disp-description", tipo: "ingreso", categoria: "OTROS", descripcion: "DISP. HONORARIOS en descripción", monto: 3000, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },
+    ] : [];
   }
   throw new Error(`Unexpected fixture query: ${name}`);
 }

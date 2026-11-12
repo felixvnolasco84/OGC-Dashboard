@@ -7,6 +7,7 @@ import { calculatePresupuestoMetrics } from "./presupuestoRules";
 import { getByProyecto } from "./meticas_presupuesto";
 import { getFamiliaChartData } from "./transacciones";
 import { getAllWithMetrics } from "./desarrollos";
+import { deriveFeeConcepts } from "./feeConceptRules";
 
 const period = { periodYear: 2026, cutoffMonth: 2, usdToMxn: 17, eurToMxn: 18.5 };
 
@@ -95,17 +96,22 @@ describe.each([
     { categoria: "  disp   HONORARIOS ", descripcion: "Renta y transporte", tipo: "ingreso" },
     { categoria: "OTROS", descripcion: "Transporte y renta: DISP   HONORARIOS", tipo: "ingreso" },
     { categoria: "DISP HONORARIOS", descripcion: "Administración y nómina", tipo: "costo_estructura" },
-  ])("puts DISP exclusively in its cost row with $tipo / $categoria", async patch => {
-    const result = await query._handler(database({ ogc_movimientos: [movement(patch)] }).ctx, period);
+    { categoria: "OTROS", descripcion: "Dispersión de honorarios", tipo: "costo_estructura" },
+  ])("excludes DISP from rows, costs, income and margins with $tipo / $categoria", async patch => {
+    const f = database({ ogc_movimientos: [movement(patch)] });
+    const before = structuredClone(f.tables);
+    const result = await query._handler(f.ctx, period);
+    expect(f.tables).toEqual(before);
     expect(result.totals.honorarios).toBe(100);
-    expect(result.totals.costosEstructuraOgc).toBe(300);
-    expect(structureAmount(result, "disp_honorarios")).toBe(300);
+    expect(result.totals).toMatchObject({ ingresosOgc: 100, costosEstructuraOgc: 0, costosEstructuraMasIndirectos: 0, ebitda: 100, ebitdaMargin: 1 });
+    expect(result.totals.structureBreakdown.some(row => row.key === "disp_honorarios")).toBe(false);
+    if (result.structureGroups) expect(result.structureGroups.some(row => row.key === "disp_honorarios")).toBe(false);
     expect(structureAmount(result, "renta")).toBe(0);
     expect(structureAmount(result, "transporte")).toBe(0);
     expect(structureAmount(result, "otros")).toBe(0);
     expect(result.totals.hasOgcIncomeMovements).toBe(false);
-    expect(result.totals.hasOgcStructureMovements).toBe(true);
-    expect(result.projects[0].monthlyOgcMovements["2026-1"].structureBreakdown.disp_honorarios).toBe(300);
+    expect(result.totals.hasOgcStructureMovements).toBe(false);
+    expect(result.projects[0].monthlyOgcMovements["2026-1"].structureBreakdown).not.toHaveProperty("disp_honorarios");
   });
 
   it("preserves indirect income and normal structure costs", async () => {
@@ -146,29 +152,31 @@ describe.each([
       ],
     });
     const result = await query._handler(f.ctx, period);
-    expect(result.totals.honorarios).toBe(385);
+    expect(result.totals.honorarios).toBe(query === getProfitabilitySummary ? 485 : 385);
     expect(result.projects[0].monthlyOgcMovements["2026-1"].honorarios).toBe(200);
     expect(result.projects[0].monthlyOgcMovements["2026-2"].honorarios).toBe(185);
   });
 
-  it("skips inactive, invalid-date and outside-period DISP movements and converts active costs", async () => {
+  it("converts active costs while excluding DISP, inactive, invalid and future movements", async () => {
     const f = database({ ogc_movimientos: [
-      movement({ _id: "jan", categoria: "DISP HONORARIOS", monto: 10, moneda: "USD", tipo_cambio: 20 }),
-      movement({ _id: "feb", categoria: "DISP HONORARIOS", monto: 10, moneda: "EUR", fecha: "28/02/2026" }),
-      movement({ _id: "void", categoria: "DISP HONORARIOS", status: "anulado" }),
-      movement({ _id: "duplicate", categoria: "DISP HONORARIOS", status: "duplicado" }),
-      movement({ _id: "future", categoria: "DISP HONORARIOS", fecha: "01/03/2026" }),
-      movement({ _id: "old", categoria: "DISP HONORARIOS", fecha: "31/12/2025" }),
-      movement({ _id: "invalid", categoria: "DISP HONORARIOS", fecha: "NaN/NaN/NaN" }),
+      movement({ _id: "jan", tipo: "costo_estructura", categoria: "RENTA", monto: 10, moneda: "USD", tipo_cambio: 20 }),
+      movement({ _id: "feb", tipo: "costo_estructura", categoria: "RENTA", monto: 10, moneda: "EUR", fecha: "28/02/2026" }),
+      movement({ _id: "void", tipo: "costo_estructura", categoria: "RENTA", status: "anulado" }),
+      movement({ _id: "duplicate", tipo: "costo_estructura", categoria: "RENTA", status: "duplicado" }),
+      movement({ _id: "future", tipo: "costo_estructura", categoria: "RENTA", fecha: "01/03/2026" }),
+      movement({ _id: "old", tipo: "costo_estructura", categoria: "RENTA", fecha: "31/12/2025", monto: 25 }),
+      movement({ _id: "invalid", tipo: "costo_estructura", categoria: "RENTA", fecha: "NaN/NaN/NaN" }),
+      movement({ _id: "disp", categoria: "DISP HONORARIOS", monto: 5000, moneda: "USD" }),
     ] });
     const result = await query._handler(f.ctx, period);
     const monthly = result.projects[0].monthlyOgcMovements;
     expect(result.totals.honorarios).toBe(100);
-    expect(structureAmount(result, "disp_honorarios")).toBe(385);
-    expect(monthly["2026-1"].structureBreakdown.disp_honorarios).toBe(200);
-    expect(monthly["2026-2"].structureBreakdown.disp_honorarios).toBe(185);
+    const expectedCost = query === getProfitabilitySummary ? 410 : 385;
+    expect(structureAmount(result, "renta")).toBe(expectedCost);
+    expect(monthly["2026-1"].structureBreakdown.renta).toBe(200);
+    expect(monthly["2026-2"].structureBreakdown.renta).toBe(185);
     expect(Object.values(monthly).reduce((sum, month) => sum + month.honorarios, 0)).toBe(result.totals.honorarios);
-    expect(Object.values(monthly).reduce((sum, month) => sum + month.structureBreakdown.disp_honorarios, 0)).toBe(385);
+    expect(Object.values(monthly).reduce((sum, month) => sum + month.structureBreakdown.renta, 0)).toBe(expectedCost);
   });
 
   it("returns zero honorarios for a project without a percentage", async () => {
@@ -177,16 +185,17 @@ describe.each([
   });
 });
 
-it("keeps corporate DISP in consolidated P&L and excludes misclassified costs from WIP income", async () => {
+it("excludes project and corporate DISP from both reports and WIP income", async () => {
   const f = database({
     ingresos: [{ _id: "income", proyecto: "project", monto: 200, fecha: "01/01/2026", moneda: "MXN" }],
     ogc_movimientos: [movement({ categoria: "DISP HONORARIOS" }), movement({ _id: "corporate", proyecto: undefined, categoria: "DISP HONORARIOS", monto: 70 })],
   });
   const pnl = await getPnlSummary._handler(f.ctx, period);
   const profitability = await getProfitabilitySummary._handler(f.ctx, period);
-  expect(structureAmount(pnl, "disp_honorarios")).toBe(370);
-  expect(pnl.monthlyOgcMovements["2026-1"].structureBreakdown.disp_honorarios).toBe(370);
-  expect(structureAmount(profitability, "disp_honorarios")).toBe(300);
+  expect(pnl.totals.costosEstructuraOgc).toBe(0);
+  expect(pnl.monthlyOgcMovements["2026-1"].structureBreakdown).not.toHaveProperty("disp_honorarios");
+  expect(profitability.totals.costosEstructuraOgc).toBe(0);
+  expect(profitability.unassignedOgc).toEqual({ ingresosOgc: 0, costosOgc: 0, margen: 0 });
   expect(profitability.projects[0].wip.pagado).toBe(200);
   expect(profitability.projects[0].wip.costoReal).toBe(500);
   expect(profitability.projects[0].wip.averageMonthlyExpense).toBe(1000);
@@ -248,7 +257,7 @@ it("loads profitability within the document limit for a portfolio with 15,000 hi
   expect(f.reads.documents).toBeLessThan(17000);
 });
 
-it("keeps lifetime WIP costs and cutoff expenses while limiting P&L charges to the selected year", async () => {
+it("accumulates profitability through cutoff while keeping monthly P&L annual and WIP costs unchanged", async () => {
   const f = automaticDatabase({
     desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 15, indirectos_porcentaje: 10, honorarios_monto: 0 }],
     partidas: [{ _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA", pagado: 6000 }],
@@ -265,8 +274,83 @@ it("keeps lifetime WIP costs and cutoff expenses while limiting P&L charges to t
     ogc_movimientos: [],
   });
   const result = await getProfitabilitySummary._handler(f.ctx, october);
-  expect(result.totals).toMatchObject({ honorarios: 300, indirectos: 200 });
+  expect(result.totals).toMatchObject({ honorarios: 450, indirectos: 300, ingresosOgc: 750, currentMonthIngresos: 500 });
+  const pnl = await getPnlSummary._handler(f.ctx, october);
+  expect(pnl.totals).toMatchObject({ honorarios: 300, indirectos: 200, ingresosOgc: 500 });
+  expect(pnl.monthlyOgcMovements).not.toHaveProperty("2025-12");
   expect(result.projects[0].wip).toMatchObject({ costoReal: 6600, averageMonthlyExpense: 1500 });
+});
+
+it("matches accumulated Presupuesto honorarios plus indirectos across project years", async () => {
+  // Synthetic records reproduce the paid amounts in the reported example.
+  const honorarios = 11069963.72;
+  const indirectos = 2665542.77;
+  const partidas = [
+    { _id: "work", proyecto: "project", nivel: 1, nombre: "OBRA", presupuesto_original: 100000000 - honorarios - indirectos, presupuesto_aprobado: 100000000 - honorarios - indirectos, pagado: 100000000 },
+    { _id: "fee", proyecto: "project", nivel: 1, nombre: "HONORARIOS", presupuesto_original: honorarios, presupuesto_aprobado: honorarios, pagado: 0 },
+    { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS", presupuesto_original: indirectos, presupuesto_aprobado: indirectos, pagado: 0 },
+  ];
+  const fee_concepts = deriveFeeConcepts([
+    { concepto: "honorarios", partida_id: "fee", excluded_partidas: [] },
+    { concepto: "indirectos", partida_id: "indirect", excluded_partidas: [] },
+  ], partidas, "project");
+  const f = database({
+    desarrollos: [{ _id: "project", nombre: "Obra", moneda_principal: "MXN", fee_concepts, honorarios_monto: 0 }],
+    partidas,
+    transacciones: [
+      { _id: "old", proyecto: "project", fecha: "15/01/2024", status: "Pagado", monto_total: 60000000, moneda: "MXN" },
+      { _id: "current", proyecto: "project", fecha: "2026-10-01", status: "Pagado", monto_total: 40000000, moneda: "MXN" },
+    ],
+    pagos: [
+      { transaccion_id: "old", partida_id: "work", monto: 60000000 },
+      { transaccion_id: "current", partida_id: "work", monto: 40000000 },
+    ],
+  });
+  const before = structuredClone(f.tables);
+  const budget = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "project", end_date: "2026-10-31" });
+  const metrics = await getByProyecto._handler(f.ctx, { proyecto_id: "project" });
+  const profitability = await getProfitabilitySummary._handler(f.ctx, october);
+  const project = profitability.projects[0];
+  expect(budget.honorarios).toBe(honorarios);
+  expect(budget.indirectos).toBe(indirectos);
+  expect(metrics.honorarios_monto).toBe(honorarios);
+  expect(project.honorarios).toBeCloseTo(budget.honorarios, 2);
+  expect(project.indirectos).toBeCloseTo(budget.indirectos, 2);
+  expect(project.ingresosOgc).toBeCloseTo(13735506.49, 2);
+  expect(project.ingresosOgc).toBeCloseTo(budget.honorarios + budget.indirectos, 2);
+  expect(project.margen).toBeCloseTo(project.ingresosOgc - project.costosOgc, 2);
+  expect(profitability.totals.ingresosOgc).toBe(project.ingresosOgc);
+  expect(f.tables).toEqual(before);
+});
+
+it("reconciles corporate and project structure, cutoff, currency and location without allocating corporate costs to a project", async () => {
+  const f = database({
+    desarrollos: [
+      { _id: "project", nombre: "Obra", ubicacion: "Los Cabos", honorarios_porcentaje: 10 },
+      { _id: "other-project", nombre: "Otra obra", ubicacion: "La Paz" },
+    ],
+    ogc_movimientos: [
+      movement({ _id: "assigned", tipo: "costo_estructura", categoria: "RENTA", monto: 50 }),
+      movement({ _id: "corporate", proyecto: undefined, tipo: "costo_estructura", categoria: "NOMINA", monto: 10, moneda: "USD", tipo_cambio: 20 }),
+      movement({ _id: "old-corporate", proyecto: undefined, tipo: "costo_estructura", categoria: "NOMINA", monto: 30, fecha: "2025-12-01" }),
+      movement({ _id: "other-project-cost", proyecto: "other-project", tipo: "costo_estructura", categoria: "RENTA", monto: 90 }),
+      movement({ _id: "future", proyecto: undefined, tipo: "costo_estructura", categoria: "RENTA", fecha: "2026-03-01", monto: 2000 }),
+      movement({ _id: "void", proyecto: undefined, tipo: "costo_estructura", categoria: "RENTA", status: "anulado", monto: 2000 }),
+      movement({ _id: "disp", proyecto: undefined, categoria: "DISP HONORARIOS", monto: 9000 }),
+    ],
+  });
+  const args = { ...period, locationKey: "Los Cabos" };
+  const pnl = await getPnlSummary._handler(f.ctx, args);
+  const profitability = await getProfitabilitySummary._handler(f.ctx, args);
+  expect(profitability.projects).toHaveLength(1);
+  expect(profitability.projects[0]).toMatchObject({ costosEstructuraOgc: 50, costosOgc: 50, margen: 50 });
+  expect(profitability.unassignedOgc).toEqual({ ingresosOgc: 0, costosOgc: 230, margen: -230 });
+  expect(profitability.totals).toMatchObject({ costosEstructuraOgc: 280, costosOgc: 280, margen: -180, ebitda: -180, currentMonthCostos: 0 });
+  expect(structureAmount(profitability, "nomina")).toBe(230);
+  expect(structureAmount(profitability, "renta")).toBe(50);
+  expect(profitability.totals.structureBreakdown.reduce((sum, row) => sum + row.amount, 0)).toBe(profitability.totals.costosEstructuraOgc);
+  expect(profitability.projects.reduce((sum, project) => sum + project.costosOgc, profitability.unassignedOgc.costosOgc)).toBe(profitability.totals.costosOgc);
+  expect(pnl.totals.costosEstructuraOgc).toBe(250);
 });
 
 describe.each([["P&L", getPnlSummary], ["Profitability", getProfitabilitySummary]])("Automatic indirectos: %s", (_name, query) => {
@@ -329,12 +413,14 @@ describe.each([["P&L", getPnlSummary], ["Profitability", getProfitabilitySummary
   });
 });
 
-it("includes corporate real indirect expenses only in consolidated P&L", async () => {
+it("includes corporate real indirect expenses once in both consolidated reports", async () => {
   const f = automaticDatabase({ ogc_movimientos: [movement({ proyecto: undefined, categoria: "INDIRECTOS", tipo: "costo_estructura", fecha: "2026-10-02", monto: 12000 })] });
   const pnl = await getPnlSummary._handler(f.ctx, october);
   const profitability = await getProfitabilitySummary._handler(f.ctx, october);
   expect(pnl.totals).toMatchObject({ saldoIndirectos: -2000, costosRealesIndirectos: 12000, ebitda: 13000 });
-  expect(profitability.totals).toMatchObject({ saldoIndirectos: 10000, costosRealesIndirectos: 0 });
+  expect(profitability.totals).toMatchObject({ saldoIndirectos: -2000, costosRealesIndirectos: 12000, ebitda: 13000, margen: 13000, currentMonthMargen: 13000, currentMonthCostos: 12000 });
+  expect(profitability.projects[0]).toMatchObject({ costosOgc: 0, margen: 25000 });
+  expect(profitability.unassignedOgc).toEqual({ ingresosOgc: 0, costosOgc: 12000, margen: -12000 });
 });
 
 it("substitutes automatic indirectos in budget, control, filtered payments and WIP", async () => {
@@ -377,8 +463,8 @@ it.skipIf(!snapshotPath)("matches the audited real-data January–October 2026 t
   const profitability = await getProfitabilitySummary._handler(f.ctx, args);
   expect(pnl.totals.honorarios).toBeCloseTo(21595310.46, 2);
   expect(cabos.totals.honorarios).toBeCloseTo(19477017.38, 2);
-  expect(profitability.totals.honorarios).toBeCloseTo(pnl.totals.honorarios, 6);
-  expect(structureAmount(pnl, "disp_honorarios")).toBe(0);
+  expect(profitability.totals.honorarios).toBeGreaterThanOrEqual(pnl.totals.honorarios);
+  expect(pnl.totals.structureBreakdown.some(row => row.key === "disp_honorarios")).toBe(false);
   expect(Object.values(pnl.monthlyOgcMovements).reduce((sum, month) => sum + month.honorarios, 0)).toBeCloseTo(pnl.totals.honorarios, 6);
 });
 

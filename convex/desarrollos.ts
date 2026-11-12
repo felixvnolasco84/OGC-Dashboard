@@ -115,7 +115,6 @@ const STRUCTURE_COST_GROUPS = [
     { key: "impuestos", label: "IMPUESTOS", labels: ["impuestos", "imss", "isn", "infonavit", "cargas sociales"] },
     { key: "renta", label: "RENTA", labels: ["renta"] },
 ];
-const DISP_HONORARIOS_LABELS = ["disp honorarios", "dispersion honorarios"];
 const OGC_STRUCTURE_COST_GROUPS = [
     ...STRUCTURE_COST_GROUPS.filter(() => false),
     { key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS", labels: ["indirectos", "indirecto"] },
@@ -124,7 +123,6 @@ const OGC_STRUCTURE_COST_GROUPS = [
     { key: "transporte", label: "TRANSPORTE", labels: ["transporte"] },
     { key: "renta", label: "RENTA", labels: ["renta"] },
     { key: "otros", label: "OTROS", labels: ["otros", "administracion", "administrativo"] },
-    { key: "disp_honorarios", label: "DISP HONORARIOS", labels: DISP_HONORARIOS_LABELS },
 ];
 type OgcMovement = Doc<"ogc_movimientos">;
 type PnlQueryArgs = {
@@ -139,6 +137,7 @@ type PnlPeriod = {
     start: Date;
     end: Date;
     currentMonthKey: string;
+    accumulated?: boolean;
 };
 type ExchangeRates = {
     USD: number;
@@ -176,8 +175,6 @@ const matchesMovementGroup = (movement: Pick<OgcMovement, "categoria" | "descrip
 };
 
 const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripcion">) => {
-    // A dispersion can mention other costs, but belongs exclusively to this row.
-    if (isDispHonorarios(movement)) return "disp_honorarios";
     if (normalizeMovementCategory(movement.categoria) === "indirectos") return "indirectos_reales";
     const category = normalizeMovementCategory(movement.categoria);
     const explicitGroup = OGC_STRUCTURE_COST_GROUPS.find(group => normalizeMovementCategory(group.label) === category);
@@ -264,7 +261,7 @@ const convertToMxn = (
 
 const isDateWithinPeriod = (date: Date | null, period: PnlPeriod) => {
     if (!date) return false;
-    return date.getTime() >= period.start.getTime() && date.getTime() <= period.end.getTime();
+    return (period.accumulated || date.getTime() >= period.start.getTime()) && date.getTime() <= period.end.getTime();
 };
 
 const isDateOnOrBeforeCutoff = (date: Date | null, period: PnlPeriod) => {
@@ -332,6 +329,7 @@ const getAccessibleOgcMovements = async (ctx: QueryCtx, proyectos: Doc<"desarrol
 
     return movements.filter((movement) => {
         if (movement.status && movement.status !== "activo") return false;
+        if (isDispHonorarios(movement)) return false;
         if (hasGlobalAdminAccess(user)) return true;
         if (!movement.proyecto) return movement.organization_id === organizationId;
         if (movement.organization_id && movement.organization_id !== organizationId) return false;
@@ -342,6 +340,9 @@ const getAccessibleOgcMovements = async (ctx: QueryCtx, proyectos: Doc<"desarrol
 const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rates: ExchangeRates, proyecto?: Doc<"desarrollos">) => {
     return movements.reduce(
         (acc, movement) => {
+            // Dispersions are excluded from every report calculation, including
+            // fee-impact previews which use their own unfiltered record snapshot.
+            if (isDispHonorarios(movement)) return acc;
             const parsedDate = parseReportDate(movement.fecha);
             if (!isDateWithinPeriod(parsedDate, period)) return acc;
 
@@ -547,7 +548,7 @@ const loadProjectPaymentRecords = async (
             .collect(),
     ]);
 
-    // WIP budget costs need lifetime payments; P&L charges remain period-based.
+    // WIP budget costs need lifetime payments; report charges follow their scope.
     const paymentTransactions = includeAllPayments
         ? transactions
         : transactions.filter(t => isDateWithinPeriod(parseReportDate(t.fecha), period));
@@ -944,9 +945,12 @@ export const getProfitabilitySummary = query({
     handler: async (ctx, args) => {
     const { projects: proyectos, ogcMovements } = await getPnlLocationScope(ctx, args.locationKey);
     const now = new Date();
-    const period = normalizePnlPeriod(args);
+    // Project profitability compares the complete project history through the
+    // selected cutoff. The monthly P&L keeps its January-to-cutoff scope.
+    const period: PnlPeriod = { ...normalizePnlPeriod(args), accumulated: true };
     const rates = normalizeExchangeRates(args);
     const allMovementSummary = summarizeOgcMovements(ogcMovements, period, rates);
+    const companyOnlyMovementSummary = summarizeOgcMovements(ogcMovements.filter(movement => !movement.proyecto), period, rates);
 
     const projects = await Promise.all(
         proyectos.map(async (proyecto) => {
@@ -1056,8 +1060,37 @@ export const getProfitabilitySummary = query({
         }
     );
 
+    // Corporate structure has no project to contribute it during the reduction.
+    // Include it once in consolidated costs and show it separately from projects.
+    const unassignedOgc = {
+        ingresosOgc: companyOnlyMovementSummary.indirectos,
+        costosOgc: companyOnlyMovementSummary.costosEstructura + companyOnlyMovementSummary.indirectosLegacyCosto,
+        margen: 0 - companyOnlyMovementSummary.costosEstructura,
+    };
+    totals.indirectos += companyOnlyMovementSummary.indirectos;
+    totals.indirectosLegacyCosto += companyOnlyMovementSummary.indirectosLegacyCosto;
+    totals.costosRealesIndirectos += companyOnlyMovementSummary.structureBreakdown.indirectos_reales || 0;
+    totals.saldoIndirectos -= companyOnlyMovementSummary.structureBreakdown.indirectos_reales || 0;
+    totals.ingresosOgc += unassignedOgc.ingresosOgc;
+    totals.costosOgc += unassignedOgc.costosOgc;
+    totals.costosEstructuraOgc += companyOnlyMovementSummary.costosEstructura;
+    totals.costosEstructuraMasIndirectos += unassignedOgc.costosOgc;
+    totals.ebitda += unassignedOgc.margen;
+    totals.margen += unassignedOgc.margen;
+    const currentMonth = companyOnlyMovementSummary.monthly[period.currentMonthKey];
+    const currentMonthIngresos = currentMonth?.indirectos || 0;
+    const currentMonthCostos = (currentMonth?.indirectosLegacyCosto || 0) + getMonthlyStructureTotal(currentMonth);
+    totals.currentMonthIngresos += currentMonthIngresos;
+    totals.currentMonthCostos += currentMonthCostos;
+    totals.currentMonthMargen += currentMonthIngresos - currentMonthCostos;
+    Object.entries(companyOnlyMovementSummary.structureBreakdown).forEach(([key, amount]) => {
+        totals.structureBreakdown[key] = (totals.structureBreakdown[key] || 0) + amount;
+    });
+    mergeMonthlySummaries(totals.monthlyOgcMovements, companyOnlyMovementSummary.monthly);
+
     return {
         projects,
+        unassignedOgc,
         totals: {
             ...totals,
             structureBreakdown: OGC_STRUCTURE_COST_GROUPS.map((group) => ({
@@ -1081,9 +1114,10 @@ export const getProfitabilitySummary = query({
         period: {
             year: period.year,
             cutoffMonth: period.cutoffMonth,
-            start: period.start.getTime(),
+            start: null,
             end: period.end.getTime(),
             currentMonthKey: period.currentMonthKey,
+            accumulated: true,
         },
         currency: {
             display: "MXN",

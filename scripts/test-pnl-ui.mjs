@@ -54,10 +54,29 @@ try {
     await expect(page.getByRole("button", { name: "Work in progress", exact: true })).toBeVisible();
     await page.evaluate(() => window.feeFixtureChange({ reportLoading: null }));
     await expect(page.getByText("Ingresos OGC YTD", { exact: true })).toBeVisible();
+
+    // Accumulated income, corporate costs and excluded dispersions render in
+    // both responsive layouts, including the secondary ledger.
+    await page.goto("http://127.0.0.1:4198/e2e/indirectos/preview.html?reportScenario=profitabilityFixes");
+    await expect(page.getByText("Ingresos OGC YTD", { exact: true })).toBeVisible();
+    await expect(page.getByText("DISP HONORARIOS", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Project profitability", exact: true }).click();
+    const projectRow = page.getByRole("row").filter({ hasText: "Obra de prueba" });
+    await expect(projectRow.locator('[title="$13,735,506.49"]')).toBeVisible();
+    const corporateRow = page.getByRole("row").filter({ hasText: "OGC sin obra asignada" });
+    await expect(corporateRow).toBeVisible();
+    await expect(corporateRow.locator('[title="$12,000.00"]')).toBeVisible();
+    const nominaRow = page.getByRole("row").filter({ has: page.getByText("NOMINA", { exact: true }) });
+    await expect(nominaRow.locator('[title="$12,000.00"]')).toBeVisible();
+    await expect(page.getByText("DISP HONORARIOS", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Ledger movimientos OGC", exact: true }).click();
+    const ledger = page.getByRole("dialog");
+    await expect(ledger.getByText("Nómina corporativa de prueba", { exact: true })).toBeVisible();
+    await expect(ledger.getByText(/DISP|Dispersión excluida/)).toHaveCount(0);
     assert.deepEqual(errors, []);
     await page.close();
   }
-  console.log("P&L UI passed: lazy report queries, pending report navigation, WIP and profitability, mobile and desktop. Synthetic fixtures only.");
+  console.log("P&L UI passed: report navigation, accumulated income, corporate structure and excluded DISP movements, mobile and desktop. Synthetic fixtures only.");
 } finally {
   await browser?.close();
   await new Promise((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve()));

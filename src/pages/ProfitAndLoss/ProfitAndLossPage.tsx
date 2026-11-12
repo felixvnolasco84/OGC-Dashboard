@@ -30,7 +30,7 @@ import {
 import { OgcMovementsUploadModal } from "@/components/modals/ogc-movements-upload-modal";
 import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-evidence-dialog";
 import type { OgcInvoiceProof } from "@/lib/ogcInvoiceEvidence";
-import { getOgcTypeLabel, normalizeOgcClassification } from "../../../convex/ogcClassificationRules";
+import { getOgcTypeLabel, isDispHonorarios, normalizeOgcClassification } from "../../../convex/ogcClassificationRules";
 import { cn, formatPercentage } from "@/lib/utils";
 import { Ban, CalendarDays, Check, Copy, Info, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
@@ -193,6 +193,11 @@ type PnlQueryParams = {
 
 type ProfitabilitySummary = {
   projects: ProfitabilityProject[];
+  unassignedOgc?: {
+    ingresosOgc: number;
+    costosOgc: number;
+    margen: number;
+  };
   totals: {
     honorarios: number;
     indirectos: number;
@@ -304,7 +309,6 @@ const DEFAULT_STRUCTURE_GROUPS = [
   { key: "transporte", label: "TRANSPORTE" },
   { key: "renta", label: "RENTA" },
   { key: "otros", label: "OTROS" },
-  { key: "disp_honorarios", label: "DISP HONORARIOS" },
 ];
 const LEDGER_CATEGORIES = [
   "HONORARIOS",
@@ -314,7 +318,6 @@ const LEDGER_CATEGORIES = [
   "TRANSPORTE",
   "RENTA",
   "OTROS",
-  "DISP HONORARIOS",
   "CARGA SOCIAL OBRA (SIROC-RECUPERABLE)",
   "FLUJO FISCAL (IVA + RETENCIONES)",
 ];
@@ -529,10 +532,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Honorarios calculados con las reglas de cada obra sobre pagos elegibles. Viáticos y General Conditions configurados usan el acumulado completo del proyecto; los demás indirectos conservan su fecha de inicio y tratamiento histórico. Los costos reales provienen de movimientos OGC. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
+    return `Honorarios e indirectos calculados con las reglas de cada obra sobre pagos elegibles del periodo seleccionado. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC en la fecha capturada. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Viáticos y General Conditions configurados usan todos los pagos Pagado acumulados del proyecto, incluidos los anteriores a octubre de 2026. Honorarios y los demás conceptos conservan su fecha de inicio y tratamiento anterior. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC. DISP HONORARIOS se reconoce como costo de estructura en la fecha del movimiento, sin prorrateo lineal.";
+  return "Los conceptos configurados usan los pagos Pagado del periodo seleccionado. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC en la fecha capturada, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({
@@ -1060,17 +1063,13 @@ function CollectedIncomeBreakdownDialog({
   );
 }
 
-function renderIndirectosBalanceRows(totals: { costosRealesIndirectos?: number; saldoIndirectos?: number }) {
-  return <>
-    <tr className="border-b border-border bg-card">
-      <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS REALES DE INDIRECTOS <span className="block text-xs text-muted-foreground">Incluidos en costos OGC</span></td>
-      <td className="px-8 py-6 text-center align-middle text-base">{formatAccountingCurrency(-safeNumber(totals.costosRealesIndirectos))}</td>
-    </tr>
+function renderIndirectosBalanceRow(totals: { saldoIndirectos?: number }) {
+  return (
     <tr className="border-b border-border bg-card">
       <td className="px-8 py-6 align-middle text-base text-foreground">SALDO DE INDIRECTOS <span className="block text-xs text-muted-foreground">Cobrados menos costos reales y costo histórico</span></td>
       <td className="px-8 py-6 text-center align-middle text-base">{formatTableCurrency(safeNumber(totals.saldoIndirectos))}</td>
     </tr>
-  </>;
+  );
 }
 
 function AnnualPnlSummaryTables({
@@ -1172,12 +1171,12 @@ function AnnualPnlSummaryTables({
                 </td>
               </tr>
               <tr className="border-b border-border bg-card">
-                <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS OGC + INDIRECTOS HISTÓRICOS</td>
+                <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS OGC</td>
                 <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                   {formatAccountingCurrency(-Math.abs(costosEstructuraMasIndirectos))}
                 </td>
               </tr>
-              {renderIndirectosBalanceRows(totals)}
+              {renderIndirectosBalanceRow(totals)}
               <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                 <td className="px-8 py-6 align-middle text-base text-foreground">
                   <div className="flex flex-col gap-1">
@@ -1205,11 +1204,9 @@ function AnnualPnlSummaryTables({
 function ProjectProfitabilityView({
   summary,
   currentMonthLabel,
-  periodLabel,
 }: {
   summary: ProfitabilitySummary;
   currentMonthLabel: string;
-  periodLabel: string;
 }) {
   const projects = summary.projects;
   const totals = summary.totals;
@@ -1227,7 +1224,7 @@ function ProjectProfitabilityView({
         <WipMetricCard
           label="Margen bruto total OGC"
           value={formatMetricCurrency(totals.margen)}
-          badge="Desde inicio de anio"
+          badge={`Acumulado hasta ${currentMonthLabel}`}
           valueClassName={totals.margen >= 0 ? "text-foreground" : "text-[#802424]"}
         />
         <WipMetricCard
@@ -1256,6 +1253,7 @@ function ProjectProfitabilityView({
             <h2 className="text-lg text-foreground">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
             <div className="text-left md:text-right">
               <p className="text-sm text-disabled-foreground">Ingresos por obra vs. costos reales OGC asignados y costos históricos de indirectos</p>
+              <p className="mt-1 text-xs text-muted-foreground">Desde el inicio de cada obra hasta {currentMonthLabel}, con las reglas vigentes de Presupuesto.</p>
             </div>
           </div>
 
@@ -1306,6 +1304,26 @@ function ProjectProfitabilityView({
                   </tr>
                 )}
 
+                {summary.unassignedOgc && (summary.unassignedOgc.ingresosOgc !== 0 || summary.unassignedOgc.costosOgc !== 0) && (
+                  <tr className="border-b border-border bg-card">
+                    <td className="px-8 py-6 align-middle text-base text-foreground">OGC sin obra asignada</td>
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                      {formatTableCurrency(summary.unassignedOgc.ingresosOgc)}
+                    </td>
+                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
+                      {formatAccountingCurrency(-Math.abs(summary.unassignedOgc.costosOgc))}
+                    </td>
+                    <td className={cn(SOFT_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
+                      <div className="flex items-center justify-center gap-8">
+                        <span className={summary.unassignedOgc.margen >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
+                          {formatTableCurrency(summary.unassignedOgc.margen)}
+                        </span>
+                        <span className={DETAIL_TEXT_CLASS}>{formatWholePercent(safeDivide(summary.unassignedOgc.margen, summary.unassignedOgc.ingresosOgc))}</span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
                 <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                   <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OGC</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
@@ -1333,8 +1351,8 @@ function ProjectProfitabilityView({
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <h2 className="text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
               <div className="text-left md:text-right">
-                <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Solo movimientos OGC cargados, distribuidos por la fecha capturada.</p>
+                <p className="text-sm text-disabled-foreground">Acumulado hasta {currentMonthLabel}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Movimientos OGC con y sin obra asignada, por la fecha capturada.</p>
               </div>
             </div>
 
@@ -1376,7 +1394,7 @@ function ProjectProfitabilityView({
           <div className="space-y-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
               <h2 className="text-lg text-foreground">EBITDA OGC</h2>
-              <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
+              <p className="text-sm text-disabled-foreground">Acumulado hasta {currentMonthLabel}</p>
             </div>
 
             <div className="overflow-x-auto border border-border bg-card">
@@ -1407,12 +1425,12 @@ function ProjectProfitabilityView({
                     </td>
                   </tr>
                   <tr className="border-b border-border bg-card">
-                    <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS OGC + INDIRECTOS HISTÓRICOS</td>
+                    <td className="px-8 py-6 align-middle text-base text-foreground">COSTOS OGC</td>
                     <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                       {formatAccountingCurrency(-Math.abs(totals.costosEstructuraMasIndirectos))}
                     </td>
                   </tr>
-                  {renderIndirectosBalanceRows(totals)}
+                  {renderIndirectosBalanceRow(totals)}
                   <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-foreground">
                       <div className="flex flex-col gap-1">
@@ -2251,13 +2269,12 @@ export default function ProfitAndLossPage() {
     [locationFilter, proyectos],
   );
   const ledgerMovements = useMemo(() => {
-    if (!ogcMovements || locationFilter === ALL_PROJECT_LOCATIONS) {
-      return ogcMovements;
-    }
+    if (!ogcMovements) return undefined;
 
     const projectIds = new Set(ledgerProjects.map((project) => String(project._id)));
     return ogcMovements.filter(
-      (movement) => !movement.proyecto || projectIds.has(String(movement.proyecto)),
+      (movement) => !isDispHonorarios(movement) &&
+        (locationFilter === ALL_PROJECT_LOCATIONS || !movement.proyecto || projectIds.has(String(movement.proyecto))),
     );
   }, [ledgerProjects, locationFilter, ogcMovements]);
 
@@ -2438,7 +2455,6 @@ export default function ProfitAndLossPage() {
           <ProjectProfitabilityView
             summary={profitabilitySummary}
             currentMonthLabel={currentMonthLabel}
-            periodLabel={periodLabel}
           />
         )}
       </div>
