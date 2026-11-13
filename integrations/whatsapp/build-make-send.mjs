@@ -7,8 +7,7 @@ if (!referencePath || !outputPath) {
   throw new Error('Usage: node build-make-send.mjs <reference.blueprint.json> <output.blueprint.json>');
 }
 const reference = JSON.parse(await readFile(referencePath, 'utf8'));
-const templates = JSON.parse(await readFile(new URL('./templates.prepared.json', import.meta.url), 'utf8'));
-const stateTemplate = JSON.parse(await readFile(new URL('./templates.state-v2.json', import.meta.url), 'utf8'));
+const templates = JSON.parse(await readFile(new URL('./templates.events-v2.json', import.meta.url), 'utf8'));
 const copy = value => structuredClone(value);
 const flatten = flow => flow.flatMap(module => [module, ...flatten(module.onerror || []), ...(module.routes || []).flatMap(route => flatten(route.flow))]);
 const modules = flatten(reference.flow);
@@ -26,10 +25,8 @@ for (const module of [claim, callbackReference]) {
 if (templates.length !== 5 || new Set(templates.map(template => template.name)).size !== 5) throw new Error('Exactly five distinct templates are required');
 for (const template of templates) {
   const body = template.components.find(component => component.type === 'BODY')?.text || '';
-  if (template.language !== 'es_MX' || template.category !== 'UTILITY' || [...body.matchAll(/\{\{(\d+)\}\}/g)].map(match => match[1]).join(',') !== '1,2,3,4') throw new Error(`Invalid template contract: ${template.name}`);
+  if (template.language !== 'es_MX' || template.category !== 'UTILITY' || [...body.matchAll(/\{\{(\d+)\}\}/g)].map(match => match[1]).join(',') !== '1,2,3,4,5,6,7,8,9' || template.components.some(component => component.type === 'BUTTONS')) throw new Error(`Invalid template contract: ${template.name}`);
 }
-const stateBody = stateTemplate.components.find(component => component.type === 'BODY')?.text || '';
-if (stateTemplate.language !== 'es_MX' || stateTemplate.category !== 'UTILITY' || [...stateBody.matchAll(/\{\{(\d+)\}\}/g)].map(match => match[1]).join(',') !== '1,2,3,4,5,6,7,8,9') throw new Error('Invalid state template contract');
 let nextId = 10;
 const allocate = () => nextId++;
 const design = (x, y, name) => ({ designer: { x, y, name } });
@@ -67,8 +64,8 @@ for (const [index, template] of templates.entries()) {
   const send = copy(sendReference);
   send.id = allocate();
   send.filter = condition(template.name, [{ a: `{{${claim.id}.data.template}}`, o: 'text:equal', b: template.name }]);
-  send.mapper.messageTemplate = `${stateTemplate.name}::${stateTemplate.language}`;
-  const bodyText = stateBody;
+  send.mapper.messageTemplate = `${template.name}::${template.language}`;
+  const bodyText = template.components.find(component => component.type === 'BODY').text;
   const hiddenName = Object.keys(send.mapper.body).find(name => name.startsWith('inputtext-'));
   if (!hiddenName) throw new Error('Reference requires a text template body');
   const hiddenText = bodyText.replace(/\{\{(\d+)\}\}/g, '{{{{$1}}}}');
@@ -82,7 +79,7 @@ for (const [index, template] of templates.entries()) {
   send.metadata.expect = send.metadata.expect.filter(field => !['body', 'buttons'].includes(field.name));
   send.metadata.expect.push(bodySpec);
   send.metadata.restore.expect.messageTemplate = {
-    label: `${stateTemplate.name} (${stateTemplate.language})`,
+    label: `${template.name} (${template.language})`,
     nested: [{ ...bodySpec, spec: [{ type: 'html', label: `<pre>${bodyText}</pre>` }, { name: hiddenName, type: 'hidden', label: 'Text Template', default: hiddenText }, ...fields] }],
   };
   send.onerror = [callback(unknown, 1200, y + 170, 'Resultado incierto · Requiere revisión'), ignore(1500, y + 170)];

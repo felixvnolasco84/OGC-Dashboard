@@ -1,6 +1,6 @@
 # Estado de WhatsApp — 13 de noviembre de 2026
 
-Actualización de formato: las cinco rutas de envío usan ahora la plantilla común aprobada `ogc_requisicion_estado_v2` y nueve variables. El escenario fue guardado, recargado y verificado mediante exportación el 13 de noviembre. Ver [contrato y validación del formato v2](./format-v2.md). Las cinco plantillas v1 siguientes se conservan como referencia histórica; sus nombres siguen identificando los filtros de evento.
+Actualización de formato: se editaron también las cinco plantillas originales para usar nueve variables y enlace en el cuerpo. Meta aprobó las cinco y cada ruta de Make utiliza ahora la plantilla original de su evento con el contenido actualizado. Se verificó el guardado mediante recarga y exportación: 93 módulos, nueve variables en cada envío y filtros, conexiones, demás mapeos y ajustes conservados. La plantilla común aprobada `ogc_requisicion_estado_v2` continúa disponible como alternativa. Ver [contrato del formato v2](./format-v2.md).
 
 ## Meta y emisor
 
@@ -28,9 +28,9 @@ Para evitar confundir las cuentas:
 
 No se almacenaron datos de tarjeta en el repositorio. [Administrar la cuenta indicada por el error](https://business.facebook.com/latest/billing_hub/accounts/details?business_id=571627552030354&asset_id=1134658792390768&nav_ref=billing_hub&payment_account_id=2171655950115346).
 
-## Cinco plantillas v1 históricas
+## Cinco plantillas originales actualizadas
 
-Estado observado el 9 de noviembre: **Activa: calidad pendiente** para las cinco. Idioma `es_MX`, categoría **Servicio/UTILITY**, cuatro parámetros posicionales y botón dinámico **Ver requisición**.
+Contenido guardado y comprobado el 13 de noviembre: idioma `es_MX`, categoría **Servicio/UTILITY**, nueve parámetros posicionales y enlace de detalle en la variable 9 del cuerpo, sin botón URL. Se conservaron los nombres e identificadores originales. Las cinco muestran **Activa: calidad pendiente**, lo que permite su uso; no es una revisión de aprobación pendiente.
 
 | Evento | Plantilla | ID de Meta |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ Estado observado el 9 de noviembre: **Activa: calidad pendiente** para las cinco
 | Pago confirmado | `ogc_requisicion_pagada_v1` | `1143784381341735` |
 | Recepción | `ogc_requisicion_entrega_v1` | `4262952764013531` |
 
-Los textos presentados están en `templates.prepared.json`; `templates.json` usa un dominio de ejemplo. La URL aprobada es `https://ogc-dashboard.vercel.app/{{1}}`. Meta puede revisar posteriormente categoría, calidad o disponibilidad.
+Los textos editados están en `templates.events-v2.json`. `templates.prepared.json` documenta únicamente su versión histórica de cuatro variables y botón; `templates.json` usa un dominio de ejemplo. Los mensajes actuales incluyen el enlace real completo de la requisición en el cuerpo. Meta puede revisar posteriormente categoría, calidad o disponibilidad.
 
 ## OGC y Make
 

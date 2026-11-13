@@ -5,7 +5,7 @@ La integración suma WhatsApp a app/correo. Está desactivada por defecto por pr
 ## Requisitos y secretos
 
 1. Una línea nueva de OGC capaz de recibir SMS o llamada y acceso administrativo a Meta Business Suite. En Make, usar **WhatsApp Business Cloud → Regular**, sin conexión legacy. Completar alta, nombre comercial y facturación requeridos por Meta.
-2. El formato vigente utiliza la plantilla común de `templates.state-v2.json`, `ogc_requisicion_estado_v2`, idioma `es_MX`, categoría `UTILITY`, nueve parámetros y enlace de detalle en el cuerpo. Fue aprobada por Meta para la cuenta OGC. En una cuenta diferente, presentarla y verificar su aprobación antes de activarla. Las cinco plantillas v1 de `templates.prepared.json` y las de dominio de ejemplo de `templates.json` se conservan como referencia histórica. Ver [contrato del formato v2](./format-v2.md).
+2. El formato vigente tiene nueve parámetros y el enlace de detalle en el cuerpo, idioma `es_MX` y categoría `UTILITY`. `templates.events-v2.json` contiene las cinco plantillas por evento: sus nombres originales terminados en `_v1` se conservaron al editar su contenido. Verificar su aprobación en Meta antes de usarlas. La plantilla común `ogc_requisicion_estado_v2` de `templates.state-v2.json` es una alternativa aprobada para OGC. `templates.prepared.json` conserva el contenido histórico de cuatro parámetros y botón; `templates.json` usa un dominio de ejemplo. Ver [contrato del formato v2](./format-v2.md) y [estado aplicado](./setup-status.md).
 3. Configurar en **Convex**, nunca en Vite o Git:
 
 | Variable | Valor |
@@ -42,7 +42,7 @@ Si el porfolio hereda un sitio web de otra marca, no cambiar los datos globales 
 ```
 
 3. Filtro obligatorio `claim.send = true`. Si es `false`, terminar exitosamente sin enviar y sin repetir la reclamación. Las llamadas concurrentes/duplicadas devuelven `send:false` después de la primera reclamación.
-4. **Router con cinco ramas**, una por nombre de `claim.template`: conservar los cinco nombres de evento v1 como filtros y seleccionar **`ogc_requisicion_estado_v2 (es_MX)` en todos los módulos de envío**. Usar la conexión Regular de OGC; Sender ID = `claim.sender_id`; Receiver = `claim.phone`. Actualizar el esquema de la plantilla con **Refresh** y mapear las nueve posiciones de `claim.formatted_parameters` al cuerpo. El enlace real está en la posición 9; esta plantilla no tiene botón URL. Make usa índices de arrays desde 1. El generador `build-make-send.mjs` prepara este contrato; comprobarlo antes de activar una nueva instalación.
+4. **Router con cinco ramas**, una por nombre de `claim.template`: conservar esos nombres como filtros y seleccionar **la plantilla del evento correspondiente**, después de verificar que está activa en Meta. Usar la conexión Regular de OGC; Sender ID = `claim.sender_id`; Receiver = `claim.phone`. Actualizar el esquema con **Refresh** y mapear las nueve posiciones de `claim.formatted_parameters` al cuerpo. El enlace real está en la posición 9; las plantillas editadas no tienen botón URL. Make usa índices de arrays desde 1. El generador `build-make-send.mjs` prepara este contrato. Mientras un evento siga en revisión, puede usar la alternativa común aprobada `ogc_requisicion_estado_v2 (es_MX)` con los mismos nueve mapeos.
 5. **HTTP / Make a request**, POST autenticado a `/integrations/whatsapp/events`, con el ID `messages[1].id` devuelto por WhatsApp:
 
 ```json

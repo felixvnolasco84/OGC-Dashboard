@@ -1,0 +1,132 @@
+[
+  {
+    "name": "ogc_requisicion_creada_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se registró una requisición de materiales en OGC:\n\n*{{1}} · {{2}}*\n{{3}}\n\nSolicitó: {{4}}\n\nRevisión: {{5}}\nPago: {{6}}\nRecepción: {{7}}\n\n👉 *Siguiente paso:* {{8}}\n🔗 {{9}}\n\nConsulta el detalle de las partidas solicitadas en esta requisición.\nPara dejar de recibir actualizaciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "DEMO-REQ-0142",
+              "Proyecto de ejemplo",
+              "Albañilería — Cementantes/Agregados/Otros",
+              "Persona de ejemplo · 26/10",
+              "Pendiente",
+              "Pendiente",
+              "Pendiente",
+              "Revisar las partidas solicitadas",
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto-ejemplo/requisiciones?requisicion=requisicion-ejemplo"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_revisada_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se actualizó la revisión de una requisición de materiales en OGC:\n\n*{{1}} · {{2}}*\n{{3}}\n\nSolicitó: {{4}}\n\nRevisión: {{5}}\nPago: {{6}}\nRecepción: {{7}}\n\n👉 *Siguiente paso:* {{8}}\n🔗 {{9}}\n\nConsulta las partidas y observaciones registradas en la revisión de esta requisición.\nPara dejar de recibir actualizaciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "DEMO-REQ-0142",
+              "Proyecto de ejemplo",
+              "Albañilería — Cementantes/Agregados/Otros",
+              "Persona de ejemplo · 26/10",
+              "Aprobada",
+              "Pendiente",
+              "Pendiente",
+              "Administración libera pago",
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto-ejemplo/requisiciones?requisicion=requisicion-ejemplo"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_pago_obra_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se registró una solicitud de pago en obra para una requisición de materiales en OGC:\n\n*{{1}} · {{2}}*\n{{3}}\n\nSolicitó: {{4}}\n\nRevisión: {{5}}\nPago: {{6}}\nRecepción: {{7}}\n\n👉 *Siguiente paso:* {{8}}\n🔗 {{9}}\n\nConsulta el importe y el motivo de la solicitud de pago en obra de esta requisición.\nPara dejar de recibir actualizaciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "DEMO-REQ-0142",
+              "Proyecto de ejemplo",
+              "Albañilería — Cementantes/Agregados/Otros",
+              "Persona de ejemplo · 26/10",
+              "Aprobada",
+              "Pago en obra pendiente de autorización",
+              "Pendiente",
+              "Administración autoriza el pago en obra",
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto-ejemplo/requisiciones?requisicion=requisicion-ejemplo"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_pagada_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se actualizó el estado de pago de una requisición de materiales en OGC:\n\n*{{1}} · {{2}}*\n{{3}}\n\nSolicitó: {{4}}\n\nRevisión: {{5}}\nPago: {{6}}\nRecepción: {{7}}\n\n👉 *Siguiente paso:* {{8}}\n🔗 {{9}}\n\nConsulta el detalle del pago y su comprobante registrado en esta requisición.\nPara dejar de recibir actualizaciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "DEMO-REQ-0142",
+              "Proyecto de ejemplo",
+              "Albañilería — Cementantes/Agregados/Otros",
+              "Persona de ejemplo · 26/10",
+              "Aprobada",
+              "Pagado a Proveedor de ejemplo · $1,500",
+              "Pendiente",
+              "Obra registra la recepción de materiales",
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto-ejemplo/requisiciones?requisicion=requisicion-ejemplo"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "ogc_requisicion_entrega_v1",
+    "language": "es_MX",
+    "category": "UTILITY",
+    "components": [
+      {
+        "type": "BODY",
+        "text": "Se actualizó la recepción de materiales de una requisición en OGC:\n\n*{{1}} · {{2}}*\n{{3}}\n\nSolicitó: {{4}}\n\nRevisión: {{5}}\nPago: {{6}}\nRecepción: {{7}}\n\n👉 *Siguiente paso:* {{8}}\n🔗 {{9}}\n\nConsulta las cantidades y evidencias de recepción registradas en esta requisición.\nPara dejar de recibir actualizaciones, responde BAJA.",
+        "example": {
+          "body_text": [
+            [
+              "DEMO-REQ-0142",
+              "Proyecto de ejemplo",
+              "Albañilería — Cementantes/Agregados/Otros",
+              "Persona de ejemplo · 26/10",
+              "Aprobada",
+              "Pagado a Proveedor de ejemplo · $1,500",
+              "Recibido por Persona de ejemplo",
+              "Proceso completo",
+              "https://ogc-dashboard.vercel.app/proyecto/proyecto-ejemplo/requisiciones?requisicion=requisicion-ejemplo"
+            ]
+          ]
+        }
+      }
+    ]
+  }
+]
