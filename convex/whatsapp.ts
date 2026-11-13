@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
+import { formatWhatsappRequisition, WHATSAPP_STATE_TEMPLATE } from "./whatsappMessageFormat";
 import { canUserAccessDesarrollo, getCurrentUserOrThrow, hasAdminAccess, hasGlobalAdminAccess } from "./permissions";
 import { getRequisicionNotificationConfig, requisitionDetailUrl, type RequisicionNotificationType } from "../src/lib/requisicionNotificationMatrix";
 import {
@@ -180,12 +181,29 @@ export const claim = internalMutation({
     await ctx.db.patch(delivery._id, { status: "sending", claimed_at: Date.now(), attempt_token: args.attempt_token });
     const reference = String(req._id);
     const url = requisitionDetailUrl(appUrl, project._id, req._id);
+    const items = await ctx.db.query("requisicion_items").withIndex("by_requisicion", q => q.eq("requisicion_id", req._id)).collect();
+    const classifications = new Set<string>();
+    const partidas = new Map<Id<"partidas">, string>();
+    for (const item of items) {
+      if (!partidas.has(item.partida_id)) partidas.set(item.partida_id, (await ctx.db.get(item.partida_id))?.nombre || "");
+      classifications.add([partidas.get(item.partida_id), item.familia].filter(Boolean).join(" — "));
+    }
     return {
       send: true as const, delivery_id: delivery._id, attempt_token: args.attempt_token,
       phone: recipient.whatsapp_phone!, sender_id: process.env.WHATSAPP_SENDER_ID || "",
       template: WHATSAPP_TEMPLATE_NAMES[event.type], language: "es_MX",
       // Positional template parameters: reference, project, responsible, result.
       parameters: [reference, project.nombre.slice(0, 150), event.actor_name.slice(0, 100), event.whatsapp_result || getRequisicionNotificationConfig(event.type).label],
+      formatted_template: WHATSAPP_STATE_TEMPLATE,
+      formatted_parameters: formatWhatsappRequisition({
+        reference: req.folio || reference, projectName: project.nombre,
+        classification: [...classifications].filter(Boolean).join(" / "),
+        requesterName: req.solicitante_nombre, requestedDate: req.fecha_solicitud,
+        review: req.status_revision, payment: req.status, delivery: req.status_entrega,
+        onsitePaymentPending: req.pago_obra?.estado === "pendiente",
+        paidTo: req.pago_confirmado?.beneficiario, paidAmount: req.pago_confirmado?.importe,
+        receivedBy: req.recibido_por_nombre, url,
+      }),
       url, url_suffix: url.slice(new URL(appUrl).origin.length + 1),
     };
   },

@@ -947,6 +947,7 @@ export const updateStatus = mutation({
         id: v.id("requisiciones"),
         status: v.string(),
         expected_status: v.optional(v.string()),
+        pago_confirmado: v.optional(v.object({ beneficiario: v.string(), importe: v.number() })),
         comentario: v.optional(v.string()),
         documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         changed_by_id: v.id("users"),
@@ -960,6 +961,7 @@ export const updateStatus = mutation({
         const project = await ctx.db.get(requisicion.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project)) throw new Error("Sin acceso al proyecto");
         if (!["En proceso", "Pagado", "Cancelado"].includes(args.status)) throw new Error("Estado de pago inválido");
+        if (args.pago_confirmado && (args.status !== "Pagado" || !args.pago_confirmado.beneficiario.trim() || args.pago_confirmado.beneficiario.trim().length > 150 || !Number.isFinite(args.pago_confirmado.importe) || args.pago_confirmado.importe < 0 || Math.abs(args.pago_confirmado.importe * 100 - Math.round(args.pago_confirmado.importe * 100)) > 0.000001)) throw new Error("Registra el beneficiario y un importe pagado válido con hasta dos decimales");
         const transition = assertRequisicionStateChange(requisicion, { paymentStatus: args.status }, args.expected_status);
         if (!transition.changed) return { success: true, changed: false };
         
@@ -968,6 +970,9 @@ export const updateStatus = mutation({
         
         await ctx.db.patch(args.id, {
             status: args.status,
+            pago_confirmado: args.status === "Pagado" && args.pago_confirmado
+                ? { beneficiario: args.pago_confirmado.beneficiario.trim(), importe: args.pago_confirmado.importe }
+                : undefined,
             pago_obra: args.status === "Pagado" && requisicion.pago_obra?.estado === "pendiente"
                 ? { ...requisicion.pago_obra, estado: "pagado" as const }
                 : args.status === "Cancelado" && requisicion.pago_obra?.estado === "pendiente"
@@ -997,6 +1002,7 @@ export const updateStatus = mutation({
             }),
             new_value: JSON.stringify({
                 status: args.status,
+                pago_confirmado: args.pago_confirmado,
                 solicitante: requisicion.solicitante_nombre,
                 tipo: requisicion.tipo,
                 comentario: args.comentario,
@@ -1057,6 +1063,7 @@ export const updateStatusEntrega = mutation({
         id: v.id("requisiciones"),
         status_entrega: v.string(),
         expected_status_entrega: v.optional(v.string()),
+        recibido_por_nombre: v.optional(v.string()),
         comentario: v.optional(v.string()),
         documentos: v.optional(v.array(requisicionStatusDocumentValidator)),
         changed_by_id: v.id("users"),
@@ -1070,6 +1077,7 @@ export const updateStatusEntrega = mutation({
         const project = await ctx.db.get(requisicion.proyecto);
         if (!project || !canUserAccessDesarrollo(actor, project) || !(actor.role === "admin" || actor.role === "user" || (actor.role === "contratista" && requisicion.solicitante_id === actor._id))) throw new Error("Sin permisos para registrar la entrega");
         if (!["Pendiente", "Parcial", "Completo"].includes(args.status_entrega)) throw new Error("Estado de entrega inválido");
+        if (args.recibido_por_nombre !== undefined && (!args.recibido_por_nombre.trim() || args.recibido_por_nombre.trim().length > 150 || args.status_entrega === "Pendiente")) throw new Error("Registra el nombre de quien recibió los materiales");
         const transition = assertRequisicionStateChange(requisicion, { deliveryStatus: args.status_entrega }, args.expected_status_entrega);
         if (!transition.changed) return { success: true, changed: false };
         if (args.status_entrega === "Parcial" || args.status_entrega === "Completo") {
@@ -1084,6 +1092,7 @@ export const updateStatusEntrega = mutation({
         
         await ctx.db.patch(args.id, {
             status_entrega: args.status_entrega,
+            recibido_por_nombre: args.status_entrega === "Pendiente" ? undefined : args.recibido_por_nombre?.trim(),
             updated_at: now,
         });
 
@@ -1109,6 +1118,7 @@ export const updateStatusEntrega = mutation({
             }),
             new_value: JSON.stringify({
                 status_entrega: args.status_entrega,
+                recibido_por_nombre: args.recibido_por_nombre?.trim(),
                 solicitante: requisicion.solicitante_nombre,
                 tipo: requisicion.tipo,
                 comentario: args.comentario,

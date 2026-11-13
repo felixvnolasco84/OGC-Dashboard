@@ -145,6 +145,7 @@ import type * as weekly_avance_real from "../weekly_avance_real.js";
 import type * as weekly_projected_totals from "../weekly_projected_totals.js";
 import type * as whatsapp from "../whatsapp.js";
 import type * as whatsappHttp from "../whatsappHttp.js";
+import type * as whatsappMessageFormat from "../whatsappMessageFormat.js";
 import type * as whatsappRules from "../whatsappRules.js";
 
 /**
@@ -288,6 +289,7 @@ declare const fullApi: ApiFromModules<{
   weekly_projected_totals: typeof weekly_projected_totals;
   whatsapp: typeof whatsapp;
   whatsappHttp: typeof whatsappHttp;
+  whatsappMessageFormat: typeof whatsappMessageFormat;
   whatsappRules: typeof whatsappRules;
 }>;
 export declare const api: FilterApi<

@@ -112,6 +112,14 @@ export default function ProyectoRequisicionesPage() {
         description: string;
     } | null>(null);
     const [statusHistoryComment, setStatusHistoryComment] = useState("");
+    const [confirmedPaymentPayee, setConfirmedPaymentPayee] = useState("");
+    const [confirmedPaymentAmount, setConfirmedPaymentAmount] = useState("");
+    const [materialsReceivedBy, setMaterialsReceivedBy] = useState("");
+    useEffect(() => {
+        setConfirmedPaymentPayee("");
+        setConfirmedPaymentAmount("");
+        setMaterialsReceivedBy("");
+    }, [statusHistoryDialogOpen]);
     const [statusHistoryDocument, setStatusHistoryDocument] = useState<File | null>(null);
     const [isSubmittingStatusHistory, setIsSubmittingStatusHistory] = useState(false);
     const submittingStatusHistoryRef = useRef(false);
@@ -620,6 +628,9 @@ export default function ProyectoRequisicionesPage() {
             id: requisicionId,
             status: newStatus,
             expected_status: expectedStatus,
+            pago_confirmado: newStatus === "Pagado" && confirmedPaymentPayee.trim() && confirmedPaymentAmount.trim()
+                ? { beneficiario: confirmedPaymentPayee.trim(), importe: Number(confirmedPaymentAmount) }
+                : undefined,
             comentario,
             documentos,
             changed_by_id: currentUser._id,
@@ -641,6 +652,7 @@ export default function ProyectoRequisicionesPage() {
             id: requisicionId,
             status_entrega: newStatus,
             expected_status_entrega: expectedStatus,
+            recibido_por_nombre: newStatus !== "Pendiente" ? materialsReceivedBy.trim() || undefined : undefined,
             comentario,
             documentos,
             changed_by_id: currentUser._id,
@@ -809,6 +821,10 @@ export default function ProyectoRequisicionesPage() {
             return;
         }
         const comment = statusHistoryComment.trim() || undefined;
+        if (isMarkingAsPaid && (confirmedPaymentPayee.trim() || confirmedPaymentAmount.trim()) && (!confirmedPaymentPayee.trim() || !confirmedPaymentAmount.trim() || !Number.isFinite(Number(confirmedPaymentAmount)) || Number(confirmedPaymentAmount) < 0 || Math.abs(Number(confirmedPaymentAmount) * 100 - Math.round(Number(confirmedPaymentAmount) * 100)) > 0.000001)) {
+            toast.error("Completa el beneficiario y el importe efectivamente pagado con hasta dos decimales.");
+            return;
+        }
         if (!comment && !isMarkingAsPaid && !(isReceivingMaterials && statusHistoryDocument)) {
             toast.error(isReceivingMaterials ? "Agrega un comentario o una foto de la remisión." : "Agrega un comentario para registrar el cambio.");
             return;
@@ -1634,6 +1650,21 @@ export default function ProyectoRequisicionesPage() {
                                 : <p className="text-sm text-muted-foreground">Solicita la revisión a administración o finanzas.</p>}
                             <Button type="button" variant="outline" className="w-full" onClick={resetStatusHistoryDialog}>Cerrar</Button>
                         </div> : <fieldset disabled={isSubmittingStatusHistory} className="min-w-0 space-y-5">
+                        {isMarkingAsPaid && <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmed-payment-payee">Pagado a (opcional)</Label>
+                                <Input id="confirmed-payment-payee" maxLength={150} value={confirmedPaymentPayee} onChange={(e) => setConfirmedPaymentPayee(e.target.value)} placeholder="Beneficiario del pago confirmado" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmed-payment-amount">Importe pagado en MXN (opcional)</Label>
+                                <Input id="confirmed-payment-amount" type="number" min="0" step="0.01" value={confirmedPaymentAmount} onChange={(e) => setConfirmedPaymentAmount(e.target.value)} placeholder="Importe efectivamente pagado" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Completa ambos datos para incluirlos en el aviso de pago.</p>
+                        </div>}
+                        {isReceivingMaterials && <div className="space-y-2">
+                            <Label htmlFor="materials-received-by">Recibido por (opcional)</Label>
+                            <Input id="materials-received-by" maxLength={150} value={materialsReceivedBy} onChange={(e) => setMaterialsReceivedBy(e.target.value)} placeholder="Nombre de quien recibió los materiales" />
+                        </div>}
                         <div className="space-y-2">
                             <Label htmlFor="status-history-comment" className="flex items-center gap-2 text-foreground">
                                 <MessageSquare className="h-4 w-4 text-muted-foreground" />

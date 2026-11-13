@@ -1,4 +1,6 @@
-# Estado de WhatsApp — 10 de noviembre de 2026
+# Estado de WhatsApp — 13 de noviembre de 2026
+
+Actualización de formato: las cinco rutas de envío usan ahora la plantilla común aprobada `ogc_requisicion_estado_v2` y nueve variables. El escenario fue guardado, recargado y verificado mediante exportación el 13 de noviembre. Ver [contrato y validación del formato v2](./format-v2.md). Las cinco plantillas v1 siguientes se conservan como referencia histórica; sus nombres siguen identificando los filtros de evento.
 
 ## Meta y emisor
 
@@ -26,7 +28,7 @@ Para evitar confundir las cuentas:
 
 No se almacenaron datos de tarjeta en el repositorio. [Administrar la cuenta indicada por el error](https://business.facebook.com/latest/billing_hub/accounts/details?business_id=571627552030354&asset_id=1134658792390768&nav_ref=billing_hub&payment_account_id=2171655950115346).
 
-## Cinco plantillas aprobadas
+## Cinco plantillas v1 históricas
 
 Estado observado el 9 de noviembre: **Activa: calidad pendiente** para las cinco. Idioma `es_MX`, categoría **Servicio/UTILITY**, cuatro parámetros posicionales y botón dinámico **Ver requisición**.
 

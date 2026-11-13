@@ -4,6 +4,41 @@ import schema from "./schema";
 import { api, internal } from "./_generated/api";
 import { recordWhatsappNotification } from "./whatsapp";
 import { normalizeWhatsappPhone, whatsappAudience, WHATSAPP_TYPES } from "./whatsappRules";
+import { formatWhatsappRequisition } from "./whatsappMessageFormat";
+
+describe("shared WhatsApp message formatting", () => {
+  const state = { reference: "LH-REQ-0142", projectName: "Larena Torre H", classification: "Albañilería — Cementantes/Agregados/Otros", requesterName: "Yaneth Cosío", requestedDate: "26/10/2026", review: "Aprobada", payment: "En proceso", delivery: "Pendiente", url: "https://dashboard.example.test/req/142" };
+  it("formats the requested layout with the original requester/date and independent states", () => {
+    expect(formatWhatsappRequisition(state)).toEqual(["LH-REQ-0142", "Larena Torre H", state.classification, "Yaneth Cosío · 26/10", "Aprobada", "Pendiente", "Pendiente", "Administración libera pago", state.url]);
+    const deliveredUnpaid = formatWhatsappRequisition({ ...state, delivery: "Completo", receivedBy: "Ana" });
+    expect(deliveredUnpaid[5]).toBe("Pendiente");
+    expect(deliveredUnpaid[6]).toBe("Recibido por Ana");
+    expect(deliveredUnpaid[7]).toBe("Administración libera pago");
+  });
+  it("shows confirmed amounts and receivers, without inventing missing historical data", () => {
+    const paid = { ...state, payment: "Pagado", paidTo: "Ferretería Santana", paidAmount: 48300 };
+    expect(formatWhatsappRequisition(paid)[5]).toBe("Pagado a Ferretería Santana · $48,300");
+    expect(formatWhatsappRequisition({ ...paid, delivery: "Parcial", receivedBy: "Ana" }).slice(6, 8)).toEqual(["Parcial · Recibido por Ana", "Obra registra la recepción de los materiales restantes"]);
+    expect(formatWhatsappRequisition({ ...paid, delivery: "Completo", receivedBy: "Ana" }).slice(6, 8)).toEqual(["Recibido por Ana", "Proceso completo"]);
+    expect(formatWhatsappRequisition({ ...state, payment: "Pagado", delivery: "Completo" }).slice(5, 7)).toEqual(["Pagado", "Recibido"]);
+    expect(formatWhatsappRequisition({ ...paid, paidAmount: 0 })[5]).toContain("$0");
+  });
+  it.each([
+    [{ review: "Pendiente de revisión" }, "Administración revisa la requisición"],
+    [{ review: "Rechazada" }, "Solicitante revisa los comentarios"],
+    [{ review: "Parcialmente Aprobada" }, "Consulta los materiales aprobados y los comentarios"],
+    [{ onsitePaymentPending: true }, "Administración atiende la solicitud de pago en obra"],
+    [{ payment: "Cancelado" }, "Consulta el detalle de la cancelación"],
+    [{ payment: "Desconocido" }, "Consulta el detalle de la requisición"],
+  ])("uses the real next step for %j", (overrides, next) => {
+    expect(formatWhatsappRequisition({ ...state, ...overrides })[7]).toBe(next);
+  });
+  it("normalizes single-line variables without changing the deep link", () => {
+    const result = formatWhatsappRequisition({ ...state, requesterName: "Ana\n*Compras*", requestedDate: "2026-10-26" });
+    expect(result[3]).toBe("Ana Compras · 26/10");
+    expect(result[8]).toBe(state.url);
+  });
+});
 
 const modules = import.meta.glob(["./**/*.ts", "./_generated/*.js"]);
 beforeEach(() => {
@@ -52,6 +87,21 @@ async function fixture(enabled = true) {
 }
 
 describe("WhatsApp contacts, project activation and transactional event creation", () => {
+  it("persists explicitly confirmed payee, amount and receiver for the formatted claim", async () => {
+    const f = await fixture(), id = await f.create();
+    const req = await f.as("user").query(api.requisiciones.getById, { id });
+    await f.as("finance").mutation(api.requisiciones.reviewRequisicion, { id, reviewer_id: f.ids.users.finance, reviewer_name: "finance", items: req.items.map(item => ({ item_id: item._id, status_revision: "aprobado", cantidad_aprobada: 10 })) });
+    const payment = { id, status: "Pagado", changed_by_id: f.ids.users.finance, changed_by_name: "finance", pago_confirmado: { beneficiario: "  Ferretería Ejemplo  ", importe: 48300 } };
+    await expect(f.as("finance").mutation(api.requisiciones.updateStatus, { ...payment, pago_confirmado: { beneficiario: "Proveedor", importe: 12.345 } })).rejects.toThrow("importe pagado válido");
+    await f.as("finance").mutation(api.requisiciones.updateStatus, payment);
+    await f.as("admin").mutation(api.requisiciones.updateStatusEntrega, { id, status_entrega: "Parcial", changed_by_id: f.ids.users.admin, changed_by_name: "admin", recibido_por_nombre: "  Persona receptora  " });
+    expect((await f.get(id)).pago_confirmado).toEqual({ beneficiario: "Ferretería Ejemplo", importe: 48300 });
+    expect((await f.get(id)).recibido_por_nombre).toBe("Persona receptora");
+    const payload = await f.claim();
+    expect(payload.formatted_parameters.slice(5, 8)).toEqual(["Pagado a Ferretería Ejemplo · $48,300", "Parcial · Recibido por Persona receptora", "Obra registra la recepción de los materiales restantes"]);
+    expect(payload.formatted_parameters[3]).toBe("user · 04/11");
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("is disabled by default and leaves app/email intact", async () => {
     const f = await fixture(false); await f.create();
     expect(await f.deliveries()).toHaveLength(0);
@@ -143,6 +193,10 @@ describe("Claims, callbacks, safe retries and receipts", () => {
     expect(payload).toMatchObject({ send: true, template: "ogc_requisicion_creada_v1", language: "es_MX", sender_id: "sender" });
     expect(payload.url).toContain("https://dashboard.example.test/proyecto/");
     expect(payload.url).toContain("?requisicion=");
+    expect(payload.formatted_template).toBe("ogc_requisicion_estado_v2");
+    expect(payload.formatted_parameters).toHaveLength(9);
+    expect(payload.formatted_parameters.slice(2, 8)).toEqual(["OBRA — MATERIALES", "user · 04/11", "Pendiente", "Pendiente", "Pendiente", "Administración revisa la requisición"]);
+    expect(payload.formatted_parameters[8]).toBe(payload.url);
     expect(await f.t.mutation(internal.whatsapp.claim, { delivery_id: payload.delivery_id, attempt_token: "duplicate" })).toEqual({ send: false });
     expect(fetch).not.toHaveBeenCalled();
   });

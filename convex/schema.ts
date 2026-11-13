@@ -1097,6 +1097,7 @@ export default defineSchema({
   // Requisiciones (Material/Equipment Requests) - Purchase workflow
   requisiciones: defineTable({
     proyecto: v.id("desarrollos"),
+    folio: v.optional(v.string()),
     tipo: v.string(), // "material" | "equipo"
     solicitante_id: v.id("users"),
     solicitante_nombre: v.string(), // Cached user name
@@ -1106,6 +1107,8 @@ export default defineSchema({
     descripcion: v.optional(v.string()), // Comments/notes
     status: v.string(), // En proceso, Pagado, Cancelado (payment status)
     status_entrega: v.optional(v.string()), // Pendiente, Parcial, Completo (delivery status)
+    pago_confirmado: v.optional(v.object({ beneficiario: v.string(), importe: v.number() })),
+    recibido_por_nombre: v.optional(v.string()),
     // Review / approval workflow
     status_revision: v.optional(v.string()), // "Pendiente de revisión" | "Aprobada" | "Parcialmente Aprobada" | "Rechazada"
     nota_revision: v.optional(v.string()), // Required note for partial/reject
