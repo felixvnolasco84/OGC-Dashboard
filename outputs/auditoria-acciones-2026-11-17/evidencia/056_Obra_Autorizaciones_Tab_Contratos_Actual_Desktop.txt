@@ -1,0 +1,75 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - tablist:
+    - tab "Permisos y legal"
+    - tab "Presupuestos y contratos" [active] [selected]
+    - tab "IMSS y SIROC"
+  - tabpanel "Presupuestos y contratos":
+    - paragraph: Control financiero y formalización con proveedores y subcontratistas
+    - button "Inactivo — clic para activar"
+    - heading "Contratos firmados con subcontratistas principales" [level=3]
+    - button "Asignar responsable"
+    - button:
+    - button:
+    - generic: 0 de 5 contratistas asignados
+    - generic: 5 contratos por firmar
+- region "Notifications alt+T"

@@ -1,0 +1,126 @@
+- list:
+  - button:
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - generic: Requisiciones
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - paragraph: Requisiciones
+  - heading [level=1]: Lote 77
+  - button:
+    - text: Notificaciones
+  - button:
+    - text: Historial
+  - button:
+    - text: Nueva Requisición
+  - term: "Total:"
+  - definition: "115"
+  - term: "Monto total:"
+  - definition: $4,135,252.44
+  - textbox:
+    - /placeholder: Buscar por solicitante, descripción, familia, material...
+  - button:
+    - text: Filtros
+  - tablist:
+    - tab [selected]:
+      - text: Por revisar
+      - generic: "1"
+    - tab:
+      - text: Aprobadas
+      - generic: "94"
+    - tab:
+      - text: Pagadas
+      - generic: "38"
+    - tab:
+      - text: Recibidas
+      - generic: "0"
+  - generic: F
+  - generic: Felix Enrique Vega Nolasco
+  - generic: Solicitado el 13 de noviembre del 2026
+  - button: ACERO — SILLETA SEPARADOR FTP 25-50MM
+  - generic: 1 materiales
+  - generic: Sin fecha de entrega
+  - generic: Monto Total
+  - generic: $14.48
+  - button:
+    - generic: Por revisar
+  - button:
+    - generic: Pagada
+  - button:
+    - generic: Recibida
+  - button:
+  - button:
+- region "Notifications alt+T"
+- dialog "Nueva Requisición":
+  - button "Close" [active]:
+    - generic: Close
+  - generic: F
+  - paragraph: Felix Enrique Vega Nolasco
+  - heading "Nueva Requisición" [level=2]
+  - paragraph: Completa los datos para crear una nueva requisición
+  - button "Material":
+    - text: Material
+  - button "Equipo": Equipo
+  - text: Partida
+  - combobox:
+    - generic: Selecciona Partida
+  - button "Fecha de entrega":
+    - text: Fecha de entrega
+  - generic: Descripción
+  - textbox "Comentarios..."
+  - generic: Soporte
+  - paragraph: Agregar archivo
+  - paragraph: PDF, JPG, PNG, DOC, DOCX
+  - button "Cancelar"
+  - button "Enviar solicitud" [disabled]

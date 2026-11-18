@@ -1,0 +1,1105 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Transacciones" [level=1]
+  - paragraph: Consulta y gestiona todas las transacciones registradas en el sistema
+  - generic: "Total: 878"
+  - generic: "Monto total: $60,432,889.70"
+  - textbox "Buscar..."
+  - combobox:
+    - generic: Todos los proyectos
+  - table:
+    - rowgroup:
+      - row "Proyecto Factura Monto Total Fecha Tipo de pago Categoría Status Moneda Conceptos Docs":
+        - columnheader "Proyecto"
+        - columnheader "Factura"
+        - columnheader "Monto Total"
+        - columnheader "Fecha"
+        - columnheader "Tipo de pago"
+        - columnheader "Categoría"
+        - columnheader "Status"
+        - columnheader "Moneda"
+        - columnheader "Conceptos"
+        - columnheader "Docs"
+        - columnheader
+    - rowgroup:
+      - row "Larena Ventas VAPA-18B.pdf $9,325.52 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "VAPA-18B.pdf":
+          - generic: VAPA-18B.pdf
+        - cell "$9,325.52"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas VAPA-7AE.pdf $10,075.73 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "VAPA-7AE.pdf":
+          - generic: VAPA-7AE.pdf
+        - cell "$10,075.73"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FPS-VARIAS $30,788.81 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FPS-VARIAS":
+          - generic: FPS-VARIAS
+        - cell "$30,788.81"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ODE-108.pdf $30,845.00 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ODE-108.pdf":
+          - generic: ODE-108.pdf
+        - cell "$30,845.00"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ODE-107.pdf $36,960.54 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ODE-107.pdf":
+          - generic: ODE-107.pdf
+        - cell "$36,960.54"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FBU-7D5.pdf $33,734.60 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FBU-7D5.pdf":
+          - generic: FBU-7D5.pdf
+        - cell "$33,734.60"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ODE-111.pdf $31,651.21 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ODE-111.pdf":
+          - generic: ODE-111.pdf
+        - cell "$31,651.21"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ODE-110.pdf $55,731.98 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ODE-110.pdf":
+          - generic: ODE-110.pdf
+        - cell "$55,731.98"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ODE-109.pdf $31,150.07 17 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ODE-109.pdf":
+          - generic: ODE-109.pdf
+        - cell "$31,150.07"
+        - cell "17 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas VJU-606.pdf $11,114.30 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "VJU-606.pdf":
+          - generic: VJU-606.pdf
+        - cell "$11,114.30"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas VJU-604.pdf $32,795.56 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "VJU-604.pdf":
+          - generic: VJU-604.pdf
+        - cell "$32,795.56"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas VJU-608.pdf $5,928.79 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "VJU-608.pdf":
+          - generic: VJU-608.pdf
+        - cell "$5,928.79"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FOHB-305.pdf $8,585.57 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FOHB-305.pdf":
+          - generic: FOHB-305.pdf
+        - cell "$8,585.57"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FOHB-304.pdf $25,274.23 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FOHB-304.pdf":
+          - generic: FOHB-304.pdf
+        - cell "$25,274.23"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas TLT-161.pdf $5,379.15 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "TLT-161.pdf":
+          - generic: TLT-161.pdf
+        - cell "$5,379.15"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas VJU-CEM-260325.pdf $32,681.10 23 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "VJU-CEM-260325.pdf":
+          - generic: VJU-CEM-260325.pdf
+        - cell "$32,681.10"
+        - cell "23 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ACA-492.pdf $14,883.25 24 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ACA-492.pdf":
+          - generic: ACA-492.pdf
+        - cell "$14,883.25"
+        - cell "24 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas ACA-493.pdf $11,310.70 24 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "ACA-493.pdf":
+          - generic: ACA-493.pdf
+        - cell "$11,310.70"
+        - cell "24 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas EUTL-531.pdf $5,499.08 24 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "EUTL-531.pdf":
+          - generic: EUTL-531.pdf
+        - cell "$5,499.08"
+        - cell "24 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FAN-296.pdf $9,608.77 26 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FAN-296.pdf":
+          - generic: FAN-296.pdf
+        - cell "$9,608.77"
+        - cell "26 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas MPA-330.pdf $16,664.48 29 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "MPA-330.pdf":
+          - generic: MPA-330.pdf
+        - cell "$16,664.48"
+        - cell "29 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas SORE-A7.pdf $11,561.14 29 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "SORE-A7.pdf":
+          - generic: SORE-A7.pdf
+        - cell "$11,561.14"
+        - cell "29 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AAD-PAG-260424.pdf $40,325.60 22 abr 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AAD-PAG-260424.pdf":
+          - generic: AAD-PAG-260424.pdf
+        - cell "$40,325.60"
+        - cell "22 abr 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AAD-PAG-260421.pdf $334,872.98 19 abr 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AAD-PAG-260421.pdf":
+          - generic: AAD-PAG-260421.pdf
+        - cell "$334,872.98"
+        - cell "19 abr 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AAD-PAG-260417.pdf $86,844.25 15 abr 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AAD-PAG-260417.pdf":
+          - generic: AAD-PAG-260417.pdf
+        - cell "$86,844.25"
+        - cell "15 abr 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas GES-PAG-260413.pdf $615,973.00 11 abr 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "GES-PAG-260413.pdf":
+          - generic: GES-PAG-260413.pdf
+        - cell "$615,973.00"
+        - cell "11 abr 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas RMA-APA-260408.pdf $9,995.49 06 abr 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "RMA-APA-260408.pdf":
+          - generic: RMA-APA-260408.pdf
+        - cell "$9,995.49"
+        - cell "06 abr 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AAD-APA-260331.pdf $27,619.27 29 mar 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AAD-APA-260331.pdf":
+          - generic: AAD-APA-260331.pdf
+        - cell "$27,619.27"
+        - cell "29 mar 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas DST-TI-260201.pdf $119,324.21 30 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "DST-TI-260201.pdf":
+          - generic: DST-TI-260201.pdf
+        - cell "$119,324.21"
+        - cell "30 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas DST-TH-260201.pdf $119,324.21 30 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "DST-TH-260201.pdf":
+          - generic: DST-TH-260201.pdf
+        - cell "$119,324.21"
+        - cell "30 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas DST-TG-260201.pdf $119,324.21 30 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "DST-TG-260201.pdf":
+          - generic: DST-TG-260201.pdf
+        - cell "$119,324.21"
+        - cell "30 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas JOG-APA-260126.pdf $225,000.00 24 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "JOG-APA-260126.pdf":
+          - generic: JOG-APA-260126.pdf
+        - cell "$225,000.00"
+        - cell "24 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FOG-APA-260126-2.pdf $196,724.65 24 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FOG-APA-260126-2.pdf":
+          - generic: FOG-APA-260126-2.pdf
+        - cell "$196,724.65"
+        - cell "24 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FOG-APA-260126-1.pdf $225,000.00 24 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FOG-APA-260126-1.pdf":
+          - generic: FOG-APA-260126-1.pdf
+        - cell "$225,000.00"
+        - cell "24 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas MBA-PAG-260115.pdf $263,970.00 13 ene 2026 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "MBA-PAG-260115.pdf":
+          - generic: MBA-PAG-260115.pdf
+        - cell "$263,970.00"
+        - cell "13 ene 2026"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AOG-PAG-251217.pdf $90,000.00 15 dic 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AOG-PAG-251217.pdf":
+          - generic: AOG-PAG-251217.pdf
+        - cell "$90,000.00"
+        - cell "15 dic 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas SEP--251215.pdf $274,659.65 13 dic 2025 TRANSFERENCIA OTRO Pagado USD 2 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "SEP--251215.pdf":
+          - generic: SEP--251215.pdf
+        - cell "$274,659.65"
+        - cell "13 dic 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "2":
+          - generic: "2"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas DON-N-2-251215.pdf $158,000.00 13 dic 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "DON-N-2-251215.pdf":
+          - generic: DON-N-2-251215.pdf
+        - cell "$158,000.00"
+        - cell "13 dic 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FAG-PAG-251203.pdf $87,500.00 01 dic 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FAG-PAG-251203.pdf":
+          - generic: FAG-PAG-251203.pdf
+        - cell "$87,500.00"
+        - cell "01 dic 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AMY-PAG-251203.pdf $27,700.72 01 dic 2025 TRANSFERENCIA OTRO Pagado USD 2 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AMY-PAG-251203.pdf":
+          - generic: AMY-PAG-251203.pdf
+        - cell "$27,700.72"
+        - cell "01 dic 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "2":
+          - generic: "2"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FAG-PAG-251202.pdf $75,000.00 30 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FAG-PAG-251202.pdf":
+          - generic: FAG-PAG-251202.pdf
+        - cell "$75,000.00"
+        - cell "30 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AMY-PAG-251202.pdf $27,358.73 30 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AMY-PAG-251202.pdf":
+          - generic: AMY-PAG-251202.pdf
+        - cell "$27,358.73"
+        - cell "30 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AMY-PAG-251201.pdf $81,933.63 29 nov 2025 TRANSFERENCIA OTRO Pagado USD 3 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AMY-PAG-251201.pdf":
+          - generic: AMY-PAG-251201.pdf
+        - cell "$81,933.63"
+        - cell "29 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "3":
+          - generic: "3"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas AMY-PAG-251128.pdf $27,252.86 26 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "AMY-PAG-251128.pdf":
+          - generic: AMY-PAG-251128.pdf
+        - cell "$27,252.86"
+        - cell "26 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas SCA-8003.pdf $32,686.86 25 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "SCA-8003.pdf":
+          - generic: SCA-8003.pdf
+        - cell "$32,686.86"
+        - cell "25 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas JAH-INS-251122.pdf $29,200.82 20 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "JAH-INS-251122.pdf":
+          - generic: JAH-INS-251122.pdf
+        - cell "$29,200.82"
+        - cell "20 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas FBU-2265.pdf $32,722.96 20 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "FBU-2265.pdf":
+          - generic: FBU-2265.pdf
+        - cell "$32,722.96"
+        - cell "20 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas DST-4981.pdf $41,986.17 20 nov 2025 TRANSFERENCIA OTRO Pagado USD 3 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "DST-4981.pdf":
+          - generic: DST-4981.pdf
+        - cell "$41,986.17"
+        - cell "20 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "3":
+          - generic: "3"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas CCG-PUE-251122.pdf $77,419.85 20 nov 2025 TRANSFERENCIA OTRO Pagado USD 1 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "CCG-PUE-251122.pdf":
+          - generic: CCG-PUE-251122.pdf
+        - cell "$77,419.85"
+        - cell "20 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "1":
+          - generic: "1"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+      - row "Larena Ventas HLI-256.pdf $54,426.59 20 nov 2025 TRANSFERENCIA OTRO Pagado USD 3 0":
+        - cell "Larena Ventas":
+          - generic: Larena Ventas
+        - cell "HLI-256.pdf":
+          - generic: HLI-256.pdf
+        - cell "$54,426.59"
+        - cell "20 nov 2025"
+        - cell "TRANSFERENCIA":
+          - generic: TRANSFERENCIA
+        - cell "OTRO":
+          - generic: OTRO
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "USD":
+          - generic: USD
+        - cell "3":
+          - generic: "3"
+        - cell "0":
+          - generic: "0"
+        - cell:
+          - button:
+  - navigation "Paginación de transacciones de ventas":
+    - paragraph: Mostrando 1–50 de 878
+    - button "Anterior" [disabled]
+    - generic: Página 1 de 18
+    - button "Siguiente"
+- region "Notifications alt+T"

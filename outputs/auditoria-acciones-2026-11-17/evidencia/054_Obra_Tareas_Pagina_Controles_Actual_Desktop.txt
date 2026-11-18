@@ -1,0 +1,54 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: General
+  - heading "Tareas" [level=1]
+  - button "Notificaciones": Notificaciones
+  - button "Nueva tarea":
+    - text: Nueva tarea
+  - button "Total 0":
+    - generic: Total
+    - generic: "0"
+  - button "Abiertas 0":
+    - generic: Abiertas
+    - generic: "0"
+  - button "Vencidas 0":
+    - generic: Vencidas
+    - generic: "0"
+  - button "Completas 0":
+    - generic: Completas
+    - generic: "0"
+  - textbox "Buscar por título, descripción o asignado"
+  - combobox:
+    - generic: Todos los estados
+  - combobox:
+    - generic: Todos los usuarios
+  - button "Más filtros 1":
+    - text: Más filtros
+    - generic: "1"
+  - generic: No hay tareas con los filtros actuales.
+- region "Notifications alt+T"

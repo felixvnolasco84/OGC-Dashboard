@@ -1,0 +1,16 @@
+
+  VITE v6.4.3  ready in 395 ms
+
+  ➜  Local:   http://127.0.0.1:5184/
+  ➜  press h + enter to show help
+12:11:16 p.m. [vite] (client) page reload src/components/modals/project-locations-modal.tsx
+12:11:16 p.m. [vite] (client) page reload src/components/modals/upload-transactions-modal.tsx
+12:11:16 p.m. [vite] (client) page reload src/components/modals/add-proyecto-modal.tsx
+12:11:31 p.m. [vite] (client) hmr update /src/components/modals/ingresos-modal.tsx, /src/index.css
+12:12:08 p.m. [vite] (client) page reload src/components/transactions/AddTransactionMenu.tsx
+12:12:09 p.m. [vite] (client) page reload src/components/invoices/InvoiceBackfillDialog.tsx
+12:12:09 p.m. [vite] (client) page reload src/components/transactions/LaborImportHistory.tsx
+12:12:54 p.m. [vite] (client) page reload src/components/transactions/ProjectTransactionTools.tsx
+12:12:54 p.m. [vite] (client) page reload src/pages/ProyectoTransaccionesTable/ProyectoTransaccionesTablePage.tsx
+12:13:23 p.m. [vite] (client) page reload src/pages/ProyectoTransaccionesTable/ProyectoTransaccionesTablePage.tsx
+12:14:17 p.m. [vite] (client) page reload outputs/P01-implementacion-2026-11-18/index.html

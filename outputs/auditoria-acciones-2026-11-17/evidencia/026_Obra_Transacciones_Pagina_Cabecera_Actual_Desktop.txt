@@ -1,0 +1,586 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones" [active]:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Transacciones
+  - heading "Lote 77" [level=1]
+  - button "Agregar":
+    - text: Agregar
+  - button "Facturas IA":
+    - text: Facturas IA
+  - button "Historial de cargas":
+    - text: Historial de cargas
+  - button "Sincronizar Docs":
+    - text: Sincronizar Docs
+  - generic: "Total: 121"
+  - generic: "Monto total: $8,567,518.21"
+  - generic: Pendientes
+  - button "47 sin proveedor":
+    - generic: "47"
+    - text: sin proveedor
+  - button "100 sin documentos":
+    - generic: "100"
+    - text: sin documentos
+  - textbox "Buscar por concepto, factura, código, tipo de pago, categoría, banco..."
+  - button "Filtros":
+    - text: Filtros
+  - button "Columnas":
+    - text: Columnas
+  - table:
+    - rowgroup:
+      - row "Seleccionar transacciones visibles Factura Concepto Proveedor 47 Monto Total Fecha Status":
+        - columnheader "Seleccionar transacciones visibles":
+          - checkbox "Seleccionar transacciones visibles"
+        - columnheader "Factura"
+        - columnheader "Concepto"
+        - columnheader "Proveedor 47":
+          - text: Proveedor
+          - button "47"
+        - columnheader "Monto Total"
+        - columnheader "Fecha"
+        - columnheader "Status"
+        - columnheader
+    - rowgroup:
+      - row "Seleccionar transacción VAR-HER-081026.pdf Ver detalle de la factura VAR-HER-081026.pdf — VARIOS Genérico $1,454.10 MXN 08 oct 2026 Pagado Acciones para VAR-HER-081026.pdf":
+        - cell "Seleccionar transacción VAR-HER-081026.pdf":
+          - checkbox "Seleccionar transacción VAR-HER-081026.pdf"
+        - cell "Ver detalle de la factura VAR-HER-081026.pdf":
+          - button "Ver detalle de la factura VAR-HER-081026.pdf":
+            - generic: VAR-HER-081026.pdf
+            - generic: 08 oct 2026
+        - cell "—":
+          - generic: —
+        - cell "VARIOS Genérico":
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "$1,454.10 MXN":
+          - generic: $1,454.10 MXN
+        - cell "08 oct 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para VAR-HER-081026.pdf":
+          - button "Acciones para VAR-HER-081026.pdf":
+      - row "Seleccionar transacción DIS-LT77-05102026.pdf Ver detalle de la factura DIS-LT77-05102026.pdf — DISPERSIÓN Genérico $129,337.30 MXN 05 oct 2026 Pagado Acciones para DIS-LT77-05102026.pdf":
+        - cell "Seleccionar transacción DIS-LT77-05102026.pdf":
+          - checkbox "Seleccionar transacción DIS-LT77-05102026.pdf"
+        - cell "Ver detalle de la factura DIS-LT77-05102026.pdf":
+          - button "Ver detalle de la factura DIS-LT77-05102026.pdf":
+            - generic: DIS-LT77-05102026.pdf
+            - generic: 05 oct 2026
+        - cell "—":
+          - generic: —
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "$129,337.30 MXN":
+          - generic: $129,337.30 MXN
+        - cell "05 oct 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LT77-05102026.pdf":
+          - button "Acciones para DIS-LT77-05102026.pdf":
+      - row "Seleccionar transacción EFE-LT77-05102026.pdf Ver detalle de la factura EFE-LT77-05102026.pdf — EFECTIVO Genérico $51,274.58 MXN 05 oct 2026 Pagado Acciones para EFE-LT77-05102026.pdf":
+        - cell "Seleccionar transacción EFE-LT77-05102026.pdf":
+          - checkbox "Seleccionar transacción EFE-LT77-05102026.pdf"
+        - cell "Ver detalle de la factura EFE-LT77-05102026.pdf":
+          - button "Ver detalle de la factura EFE-LT77-05102026.pdf":
+            - generic: EFE-LT77-05102026.pdf
+            - generic: 05 oct 2026
+        - cell "—":
+          - generic: —
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "$51,274.58 MXN":
+          - generic: $51,274.58 MXN
+        - cell "05 oct 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LT77-05102026.pdf":
+          - button "Acciones para EFE-LT77-05102026.pdf":
+      - row "Seleccionar transacción PPV-MAN-261002.pdf Ver detalle de la factura PPV-MAN-261002.pdf — PABLO PEREZ VARILLA Incompleto $174,000.00 MXN 02 oct 2026 Pagado Acciones para PPV-MAN-261002.pdf":
+        - cell "Seleccionar transacción PPV-MAN-261002.pdf":
+          - checkbox "Seleccionar transacción PPV-MAN-261002.pdf"
+        - cell "Ver detalle de la factura PPV-MAN-261002.pdf":
+          - button "Ver detalle de la factura PPV-MAN-261002.pdf":
+            - generic: PPV-MAN-261002.pdf
+            - generic: 02 oct 2026
+        - cell "—":
+          - generic: —
+        - cell "PABLO PEREZ VARILLA Incompleto":
+          - generic: PABLO PEREZ VARILLA
+          - generic: Incompleto
+        - cell "$174,000.00 MXN":
+          - generic: $174,000.00 MXN
+        - cell "02 oct 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PPV-MAN-261002.pdf":
+          - button "Acciones para PPV-MAN-261002.pdf":
+      - row "Seleccionar transacción VAR-HER-011026.pdf Ver detalle de la factura VAR-HER-011026.pdf — VARIOS Genérico $1,634.50 MXN 01 oct 2026 Pagado Acciones para VAR-HER-011026.pdf":
+        - cell "Seleccionar transacción VAR-HER-011026.pdf":
+          - checkbox "Seleccionar transacción VAR-HER-011026.pdf"
+        - cell "Ver detalle de la factura VAR-HER-011026.pdf":
+          - button "Ver detalle de la factura VAR-HER-011026.pdf":
+            - generic: VAR-HER-011026.pdf
+            - generic: 01 oct 2026
+        - cell "—":
+          - generic: —
+        - cell "VARIOS Genérico":
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "$1,634.50 MXN":
+          - generic: $1,634.50 MXN
+        - cell "01 oct 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para VAR-HER-011026.pdf":
+          - button "Acciones para VAR-HER-011026.pdf":
+      - row "Seleccionar transacción DIS-LT77-28092026.pdf Ver detalle de la factura DIS-LT77-28092026.pdf — DISPERSIÓN Genérico $130,277.78 MXN 28 sep 2026 Pagado Acciones para DIS-LT77-28092026.pdf":
+        - cell "Seleccionar transacción DIS-LT77-28092026.pdf":
+          - checkbox "Seleccionar transacción DIS-LT77-28092026.pdf"
+        - cell "Ver detalle de la factura DIS-LT77-28092026.pdf":
+          - button "Ver detalle de la factura DIS-LT77-28092026.pdf":
+            - generic: DIS-LT77-28092026.pdf
+            - generic: 28 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "$130,277.78 MXN":
+          - generic: $130,277.78 MXN
+        - cell "28 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LT77-28092026.pdf":
+          - button "Acciones para DIS-LT77-28092026.pdf":
+      - row "Seleccionar transacción EFE-LT77-28092026.pdf Ver detalle de la factura EFE-LT77-28092026.pdf — EFECTIVO Genérico $51,933.57 MXN 28 sep 2026 Pagado Acciones para EFE-LT77-28092026.pdf":
+        - cell "Seleccionar transacción EFE-LT77-28092026.pdf":
+          - checkbox "Seleccionar transacción EFE-LT77-28092026.pdf"
+        - cell "Ver detalle de la factura EFE-LT77-28092026.pdf":
+          - button "Ver detalle de la factura EFE-LT77-28092026.pdf":
+            - generic: EFE-LT77-28092026.pdf
+            - generic: 28 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "$51,933.57 MXN":
+          - generic: $51,933.57 MXN
+        - cell "28 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LT77-28092026.pdf":
+          - button "Acciones para EFE-LT77-28092026.pdf":
+      - row "Seleccionar transacción FPS--260925.pdf Ver detalle de la factura FPS--260925.pdf — FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV Incompleto $27,000.00 MXN 25 sep 2026 Pagado Acciones para FPS--260925.pdf":
+        - cell "Seleccionar transacción FPS--260925.pdf":
+          - checkbox "Seleccionar transacción FPS--260925.pdf"
+        - cell "Ver detalle de la factura FPS--260925.pdf":
+          - button "Ver detalle de la factura FPS--260925.pdf":
+            - generic: FPS--260925.pdf
+            - generic: 25 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV Incompleto":
+          - generic: FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV
+          - generic: Incompleto
+        - cell "$27,000.00 MXN":
+          - generic: $27,000.00 MXN
+        - cell "25 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para FPS--260925.pdf":
+          - button "Acciones para FPS--260925.pdf":
+      - row "Seleccionar transacción VJU-PRE-260925.pdf Ver detalle de la factura VJU-PRE-260925.pdf — VILLAGOMEZ JURADO S.A. DE C.V. Incompleto $134,160.36 MXN 25 sep 2026 Pagado Acciones para VJU-PRE-260925.pdf":
+        - cell "Seleccionar transacción VJU-PRE-260925.pdf":
+          - checkbox "Seleccionar transacción VJU-PRE-260925.pdf"
+        - cell "Ver detalle de la factura VJU-PRE-260925.pdf":
+          - button "Ver detalle de la factura VJU-PRE-260925.pdf":
+            - generic: VJU-PRE-260925.pdf
+            - generic: 25 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "VILLAGOMEZ JURADO S.A. DE C.V. Incompleto":
+          - generic: VILLAGOMEZ JURADO S.A. DE C.V.
+          - generic: Incompleto
+        - cell "$134,160.36 MXN":
+          - generic: $134,160.36 MXN
+        - cell "25 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para VJU-PRE-260925.pdf":
+          - button "Acciones para VJU-PRE-260925.pdf":
+      - row "Seleccionar transacción BJF--260925.pdf Ver detalle de la factura BJF--260925.pdf — BERNARDO JAVIER FLORES FLOMEL Incompleto $271,222.67 MXN 25 sep 2026 Pagado Acciones para BJF--260925.pdf":
+        - cell "Seleccionar transacción BJF--260925.pdf":
+          - checkbox "Seleccionar transacción BJF--260925.pdf"
+        - cell "Ver detalle de la factura BJF--260925.pdf":
+          - button "Ver detalle de la factura BJF--260925.pdf":
+            - generic: BJF--260925.pdf
+            - generic: 25 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "BERNARDO JAVIER FLORES FLOMEL Incompleto":
+          - generic: BERNARDO JAVIER FLORES FLOMEL
+          - generic: Incompleto
+        - cell "$271,222.67 MXN":
+          - generic: $271,222.67 MXN
+        - cell "25 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para BJF--260925.pdf":
+          - button "Acciones para BJF--260925.pdf":
+      - row "Seleccionar transacción VAR-HER-240926.pdf Ver detalle de la factura VAR-HER-240926.pdf — VARIOS Genérico $139.00 MXN 24 sep 2026 Pagado Acciones para VAR-HER-240926.pdf":
+        - cell "Seleccionar transacción VAR-HER-240926.pdf":
+          - checkbox "Seleccionar transacción VAR-HER-240926.pdf"
+        - cell "Ver detalle de la factura VAR-HER-240926.pdf":
+          - button "Ver detalle de la factura VAR-HER-240926.pdf":
+            - generic: VAR-HER-240926.pdf
+            - generic: 24 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "VARIOS Genérico":
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "$139.00 MXN":
+          - generic: $139.00 MXN
+        - cell "24 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para VAR-HER-240926.pdf":
+          - button "Acciones para VAR-HER-240926.pdf":
+      - row "Seleccionar transacción DIS-LT77-21092026.pdf Ver detalle de la factura DIS-LT77-21092026.pdf — DISPERSIÓN Genérico $153,769.24 MXN 21 sep 2026 Pagado Acciones para DIS-LT77-21092026.pdf":
+        - cell "Seleccionar transacción DIS-LT77-21092026.pdf":
+          - checkbox "Seleccionar transacción DIS-LT77-21092026.pdf"
+        - cell "Ver detalle de la factura DIS-LT77-21092026.pdf":
+          - button "Ver detalle de la factura DIS-LT77-21092026.pdf":
+            - generic: DIS-LT77-21092026.pdf
+            - generic: 21 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "$153,769.24 MXN":
+          - generic: $153,769.24 MXN
+        - cell "21 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LT77-21092026.pdf":
+          - button "Acciones para DIS-LT77-21092026.pdf":
+      - row "Seleccionar transacción EFE-LT77-21092026.pdf Ver detalle de la factura EFE-LT77-21092026.pdf — EFECTIVO Genérico $60,134.27 MXN 21 sep 2026 Pagado Acciones para EFE-LT77-21092026.pdf":
+        - cell "Seleccionar transacción EFE-LT77-21092026.pdf":
+          - checkbox "Seleccionar transacción EFE-LT77-21092026.pdf"
+        - cell "Ver detalle de la factura EFE-LT77-21092026.pdf":
+          - button "Ver detalle de la factura EFE-LT77-21092026.pdf":
+            - generic: EFE-LT77-21092026.pdf
+            - generic: 21 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "$60,134.27 MXN":
+          - generic: $60,134.27 MXN
+        - cell "21 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LT77-21092026.pdf":
+          - button "Acciones para EFE-LT77-21092026.pdf":
+      - row "Seleccionar transacción PPV-MAN-260918.pdf Ver detalle de la factura PPV-MAN-260918.pdf — PABLO PEREZ VARILLA Incompleto $116,000.00 MXN 18 sep 2026 Pagado Acciones para PPV-MAN-260918.pdf":
+        - cell "Seleccionar transacción PPV-MAN-260918.pdf":
+          - checkbox "Seleccionar transacción PPV-MAN-260918.pdf"
+        - cell "Ver detalle de la factura PPV-MAN-260918.pdf":
+          - button "Ver detalle de la factura PPV-MAN-260918.pdf":
+            - generic: PPV-MAN-260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "PABLO PEREZ VARILLA Incompleto":
+          - generic: PABLO PEREZ VARILLA
+          - generic: Incompleto
+        - cell "$116,000.00 MXN":
+          - generic: $116,000.00 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PPV-MAN-260918.pdf":
+          - button "Acciones para PPV-MAN-260918.pdf":
+      - row "Seleccionar transacción ACA-ACE-260918.pdf Ver detalle de la factura ACA-ACE-260918.pdf — ACEROS CABOS SA DE CV Incompleto $53,210.71 MXN 18 sep 2026 Pagado Acciones para ACA-ACE-260918.pdf":
+        - cell "Seleccionar transacción ACA-ACE-260918.pdf":
+          - checkbox "Seleccionar transacción ACA-ACE-260918.pdf"
+        - cell "Ver detalle de la factura ACA-ACE-260918.pdf":
+          - button "Ver detalle de la factura ACA-ACE-260918.pdf":
+            - generic: ACA-ACE-260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "ACEROS CABOS SA DE CV Incompleto":
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "$53,210.71 MXN":
+          - generic: $53,210.71 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para ACA-ACE-260918.pdf":
+          - button "Acciones para ACA-ACE-260918.pdf":
+      - row "Seleccionar transacción FE17274-ACA-ACE-260918.pdf Ver detalle de la factura FE17274-ACA-ACE-260918.pdf — ACEROS CABOS SA DE CV Incompleto $58,634.64 MXN 18 sep 2026 Pagado Acciones para FE17274-ACA-ACE-260918.pdf":
+        - cell "Seleccionar transacción FE17274-ACA-ACE-260918.pdf":
+          - checkbox "Seleccionar transacción FE17274-ACA-ACE-260918.pdf"
+        - cell "Ver detalle de la factura FE17274-ACA-ACE-260918.pdf":
+          - button "Ver detalle de la factura FE17274-ACA-ACE-260918.pdf":
+            - generic: FE17274-ACA-ACE-260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "ACEROS CABOS SA DE CV Incompleto":
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "$58,634.64 MXN":
+          - generic: $58,634.64 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para FE17274-ACA-ACE-260918.pdf":
+          - button "Acciones para FE17274-ACA-ACE-260918.pdf":
+      - row "Seleccionar transacción MRN-CIM-260918.pdf Ver detalle de la factura MRN-CIM-260918.pdf — MARIA REYNA NAVARRETE CORTEZ Incompleto $95,718.48 MXN 18 sep 2026 Pagado Acciones para MRN-CIM-260918.pdf":
+        - cell "Seleccionar transacción MRN-CIM-260918.pdf":
+          - checkbox "Seleccionar transacción MRN-CIM-260918.pdf"
+        - cell "Ver detalle de la factura MRN-CIM-260918.pdf":
+          - button "Ver detalle de la factura MRN-CIM-260918.pdf":
+            - generic: MRN-CIM-260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "MARIA REYNA NAVARRETE CORTEZ Incompleto":
+          - generic: MARIA REYNA NAVARRETE CORTEZ
+          - generic: Incompleto
+        - cell "$95,718.48 MXN":
+          - generic: $95,718.48 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para MRN-CIM-260918.pdf":
+          - button "Acciones para MRN-CIM-260918.pdf":
+      - row "Seleccionar transacción SAN--260918.pdf Ver detalle de la factura SAN--260918.pdf — SAUL ANDRE Incompleto $2,000.00 MXN 18 sep 2026 Pagado Acciones para SAN--260918.pdf":
+        - cell "Seleccionar transacción SAN--260918.pdf":
+          - checkbox "Seleccionar transacción SAN--260918.pdf"
+        - cell "Ver detalle de la factura SAN--260918.pdf":
+          - button "Ver detalle de la factura SAN--260918.pdf":
+            - generic: SAN--260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "SAUL ANDRE Incompleto":
+          - generic: SAUL ANDRE
+          - generic: Incompleto
+        - cell "$2,000.00 MXN":
+          - generic: $2,000.00 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para SAN--260918.pdf":
+          - button "Acciones para SAN--260918.pdf":
+      - row "Seleccionar transacción CVM--260918.pdf Ver detalle de la factura CVM--260918.pdf — CYNTHIA VANESSA MACIAS JUAREZ Incompleto $1,740.00 MXN 18 sep 2026 Pagado Acciones para CVM--260918.pdf":
+        - cell "Seleccionar transacción CVM--260918.pdf":
+          - checkbox "Seleccionar transacción CVM--260918.pdf"
+        - cell "Ver detalle de la factura CVM--260918.pdf":
+          - button "Ver detalle de la factura CVM--260918.pdf":
+            - generic: CVM--260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "CYNTHIA VANESSA MACIAS JUAREZ Incompleto":
+          - generic: CYNTHIA VANESSA MACIAS JUAREZ
+          - generic: Incompleto
+        - cell "$1,740.00 MXN":
+          - generic: $1,740.00 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para CVM--260918.pdf":
+          - button "Acciones para CVM--260918.pdf":
+      - row "Seleccionar transacción EAG-SUB-260918.pdf Ver detalle de la factura EAG-SUB-260918.pdf — EDGAR AGUIÑIGA GARCIA Incompleto $3,000.00 MXN 18 sep 2026 Pagado Acciones para EAG-SUB-260918.pdf":
+        - cell "Seleccionar transacción EAG-SUB-260918.pdf":
+          - checkbox "Seleccionar transacción EAG-SUB-260918.pdf"
+        - cell "Ver detalle de la factura EAG-SUB-260918.pdf":
+          - button "Ver detalle de la factura EAG-SUB-260918.pdf":
+            - generic: EAG-SUB-260918.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "EDGAR AGUIÑIGA GARCIA Incompleto":
+          - generic: EDGAR AGUIÑIGA GARCIA
+          - generic: Incompleto
+        - cell "$3,000.00 MXN":
+          - generic: $3,000.00 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EAG-SUB-260918.pdf":
+          - button "Acciones para EAG-SUB-260918.pdf":
+      - row "Seleccionar transacción VAR-HER-180926.pdf Ver detalle de la factura VAR-HER-180926.pdf — VARIOS Genérico $2,133.11 MXN 18 sep 2026 Pagado Acciones para VAR-HER-180926.pdf":
+        - cell "Seleccionar transacción VAR-HER-180926.pdf":
+          - checkbox "Seleccionar transacción VAR-HER-180926.pdf"
+        - cell "Ver detalle de la factura VAR-HER-180926.pdf":
+          - button "Ver detalle de la factura VAR-HER-180926.pdf":
+            - generic: VAR-HER-180926.pdf
+            - generic: 18 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "VARIOS Genérico":
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "$2,133.11 MXN":
+          - generic: $2,133.11 MXN
+        - cell "18 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para VAR-HER-180926.pdf":
+          - button "Acciones para VAR-HER-180926.pdf":
+      - row "Seleccionar transacción ACA-ACE-260917.pdf Ver detalle de la factura ACA-ACE-260917.pdf — ACEROS CABOS SA DE CV Incompleto $11,133.22 MXN 17 sep 2026 Pagado Acciones para ACA-ACE-260917.pdf":
+        - cell "Seleccionar transacción ACA-ACE-260917.pdf":
+          - checkbox "Seleccionar transacción ACA-ACE-260917.pdf"
+        - cell "Ver detalle de la factura ACA-ACE-260917.pdf":
+          - button "Ver detalle de la factura ACA-ACE-260917.pdf":
+            - generic: ACA-ACE-260917.pdf
+            - generic: 17 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "ACEROS CABOS SA DE CV Incompleto":
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "$11,133.22 MXN":
+          - generic: $11,133.22 MXN
+        - cell "17 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para ACA-ACE-260917.pdf":
+          - button "Acciones para ACA-ACE-260917.pdf":
+      - row "Seleccionar transacción EFE-LT77-14092026.pdf Ver detalle de la factura EFE-LT77-14092026.pdf — EFECTIVO Genérico $54,106.57 MXN 14 sep 2026 Pagado Acciones para EFE-LT77-14092026.pdf":
+        - cell "Seleccionar transacción EFE-LT77-14092026.pdf":
+          - checkbox "Seleccionar transacción EFE-LT77-14092026.pdf"
+        - cell "Ver detalle de la factura EFE-LT77-14092026.pdf":
+          - button "Ver detalle de la factura EFE-LT77-14092026.pdf":
+            - generic: EFE-LT77-14092026.pdf
+            - generic: 14 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "$54,106.57 MXN":
+          - generic: $54,106.57 MXN
+        - cell "14 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LT77-14092026.pdf":
+          - button "Acciones para EFE-LT77-14092026.pdf":
+      - row "Seleccionar transacción MRN-CIM-260914.pdf Ver detalle de la factura MRN-CIM-260914.pdf — MARIA REYNA NAVARRETE CORTEZ Incompleto $134,428.47 MXN 14 sep 2026 Pagado Acciones para MRN-CIM-260914.pdf":
+        - cell "Seleccionar transacción MRN-CIM-260914.pdf":
+          - checkbox "Seleccionar transacción MRN-CIM-260914.pdf"
+        - cell "Ver detalle de la factura MRN-CIM-260914.pdf":
+          - button "Ver detalle de la factura MRN-CIM-260914.pdf":
+            - generic: MRN-CIM-260914.pdf
+            - generic: 14 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "MARIA REYNA NAVARRETE CORTEZ Incompleto":
+          - generic: MARIA REYNA NAVARRETE CORTEZ
+          - generic: Incompleto
+        - cell "$134,428.47 MXN":
+          - generic: $134,428.47 MXN
+        - cell "14 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para MRN-CIM-260914.pdf":
+          - button "Acciones para MRN-CIM-260914.pdf":
+      - row "Seleccionar transacción VJU-CEM-260914.pdf Ver detalle de la factura VJU-CEM-260914.pdf — VILLAGOMEZ JURADO S.A. DE C.V. Incompleto $37,671.00 MXN 14 sep 2026 Pagado Acciones para VJU-CEM-260914.pdf":
+        - cell "Seleccionar transacción VJU-CEM-260914.pdf":
+          - checkbox "Seleccionar transacción VJU-CEM-260914.pdf"
+        - cell "Ver detalle de la factura VJU-CEM-260914.pdf":
+          - button "Ver detalle de la factura VJU-CEM-260914.pdf":
+            - generic: VJU-CEM-260914.pdf
+            - generic: 14 sep 2026
+        - cell "—":
+          - generic: —
+        - cell "VILLAGOMEZ JURADO S.A. DE C.V. Incompleto":
+          - generic: VILLAGOMEZ JURADO S.A. DE C.V.
+          - generic: Incompleto
+        - cell "$37,671.00 MXN":
+          - generic: $37,671.00 MXN
+        - cell "14 sep 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para VJU-CEM-260914.pdf":
+          - button "Acciones para VJU-CEM-260914.pdf":
+  - generic: Mostrando 1-25 de 121 transacciones
+  - combobox:
+    - generic: 25 por página
+  - button "Página anterior" [disabled]:
+  - button "1"
+  - button "2"
+  - button "3"
+  - button "4"
+  - button "5"
+  - button "Página siguiente":
+- region "Notifications alt+T"

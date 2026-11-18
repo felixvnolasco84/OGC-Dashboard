@@ -1,10 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -22,7 +29,6 @@ import {
   Loader2,
   Plus,
   Search,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -38,12 +44,11 @@ import { RfiDatePicker } from "./RfiDatePicker";
 import RFIDetailPage from "./RFIDetailPage";
 import RFINewPage from "./RFINewPage";
 
-type RfiTab = "all" | "open" | "mine" | "overdue" | "drafts" | "closed";
+type RfiStateFilter = "all" | "open" | "overdue" | "drafts" | "closed";
 
-const TAB_LABELS: Array<{ id: RfiTab; label: string }> = [
+const STATE_FILTERS: Array<{ id: RfiStateFilter; label: string }> = [
   { id: "all", label: "Total" },
   { id: "open", label: "Abiertas" },
-  { id: "mine", label: "Mi responsabilidad" },
   { id: "overdue", label: "Vencidas" },
   { id: "drafts", label: "Borradores" },
   { id: "closed", label: "Cerradas" },
@@ -60,7 +65,19 @@ const RFI_MOBILE_LABEL =
 
 export default function RFIListPage() {
   const { proyectoId } = useParams<{ proyectoId: string }>();
-  const [activeTab, setActiveTab] = useState<RfiTab>("all");
+  // Remount project-scoped state so filters, drafts and open sheets cannot leak
+  // into another project, including while a creation is still resolving.
+  return (
+    <RfiProjectList
+      key={proyectoId ?? "missing"}
+      projectId={proyectoId as Id<"desarrollos"> | undefined}
+    />
+  );
+}
+
+function RfiProjectList({ projectId }: { projectId?: Id<"desarrollos"> }) {
+  const [stateFilter, setStateFilter] = useState<RfiStateFilter>("all");
+  const [onlyMine, setOnlyMine] = useState(false);
   const [search, setSearch] = useState("");
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
   const [quickSubject, setQuickSubject] = useState("");
@@ -73,9 +90,15 @@ export default function RFIListPage() {
   );
   const [sheetMode, setSheetMode] = useState<"detail" | "edit">("detail");
   const [sheetBusy, setSheetBusy] = useState(false);
+  const subjectInputRef = useRef<HTMLInputElement>(null);
   const questionInputRef = useRef<HTMLInputElement>(null);
+  const newRfiButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreCreateFocusRef = useRef(false);
+  const creatingRef = useRef(false);
+  const activeRef = useRef(false);
+  const canCreateRef = useRef(false);
+  const creationContextRef = useRef(0);
 
-  const projectId = proyectoId as Id<"desarrollos"> | undefined;
   const project = useQuery(
     api.desarrollos.getById,
     projectId ? { id: projectId } : "skip",
@@ -89,6 +112,31 @@ export default function RFIListPage() {
     projectId ? { proyecto: projectId } : "skip",
   );
   const createRfi = useMutation(api.rfis.create);
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    canCreateRef.current = Boolean(formOptions?.can_create);
+    if (!formOptions?.can_create) {
+      creationContextRef.current++;
+      setQuickSubject("");
+      setQuickQuestion("");
+      setQuickAssigneeIds([]);
+      setQuickDueDate("");
+      setIsQuickCreateOpen(false);
+    }
+  }, [formOptions?.can_create]);
+
+  useEffect(() => {
+    if (!isQuickCreateOpen && restoreCreateFocusRef.current) {
+      restoreCreateFocusRef.current = false;
+      newRfiButtonRef.current?.focus();
+    }
+  }, [isQuickCreateOpen]);
   const { users: projectUsers, usersById } = useRfiUserDirectory(
     formOptions?.users,
   );
@@ -122,19 +170,17 @@ export default function RFIListPage() {
   const filteredRfis = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return (rfis || []).filter((rfi) => {
-      const matchesTab =
-        activeTab === "all"
+      const matchesState =
+        stateFilter === "all"
           ? true
-          : activeTab === "open"
+          : stateFilter === "open"
             ? rfi.status === "open" ||
               rfi.status === "pending_manager_review"
-            : activeTab === "mine"
-              ? rfi.is_my_responsibility
-              : activeTab === "overdue"
-                ? rfi.derived_status === "overdue"
-                : activeTab === "drafts"
-                  ? rfi.status === "draft"
-                  : rfi.status === "closed";
+            : stateFilter === "overdue"
+              ? rfi.derived_status === "overdue"
+              : stateFilter === "drafts"
+                ? rfi.status === "draft"
+                : rfi.status === "closed";
 
       const managerName = rfi.manager
         ? usersById.get(rfi.manager._id)?.name ?? rfi.manager.name
@@ -157,9 +203,13 @@ export default function RFIListPage() {
         managerName.toLowerCase().includes(normalizedSearch) ||
         assigneeNames.toLowerCase().includes(normalizedSearch);
 
-      return matchesTab && matchesSearch;
+      return (
+        matchesState &&
+        (!onlyMine || rfi.is_my_responsibility) &&
+        matchesSearch
+      );
     });
-  }, [activeTab, partidasById, rfis, search, usersById]);
+  }, [stateFilter, onlyMine, partidasById, rfis, search, usersById]);
 
   const resetQuickCreate = () => {
     setQuickSubject("");
@@ -170,6 +220,7 @@ export default function RFIListPage() {
   };
 
   const startQuickCreate = () => {
+    if (!formOptions?.can_create || creatingRef.current) return;
     setQuickSubject("");
     setQuickQuestion("");
     setQuickAssigneeIds([]);
@@ -177,12 +228,19 @@ export default function RFIListPage() {
     setIsQuickCreateOpen(true);
   };
 
+  const cancelQuickCreate = () => {
+    if (creatingRef.current) return;
+    restoreCreateFocusRef.current = true;
+    resetQuickCreate();
+  };
+
   const handleQuickCreate = async () => {
-    if (!projectId || isCreating) return;
+    if (!projectId || !formOptions?.can_create || creatingRef.current) return;
     const subject = quickSubject.trim();
     const question = quickQuestion.trim();
     if (!subject) {
       toast.error("Agrega el asunto de la RFI");
+      subjectInputRef.current?.focus();
       return;
     }
     if (!question) {
@@ -191,7 +249,13 @@ export default function RFIListPage() {
       return;
     }
 
+    creatingRef.current = true;
     setIsCreating(true);
+    const creationContext = creationContextRef.current;
+    const isCurrentCreation = () =>
+      activeRef.current &&
+      canCreateRef.current &&
+      creationContext === creationContextRef.current;
     try {
       const rfiId = await createRfi({
         proyecto: projectId,
@@ -206,18 +270,21 @@ export default function RFIListPage() {
         is_private: false,
         submit_for_review: false,
       });
+      if (!isCurrentCreation()) return;
       toast.success("Borrador creado. Completa los detalles de la RFI.");
       resetQuickCreate();
       setSelectedRfiId(rfiId);
       setSheetMode("edit");
     } catch (error) {
+      if (!isCurrentCreation()) return;
       toast.error(
         error instanceof Error
           ? error.message
           : "No se pudo crear el borrador de la RFI",
       );
     } finally {
-      setIsCreating(false);
+      creatingRef.current = false;
+      if (activeRef.current) setIsCreating(false);
     }
   };
 
@@ -252,10 +319,11 @@ export default function RFIListPage() {
           </div>
           {formOptions.can_create && (
             <Button
+              ref={newRfiButtonRef}
               type="button"
               variant="outline"
               onClick={startQuickCreate}
-              disabled={isQuickCreateOpen}
+              disabled={isQuickCreateOpen || isCreating}
               className="h-14 gap-3 rounded-sm border-border bg-card px-8 text-base font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground"
             >
               <Plus className="h-5 w-5 text-muted-foreground" />
@@ -266,46 +334,182 @@ export default function RFIListPage() {
       </header>
 
       <div className="space-y-8 px-6 py-8 lg:px-16">
-        <nav
-          className="flex overflow-x-auto border-b border-border"
-          aria-label="Vistas del registro RFI"
-        >
-          {TAB_LABELS.map((tab) => (
-            <button
-              key={tab.id}
+        <section aria-label="Filtros del registro RFI" className="space-y-3">
+          <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_12rem_auto]">
+            <label className="relative block min-w-0 sm:col-span-2 lg:col-span-1">
+              <span className="sr-only">Buscar RFI</span>
+              <Search
+                className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar por número, asunto, pregunta o responsable"
+                className="h-11 rounded-sm border-border bg-card pl-14 text-sm font-normal text-foreground shadow-none placeholder:text-muted-foreground focus-visible:ring-ring"
+              />
+            </label>
+            <div className="min-w-0 space-y-1.5">
+              <label htmlFor="rfi-state-filter" className="block text-xs text-muted-foreground">
+                Estado
+              </label>
+              <Select value={stateFilter} onValueChange={(value) => setStateFilter(value as RfiStateFilter)}>
+                <SelectTrigger id="rfi-state-filter" className="h-11 rounded-sm border-border shadow-none">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATE_FILTERS.map((filter) => (
+                    <SelectItem key={filter.id} value={filter.id}>
+                      {filter.id === "all" ? "Todas" : filter.label} ({counts[filter.id]})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              variant="outline"
+              aria-pressed={onlyMine}
+              onClick={() => setOnlyMine((value) => !value)}
               className={cn(
-                "flex min-w-36 items-center gap-4 whitespace-nowrap px-1 py-4 text-sm text-muted-foreground",
-                activeTab === tab.id &&
-                  "border-b-2 border-foreground text-foreground",
+                "h-11 gap-2 rounded-sm border-border font-normal shadow-none",
+                onlyMine && "border-foreground bg-muted text-foreground",
               )}
             >
-              <span>{tab.label}</span>
-              <span className="flex h-7 min-w-7 items-center justify-center rounded-sm bg-card px-2 text-xs text-muted-foreground">
-                {counts[tab.id]}
-              </span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="rounded-sm border border-border bg-card p-4">
-          <label className="relative block">
-            <span className="sr-only">Buscar RFI</span>
-            <Search
-              className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por número, asunto, pregunta o responsable"
-              className="h-9 rounded-sm border-border bg-card pl-14 text-base font-normal text-foreground shadow-none placeholder:text-muted-foreground focus-visible:ring-ring"
-            />
-          </label>
-        </div>
+              Mi responsabilidad
+              <span className="text-xs tabular-nums">({counts.mine})</span>
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-x-3 gap-y-1" aria-label="Totales del registro">
+              <span>Totales del registro:</span>
+              {STATE_FILTERS.map((filter) => (
+                <span key={filter.id}>
+                  {filter.label} <span className="tabular-nums">{counts[filter.id]}</span>
+                </span>
+              ))}
+            </div>
+            <p role="status" aria-live="polite">Resultados: {filteredRfis.length}</p>
+          </div>
+        </section>
 
         <section aria-label="Tabla de RFIs" className="bg-card">
+          {formOptions.can_create && isQuickCreateOpen && (
+            <form
+              aria-label="Creación rápida de RFI"
+              aria-describedby="rfi-quick-create-help"
+              aria-busy={isCreating}
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleQuickCreate();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape" && !event.defaultPrevented) {
+                  event.preventDefault();
+                  cancelQuickCreate();
+                }
+              }}
+              className="mb-4 space-y-4 rounded-sm border border-ring bg-card p-4 sm:p-5"
+            >
+              <div>
+                <h2 className="text-base font-medium text-foreground">Nueva RFI</h2>
+                <p id="rfi-quick-create-help" className="mt-1 text-sm text-muted-foreground">
+                  Al continuar se creará un borrador y se abrirá el editor para completar la RFI.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="min-w-0 space-y-1.5">
+                  <label htmlFor="rfi-quick-subject" className="block text-sm text-foreground">Asunto (obligatorio)</label>
+                  <Input
+                    id="rfi-quick-subject"
+                    ref={subjectInputRef}
+                    autoFocus
+                    required
+                    value={quickSubject}
+                    disabled={isCreating}
+                    onChange={(event) => setQuickSubject(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        questionInputRef.current?.focus();
+                      }
+                    }}
+                    placeholder="Asunto de la RFI"
+                    className="h-11 text-sm shadow-none"
+                  />
+                </div>
+                <div className="min-w-0 space-y-1.5">
+                  <label htmlFor="rfi-quick-question" className="block text-sm text-foreground">Pregunta (obligatoria)</label>
+                  <Input
+                    id="rfi-quick-question"
+                    ref={questionInputRef}
+                    required
+                    value={quickQuestion}
+                    disabled={isCreating}
+                    onChange={(event) => setQuickQuestion(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleQuickCreate();
+                      }
+                    }}
+                    placeholder="¿Qué información necesitas?"
+                    className="h-11 text-sm shadow-none"
+                  />
+                </div>
+                <div role="group" aria-labelledby="rfi-quick-assignees" className="min-w-0 space-y-1.5">
+                  <span id="rfi-quick-assignees" className="block text-sm text-foreground">Responsables</span>
+                  <RfiAssigneePicker
+                    users={projectUsers}
+                    value={quickAssigneeIds}
+                    disabled={isCreating}
+                    onChange={setQuickAssigneeIds}
+                    className="h-11"
+                  />
+                </div>
+                <div className="min-w-0 space-y-1.5">
+                  <label htmlFor="rfi-quick-due-date" className="block text-sm text-foreground">Vencimiento</label>
+                  <RfiDatePicker
+                    id="rfi-quick-due-date"
+                    value={quickDueDate}
+                    disabled={isCreating}
+                    onChange={setQuickDueDate}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-4 border-t border-border pt-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span className="break-words">Solicita: {formOptions.current_user.name}</span>
+                  <span>Sin adjunto</span>
+                  <span>Estado: Borrador</span>
+                </div>
+                <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelQuickCreate}
+                    disabled={isCreating}
+                    className="h-11"
+                    aria-label="Cancelar nueva RFI"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isCreating}
+                    className="h-11 gap-2"
+                    aria-label={isCreating ? "Creando borrador..." : "Continuar: crear borrador y abrir editor"}
+                  >
+                    {isCreating && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                    {isCreating ? "Creando..." : "Continuar"}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          )}
+
           <div className="px-4 pb-2 sm:px-8">
             <div
               className={cn(
@@ -322,113 +526,6 @@ export default function RFIListPage() {
               <span className="hidden xl:block" />
             </div>
           </div>
-
-          {isQuickCreateOpen && (
-            <div className="px-4 py-1 sm:px-8">
-              <div
-                className={cn(
-                  "grid min-h-[112px] items-center gap-5 rounded-[4px] border border-ring bg-card px-4 py-4 xl:px-8",
-                  RFI_TABLE_GRID,
-                )}
-              >
-                <div className={RFI_MAIN_CELL}>
-                  <span className={RFI_MOBILE_LABEL}>RFI</span>
-                  <Input
-                    autoFocus
-                    value={quickSubject}
-                    disabled={isCreating}
-                    onChange={(event) => setQuickSubject(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        questionInputRef.current?.focus();
-                      }
-                      if (event.key === "Escape") resetQuickCreate();
-                    }}
-                    placeholder="Asunto de la RFI"
-                    className="h-7 border-transparent bg-transparent px-1 text-sm font-medium text-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0"
-                  />
-                  <Input
-                    ref={questionInputRef}
-                    value={quickQuestion}
-                    disabled={isCreating}
-                    onChange={(event) => setQuickQuestion(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void handleQuickCreate();
-                      }
-                      if (event.key === "Escape") resetQuickCreate();
-                    }}
-                    placeholder="¿Qué información necesitas?"
-                    className="mt-1 h-7 border-transparent bg-transparent px-1 text-xs text-muted-foreground shadow-none hover:border-border focus-visible:border-border focus-visible:ring-0"
-                  />
-                </div>
-                <div className={RFI_FIELD_CELL}>
-                  <span className={RFI_MOBILE_LABEL}>Solicita</span>
-                  <p className="text-sm text-foreground">
-                    {formOptions.current_user.name}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">Nueva solicitud</p>
-                </div>
-                <div className={RFI_FIELD_CELL}>
-                  <span className={RFI_MOBILE_LABEL}>Responsable</span>
-                  <RfiAssigneePicker
-                    users={projectUsers}
-                    value={quickAssigneeIds}
-                    disabled={isCreating}
-                    onChange={setQuickAssigneeIds}
-                    className="h-8 border-transparent bg-transparent px-0 hover:bg-transparent"
-                  />
-                </div>
-                <div className={RFI_FIELD_CELL}>
-                  <span className={RFI_MOBILE_LABEL}>Adjunto</span>
-                  <span className="text-sm text-muted-foreground">Sin adjunto</span>
-                </div>
-                <div className={RFI_FIELD_CELL}>
-                  <span className={RFI_MOBILE_LABEL}>Vencimiento</span>
-                  <RfiDatePicker
-                    value={quickDueDate}
-                    disabled={isCreating}
-                    onChange={setQuickDueDate}
-                    className="h-8 border-transparent bg-transparent px-0 hover:bg-transparent"
-                  />
-                </div>
-                <div className={RFI_FIELD_CELL}>
-                  <span className={RFI_MOBILE_LABEL}>Status</span>
-                  <RfiStatusBadge label="Borrador" color="hsl(var(--disabled-foreground))" muted />
-                </div>
-                <div className={cn(RFI_ACTION_CELL, "items-center gap-1")}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetQuickCreate}
-                    disabled={isCreating}
-                    className="h-7 w-7 text-disabled-foreground hover:bg-muted hover:text-muted-foreground"
-                    aria-label="Cancelar nueva RFI"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => void handleQuickCreate()}
-                    disabled={isCreating}
-                    className="h-7 w-7 text-disabled-foreground hover:bg-muted hover:text-muted-foreground"
-                    aria-label="Crear borrador y continuar"
-                  >
-                    {isCreating ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="space-y-0">
             {filteredRfis.map((rfi) => {
@@ -552,7 +649,7 @@ export default function RFIListPage() {
             </div>
           )}
 
-          {formOptions.can_create && !isQuickCreateOpen && (
+          {formOptions.can_create && !isQuickCreateOpen && !isCreating && (
             <div className="px-4 py-2 sm:px-8">
               <button
                 type="button"

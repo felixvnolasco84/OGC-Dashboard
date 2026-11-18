@@ -1,0 +1,106 @@
+- list:
+  - button:
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - heading [level=1]: Proyectos
+  - paragraph: Gestiona y consulta todos tus proyectos de construcción
+  - button:
+    - text: Creaciones de proyectos
+  - button:
+    - text: Agregar Proyecto
+  - button:
+    - text: Subir Transacciones
+  - textbox:
+    - /placeholder: Buscar...
+  - combobox:
+    - generic: Todas las ubicaciones
+  - button:
+    - text: Configurar ubicaciones
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Proyecto
+        - columnheader: Ubicación
+        - columnheader: Presupuesto original
+        - columnheader: Presupuesto aprobado
+        - columnheader: Pagado
+        - columnheader: Avance obra
+        - columnheader: Honorarios
+        - columnheader: Fecha creación
+        - columnheader: Status
+        - columnheader
+    - rowgroup:
+      - row:
+        - cell:
+          - link:
+            - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+            - text: Lote 77
+        - cell:
+          - generic: Los Cabos
+        - cell:
+          - generic: $49,744,133
+        - cell:
+          - generic: $49,757,583
+        - cell:
+          - generic: $10,566,364
+        - cell:
+          - generic: 21%
+        - cell:
+          - generic: $1,027,775
+        - cell: 25 jun 2026
+        - cell:
+          - generic: Activo
+        - cell:
+          - button:
+- region "Notifications alt+T"
+- dialog "Crear Nuevo Proyecto":
+  - button "Close" [active]:
+    - generic: Close
+  - heading "Crear Nuevo Proyecto" [level=2]:
+    - text: Crear Nuevo Proyecto
+  - paragraph: Complete la información básica del proyecto antes de subir el Excel
+  - text: Nombre del Proyecto *
+  - textbox "Nombre del Proyecto *":
+    - /placeholder: "Ej: Larena - Torre G"
+  - text: Descripción del Proyecto *
+  - textbox "Descripción del Proyecto *":
+    - /placeholder: Describe el proyecto, ubicación, detalles importantes...
+  - text: Ubicación
+  - combobox "Ubicación":
+    - generic: Sin ubicación
+  - combobox
+  - paragraph: Opcional. Se utilizará para filtrar y agrupar el proyecto.
+  - text: Indirectos (%)
+  - spinbutton "Indirectos (%)"
+  - paragraph: Cargo automático sobre los pagos elegibles del historial completo del proyecto, con las mismas exclusiones que honorarios y sin fecha de inicio. Captura los costos reales en P&L como costo de estructura, categoría INDIRECTOS. Vacío conserva la lógica anterior; 0% activa el esquema sin cargo.
+  - text: Porcentaje de Honorarios (%)
+  - spinbutton "Porcentaje de Honorarios (%)"
+  - paragraph: Porcentaje que se aplicará sobre el total de transacciones para calcular honorarios
+  - paragraph: Arrastra y suelta un archivo Excel aquí
+  - paragraph: o
+  - button "Explorar Archivos"
+  - paragraph: "Archivos soportados: .xlsx, .xls (máx. 10MB)"
+  - paragraph: Al confirmar se guardará el Excel original para consultarlo desde Presupuesto y Documentos.
+  - button "Cancelar"
+  - button "Crear proyecto y guardar Excel" [disabled]

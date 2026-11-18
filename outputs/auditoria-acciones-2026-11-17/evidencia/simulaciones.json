@@ -1,0 +1,1085 @@
+[
+  {
+    "id": "01",
+    "kind": "desktop",
+    "filename": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 624.3333435058594,
+          "height": 410.3333435058594,
+          "right": 1385.3333740234375,
+          "width": 250,
+          "x": 1135.3333740234375,
+          "y": 214
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "05",
+    "kind": "desktop",
+    "filename": "propuestas/P05_General_Proyectos_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 404.3333435058594,
+          "height": 230.33334350585935,
+          "right": 1385.3333740234375,
+          "width": 250,
+          "x": 1135.3333740234375,
+          "y": 174
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "06",
+    "kind": "desktop",
+    "filename": "propuestas/P06_Obra_Transacciones_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 397.00001525878906,
+          "height": 230.33334350585935,
+          "right": 1401.3333740234375,
+          "width": 250,
+          "x": 1151.3333740234375,
+          "y": 166.6666717529297
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "08",
+    "kind": "desktop",
+    "filename": "propuestas/P08_Obra_Programa_Pagina_barra_de_herramientas_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 342.3333435058594,
+          "height": 190.33334350585935,
+          "right": 1401.3333740234375,
+          "width": 250,
+          "x": 1151.3333740234375,
+          "y": 152
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "09",
+    "kind": "desktop",
+    "filename": "propuestas/P09_Obra_Bitacora_Pagina_selector_de_vista_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "11",
+    "kind": "desktop",
+    "filename": "propuestas/P11_Obra_Requisiciones_Tarjeta_acciones_de_estado_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 719.6666870117188,
+          "height": 226.33334350585935,
+          "right": 1368.666748046875,
+          "width": 250,
+          "x": 1118.666748046875,
+          "y": 493.3333435058594
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "13",
+    "kind": "desktop",
+    "filename": "propuestas/P13_Obra_RFIs_Dialogo_detalle_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 241.00000762939453,
+          "height": 78.33333587646484,
+          "right": 1391.3333740234375,
+          "width": 250,
+          "x": 1141.3333740234375,
+          "y": 162.6666717529297
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "14",
+    "kind": "desktop",
+    "filename": "propuestas/P14_Obra_Planos_Pagina_biblioteca_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 304.33333587646484,
+          "height": 78.33333587646484,
+          "right": 1369.3333740234375,
+          "width": 250,
+          "x": 1119.3333740234375,
+          "y": 226
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "15",
+    "kind": "desktop",
+    "filename": "propuestas/P15_Obra_Planos_Visor_acciones_del_archivo_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 440.3333435058594,
+          "height": 190.33334350585935,
+          "right": 1369.3333740234375,
+          "width": 250,
+          "x": 1119.3333740234375,
+          "y": 250
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "17",
+    "kind": "desktop",
+    "filename": "propuestas/P17_General_Documentos_Tabla_acciones_de_carpeta_archivo_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 714.3333435058594,
+          "height": 190.33334350585935,
+          "right": 1332.666748046875,
+          "width": 250,
+          "x": 1082.666748046875,
+          "y": 524
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "18",
+    "kind": "desktop",
+    "filename": "propuestas/P18_General_Proveedores_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 328.3333435058594,
+          "height": 154.33334350585938,
+          "right": 1385.3333740234375,
+          "width": 250,
+          "x": 1135.3333740234375,
+          "y": 174
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "19",
+    "kind": "desktop",
+    "filename": "propuestas/P19_General_PyL_Pagina_herramientas_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 328.3333435058594,
+          "height": 154.33334350585938,
+          "right": 1385.3333740234375,
+          "width": 250,
+          "x": 1135.3333740234375,
+          "y": 174
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "20",
+    "kind": "desktop",
+    "filename": "propuestas/P20_Obra_Autorizaciones_Tarjetas_documentos_y_responsables_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 463.6666870117187,
+          "height": 226.33334350585935,
+          "right": 1364.666748046875,
+          "width": 250,
+          "x": 1114.666748046875,
+          "y": 237.33334350585935
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "22",
+    "kind": "desktop",
+    "filename": "propuestas/P22_Ventas_Documentos_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "23",
+    "kind": "desktop",
+    "filename": "propuestas/P23_General_Dialogos_Dialogo_edicion_de_partida_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "24",
+    "kind": "desktop",
+    "filename": "propuestas/P24_Ventas_Presupuesto_Pagina_cabecera_referencia_de_codigo_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 304.33333587646484,
+          "height": 78.33333587646484,
+          "right": 1312,
+          "width": 250,
+          "x": 1062,
+          "y": 226
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "25",
+    "kind": "desktop",
+    "filename": "propuestas/P25_Ventas_Transacciones_del_proyecto_Pagina_cabecera_referencia_de_codigo_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 304.33333587646484,
+          "height": 78.33333587646484,
+          "right": 1312,
+          "width": 250,
+          "x": 1062,
+          "y": 226
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "26",
+    "kind": "desktop",
+    "filename": "propuestas/P26_General_y_Obra_Tareas_Pagina_filtros_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "27",
+    "kind": "desktop",
+    "filename": "propuestas/P27_Obra_Presupuesto_Tabla_menu_de_partida_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 853.0000305175781,
+          "height": 266.3333435058594,
+          "right": 1402.666748046875,
+          "width": 250,
+          "x": 1152.666748046875,
+          "y": 586.6666870117188
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "02",
+    "kind": "desktop",
+    "filename": "propuestas/P02_Obra_Presupuesto_Pagina_filtros_y_visualizacion_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "03",
+    "kind": "desktop",
+    "filename": "propuestas/P03_Obra_Presupuesto_Dialogo_Ingresos_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 548.3333358764648,
+          "height": 114.33333587646484,
+          "right": 1151.3333740234375,
+          "width": 250,
+          "x": 901.3333740234376,
+          "y": 434
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "04",
+    "kind": "desktop",
+    "filename": "propuestas/P04_Obra_Presupuesto_Dialogo_Registrar_pagos_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "10",
+    "kind": "desktop",
+    "filename": "propuestas/P10_Obra_Requisiciones_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 360.3333358764648,
+          "height": 114.33333587646484,
+          "right": 502,
+          "width": 250,
+          "x": 252,
+          "y": 246
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "07",
+    "kind": "desktop",
+    "filename": "propuestas/P07_Obra_Transacciones_Panel_filtros_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "21",
+    "kind": "desktop",
+    "filename": "propuestas/P21_Obra_Flujo_Pagina_origen_e_historial_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 376.3333358764648,
+          "height": 114.33333587646484,
+          "right": 554,
+          "width": 250,
+          "x": 304,
+          "y": 262
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "12",
+    "kind": "desktop",
+    "filename": "propuestas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "12",
+    "kind": "desktop",
+    "filename": "propuestas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Propuesta_Desktop_Creacion_rapida.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "01",
+    "kind": "mobile",
+    "filename": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 808.3333435058594,
+          "height": 474.3333435058594,
+          "right": 367.3333358764648,
+          "width": 260,
+          "x": 107.33333587646484,
+          "y": 334
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "03",
+    "kind": "mobile",
+    "filename": "propuestas/P03_Obra_Presupuesto_Dialogo_Ingresos_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 531.6666870117188,
+          "height": 130.33334350585938,
+          "right": 357.33333587646484,
+          "width": 260,
+          "x": 97.33333587646484,
+          "y": 401.3333435058594
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "04",
+    "kind": "mobile",
+    "filename": "propuestas/P04_Obra_Presupuesto_Dialogo_Registrar_pagos_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "05",
+    "kind": "mobile",
+    "filename": "propuestas/P05_General_Proyectos_Pagina_cabecera_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 564.3333435058594,
+          "height": 254.33334350585935,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 310
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "06",
+    "kind": "mobile",
+    "filename": "propuestas/P06_Obra_Transacciones_Pagina_cabecera_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 565.6666870117188,
+          "height": 254.33334350585935,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 311.3333435058594
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "08",
+    "kind": "mobile",
+    "filename": "propuestas/P08_Obra_Programa_Pagina_barra_de_herramientas_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 428.3333435058594,
+          "height": 214.33334350585935,
+          "right": 367.3333358764648,
+          "width": 260,
+          "x": 107.33333587646484,
+          "y": 214
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "09",
+    "kind": "mobile",
+    "filename": "propuestas/P09_Obra_Bitacora_Pagina_selector_de_vista_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "10",
+    "kind": "mobile",
+    "filename": "propuestas/P10_Obra_Requisiciones_Pagina_cabecera_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 388.3333435058594,
+          "height": 130.33334350585938,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 258
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "11",
+    "kind": "mobile",
+    "filename": "propuestas/P11_Obra_Requisiciones_Tarjeta_acciones_de_estado_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 560.3333435058594,
+          "height": 258.3333435058594,
+          "right": 354.6666717529297,
+          "width": 260,
+          "x": 94.66667175292967,
+          "y": 302
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "12",
+    "kind": "mobile",
+    "filename": "propuestas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "13",
+    "kind": "mobile",
+    "filename": "propuestas/P13_Obra_RFIs_Dialogo_detalle_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 313.00000762939453,
+          "height": 86.33333587646484,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 226.6666717529297
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "14",
+    "kind": "mobile",
+    "filename": "propuestas/P14_Obra_Planos_Pagina_biblioteca_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 416.3333358764648,
+          "height": 86.33333587646484,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 330
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "15",
+    "kind": "mobile",
+    "filename": "propuestas/P15_Obra_Planos_Visor_acciones_del_archivo_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 584.3333435058594,
+          "height": 214.33334350585935,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 370
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "18",
+    "kind": "mobile",
+    "filename": "propuestas/P18_General_Proveedores_Pagina_cabecera_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 505.6666870117187,
+          "height": 170.33334350585938,
+          "right": 292.6666679382324,
+          "width": 260,
+          "x": 32.66666793823242,
+          "y": 335.3333435058594
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "19",
+    "kind": "mobile",
+    "filename": "propuestas/P19_General_PyL_Pagina_herramientas_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 556.3333435058594,
+          "height": 170.33334350585938,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 386
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "20",
+    "kind": "mobile",
+    "filename": "propuestas/P20_Obra_Autorizaciones_Tarjetas_documentos_y_responsables_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 598.3333435058594,
+          "height": 258.3333435058594,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 340
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "21",
+    "kind": "mobile",
+    "filename": "propuestas/P21_Obra_Flujo_Pagina_origen_e_historial_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 420.3333435058594,
+          "height": 130.33334350585938,
+          "right": 276,
+          "width": 260,
+          "x": 16,
+          "y": 290
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "22",
+    "kind": "mobile",
+    "filename": "propuestas/P22_Ventas_Documentos_Pagina_cabecera_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "23",
+    "kind": "mobile",
+    "filename": "propuestas/P23_General_Dialogos_Dialogo_edicion_de_partida_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "24",
+    "kind": "mobile",
+    "filename": "propuestas/P24_Ventas_Presupuesto_Pagina_cabecera_referencia_de_codigo_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 325.6666793823242,
+          "height": 86.33333587646484,
+          "right": 374,
+          "width": 260,
+          "x": 114,
+          "y": 239.33334350585935
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "25",
+    "kind": "mobile",
+    "filename": "propuestas/P25_Ventas_Transacciones_del_proyecto_Pagina_cabecera_referencia_de_codigo_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 405.0000228881836,
+          "height": 86.33333587646484,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 318.66668701171875
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "26",
+    "kind": "mobile",
+    "filename": "propuestas/P26_General_y_Obra_Tareas_Pagina_filtros_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "27",
+    "kind": "mobile",
+    "filename": "propuestas/P27_Obra_Presupuesto_Tabla_menu_de_partida_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 786.3333435058594,
+          "height": 298.3333435058594,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 488
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "02",
+    "kind": "mobile",
+    "filename": "propuestas/P02_Obra_Presupuesto_Pagina_filtros_y_visualizacion_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "07",
+    "kind": "mobile",
+    "filename": "propuestas/P07_Obra_Transacciones_Panel_filtros_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "01",
+    "kind": "mobile",
+    "filename": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Movil_Menu_cerrado.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "01",
+    "kind": "desktop",
+    "filename": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Desktop_Menu_cerrado.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "16",
+    "kind": "desktop",
+    "filename": "propuestas/P16_General_y_Obra_Documentos_Pagina_cabecera_y_vista_Propuesta_Desktop.jpg",
+    "layout": {
+      "height": 1000,
+      "menus": [
+        {
+          "bottom": 312.33333587646484,
+          "height": 114.33333587646484,
+          "right": 1385.3333740234375,
+          "width": 250,
+          "x": 1135.3333740234375,
+          "y": 198
+        }
+      ],
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "16",
+    "kind": "mobile",
+    "filename": "propuestas/P16_General_y_Obra_Documentos_Pagina_cabecera_y_vista_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 400.3333435058594,
+          "height": 130.33334350585938,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  },
+  {
+    "id": "17",
+    "kind": "mobile",
+    "filename": "propuestas/P17_General_Documentos_Tabla_acciones_de_carpeta_archivo_Propuesta_Movil.jpg",
+    "layout": {
+      "height": 844,
+      "menus": [
+        {
+          "bottom": 702.3333435058594,
+          "height": 214.33334350585935,
+          "right": 260,
+          "width": 260,
+          "x": 0,
+          "y": 488
+        }
+      ],
+      "scrollWidth": 390,
+      "width": 390
+    },
+    "accepted": true,
+    "revision": "Revisión visual de escritorio/móvil; límites descritos en hallazgos.md."
+  }
+]

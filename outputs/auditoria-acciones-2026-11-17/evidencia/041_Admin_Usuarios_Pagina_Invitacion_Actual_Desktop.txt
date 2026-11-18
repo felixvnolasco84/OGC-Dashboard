@@ -1,0 +1,52 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - link "Usuarios":
+    - /url: /usuarios
+    - text: Usuarios
+  - heading "Agregar Usuario" [level=1]
+  - paragraph: Crea el acceso, asigna proyectos y envía el correo de bienvenida.
+  - generic: 0 proyecto(s) seleccionado(s)
+  - text: Invitación
+  - text: Nombre
+  - textbox "Nombre":
+    - /placeholder: Nombre del usuario
+  - text: Correo
+  - textbox "Correo":
+    - /placeholder: usuario@empresa.com
+  - text: Rol
+  - combobox "Rol":
+    - text: Viewer (solo lectura)
+  - combobox
+  - paragraph: Solo puede consultar Presupuesto, Control, Programa y Bitácora.
+  - text: Proyectos asignados
+  - checkbox "Lote 77"
+  - checkbox
+  - generic: Lote 77
+  - button "Enviar Invitación":
+    - text: Enviar Invitación
+- region "Notifications alt+T"

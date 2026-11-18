@@ -1,0 +1,907 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Transacciones" [level=1]
+  - paragraph: Consulta y gestiona todas las transacciones registradas en el sistema
+  - button "Agregar":
+    - text: Agregar
+  - generic: "Cargadas: 50"
+  - generic: "Monto cargado: $2,539,441.91"
+  - textbox "Buscar..."
+  - combobox:
+    - generic: Todos los proyectos
+  - combobox:
+    - generic: Todos los proveedores
+  - button "Columnas":
+    - text: Columnas
+  - table:
+    - rowgroup:
+      - row "Seleccionar transacciones visibles Proyecto Proveedor Factura Monto Total Fecha Status":
+        - columnheader "Seleccionar transacciones visibles":
+          - checkbox "Seleccionar transacciones visibles"
+        - columnheader "Proyecto"
+        - columnheader "Proveedor"
+        - columnheader "Factura"
+        - columnheader "Monto Total"
+        - columnheader "Fecha"
+        - columnheader "Status"
+        - columnheader
+    - rowgroup:
+      - row "Seleccionar transacción MPA--260824.pdf Larena - Torre J MULTIRENTAS DEL PACIFICO Incompleto Ver detalle de la factura MPA--260824.pdf $11,722.46 23 ago 2026 Pagado Acciones para MPA--260824.pdf":
+        - cell "Seleccionar transacción MPA--260824.pdf":
+          - checkbox "Seleccionar transacción MPA--260824.pdf"
+        - cell "Larena - Torre J":
+          - generic: Larena - Torre J
+        - cell "MULTIRENTAS DEL PACIFICO Incompleto":
+          - generic: MULTIRENTAS DEL PACIFICO
+          - generic: Incompleto
+        - cell "Ver detalle de la factura MPA--260824.pdf":
+          - button "Ver detalle de la factura MPA--260824.pdf":
+            - generic: MPA--260824.pdf
+        - cell "$11,722.46"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para MPA--260824.pdf":
+          - button "Acciones para MPA--260824.pdf":
+      - row "Seleccionar transacción EPO--260824.pdf Larena - Torre J ERNESTO PERALES OROZCO Incompleto Ver detalle de la factura EPO--260824.pdf $2,033.98 23 ago 2026 Pagado Acciones para EPO--260824.pdf":
+        - cell "Seleccionar transacción EPO--260824.pdf":
+          - checkbox "Seleccionar transacción EPO--260824.pdf"
+        - cell "Larena - Torre J":
+          - generic: Larena - Torre J
+        - cell "ERNESTO PERALES OROZCO Incompleto":
+          - generic: ERNESTO PERALES OROZCO
+          - generic: Incompleto
+        - cell "Ver detalle de la factura EPO--260824.pdf":
+          - button "Ver detalle de la factura EPO--260824.pdf":
+            - generic: EPO--260824.pdf
+        - cell "$2,033.98"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EPO--260824.pdf":
+          - button "Acciones para EPO--260824.pdf":
+      - row "Seleccionar transacción EFE-LARENAJ-24082026.pdf Larena - Torre J EFECTIVO Genérico Ver detalle de la factura EFE-LARENAJ-24082026.pdf $16,413.64 23 ago 2026 Pagado Acciones para EFE-LARENAJ-24082026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAJ-24082026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAJ-24082026.pdf"
+        - cell "Larena - Torre J":
+          - generic: Larena - Torre J
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAJ-24082026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAJ-24082026.pdf":
+            - generic: EFE-LARENAJ-24082026.pdf
+        - cell "$16,413.64"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAJ-24082026.pdf":
+          - button "Acciones para EFE-LARENAJ-24082026.pdf":
+      - row "Seleccionar transacción DIS-LARENAJ-24082026.pdf Larena - Torre J DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAJ-24082026.pdf $40,574.91 23 ago 2026 Pagado Acciones para DIS-LARENAJ-24082026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAJ-24082026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAJ-24082026.pdf"
+        - cell "Larena - Torre J":
+          - generic: Larena - Torre J
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAJ-24082026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAJ-24082026.pdf":
+            - generic: DIS-LARENAJ-24082026.pdf
+        - cell "$40,574.91"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAJ-24082026.pdf":
+          - button "Acciones para DIS-LARENAJ-24082026.pdf":
+      - row "Seleccionar transacción PLM-500118007.pdf Larena - Torre H CONCRETOS EL PALMAR (VILLAGOMEZ JURADO) Incompleto Ver detalle de la factura PLM-500118007.pdf $6,988.42 23 ago 2026 Pagado Acciones para PLM-500118007.pdf":
+        - cell "Seleccionar transacción PLM-500118007.pdf":
+          - checkbox "Seleccionar transacción PLM-500118007.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "CONCRETOS EL PALMAR (VILLAGOMEZ JURADO) Incompleto":
+          - generic: CONCRETOS EL PALMAR (VILLAGOMEZ JURADO)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PLM-500118007.pdf":
+          - button "Ver detalle de la factura PLM-500118007.pdf":
+            - generic: PLM-500118007.pdf
+        - cell "$6,988.42"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PLM-500118007.pdf":
+          - button "Acciones para PLM-500118007.pdf":
+      - row "Seleccionar transacción PACM-15778.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura PACM-15778.pdf $1,684.00 23 ago 2026 Pagado Acciones para PACM-15778.pdf":
+        - cell "Seleccionar transacción PACM-15778.pdf":
+          - checkbox "Seleccionar transacción PACM-15778.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PACM-15778.pdf":
+          - button "Ver detalle de la factura PACM-15778.pdf":
+            - generic: PACM-15778.pdf
+        - cell "$1,684.00"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PACM-15778.pdf":
+          - button "Acciones para PACM-15778.pdf":
+      - row "Seleccionar transacción PACM-15776.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura PACM-15776.pdf $2,283.00 23 ago 2026 Pagado Acciones para PACM-15776.pdf":
+        - cell "Seleccionar transacción PACM-15776.pdf":
+          - checkbox "Seleccionar transacción PACM-15776.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PACM-15776.pdf":
+          - button "Ver detalle de la factura PACM-15776.pdf":
+            - generic: PACM-15776.pdf
+        - cell "$2,283.00"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PACM-15776.pdf":
+          - button "Acciones para PACM-15776.pdf":
+      - row "Seleccionar transacción FCO-2131.pdf Larena - Torre H FITZER CONSTRUCTION SA DE CV Incompleto Ver detalle de la factura FCO-2131.pdf $34,684.00 20 ago 2026 Pagado Acciones para FCO-2131.pdf":
+        - cell "Seleccionar transacción FCO-2131.pdf":
+          - checkbox "Seleccionar transacción FCO-2131.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "FITZER CONSTRUCTION SA DE CV Incompleto":
+          - generic: FITZER CONSTRUCTION SA DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura FCO-2131.pdf":
+          - button "Ver detalle de la factura FCO-2131.pdf":
+            - generic: FCO-2131.pdf
+        - cell "$34,684.00"
+        - cell "20 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para FCO-2131.pdf":
+          - button "Acciones para FCO-2131.pdf":
+      - row "Seleccionar transacción MKP-COL-260814.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura MKP-COL-260814.pdf $1,220.00 13 ago 2026 Pagado Acciones para MKP-COL-260814.pdf":
+        - cell "Seleccionar transacción MKP-COL-260814.pdf":
+          - checkbox "Seleccionar transacción MKP-COL-260814.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura MKP-COL-260814.pdf":
+          - button "Ver detalle de la factura MKP-COL-260814.pdf":
+            - generic: MKP-COL-260814.pdf
+        - cell "$1,220.00"
+        - cell "13 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para MKP-COL-260814.pdf":
+          - button "Acciones para MKP-COL-260814.pdf":
+      - row "Seleccionar transacción JAH--260814.pdf Larena - Torre H JESUS ALBERTO HERNANDEZ DE HARO Incompleto Ver detalle de la factura JAH--260814.pdf $376,945.67 13 ago 2026 Pagado Acciones para JAH--260814.pdf":
+        - cell "Seleccionar transacción JAH--260814.pdf":
+          - checkbox "Seleccionar transacción JAH--260814.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "JESUS ALBERTO HERNANDEZ DE HARO Incompleto":
+          - generic: JESUS ALBERTO HERNANDEZ DE HARO
+          - generic: Incompleto
+        - cell "Ver detalle de la factura JAH--260814.pdf":
+          - button "Ver detalle de la factura JAH--260814.pdf":
+            - generic: JAH--260814.pdf
+        - cell "$376,945.67"
+        - cell "13 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para JAH--260814.pdf":
+          - button "Acciones para JAH--260814.pdf":
+      - row "Seleccionar transacción ESR--260814.pdf Larena - Torre H ERIC SOLEDAD ROMERO Incompleto Ver detalle de la factura ESR--260814.pdf $100,000.00 13 ago 2026 Pagado Acciones para ESR--260814.pdf":
+        - cell "Seleccionar transacción ESR--260814.pdf":
+          - checkbox "Seleccionar transacción ESR--260814.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "ERIC SOLEDAD ROMERO Incompleto":
+          - generic: ERIC SOLEDAD ROMERO
+          - generic: Incompleto
+        - cell "Ver detalle de la factura ESR--260814.pdf":
+          - button "Ver detalle de la factura ESR--260814.pdf":
+            - generic: ESR--260814.pdf
+        - cell "$100,000.00"
+        - cell "13 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para ESR--260814.pdf":
+          - button "Acciones para ESR--260814.pdf":
+      - row "Seleccionar transacción PACM-15609.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura PACM-15609.pdf $1,220.00 06 ago 2026 Pagado Acciones para PACM-15609.pdf":
+        - cell "Seleccionar transacción PACM-15609.pdf":
+          - checkbox "Seleccionar transacción PACM-15609.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PACM-15609.pdf":
+          - button "Ver detalle de la factura PACM-15609.pdf":
+            - generic: PACM-15609.pdf
+        - cell "$1,220.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PACM-15609.pdf":
+          - button "Acciones para PACM-15609.pdf":
+      - row "Seleccionar transacción PACM-15608.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura PACM-15608.pdf $2,005.00 06 ago 2026 Pagado Acciones para PACM-15608.pdf":
+        - cell "Seleccionar transacción PACM-15608.pdf":
+          - checkbox "Seleccionar transacción PACM-15608.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PACM-15608.pdf":
+          - button "Ver detalle de la factura PACM-15608.pdf":
+            - generic: PACM-15608.pdf
+        - cell "$2,005.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PACM-15608.pdf":
+          - button "Acciones para PACM-15608.pdf":
+      - row "Seleccionar transacción PACM-15607.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura PACM-15607.pdf $4,227.50 06 ago 2026 Pagado Acciones para PACM-15607.pdf":
+        - cell "Seleccionar transacción PACM-15607.pdf":
+          - checkbox "Seleccionar transacción PACM-15607.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PACM-15607.pdf":
+          - button "Ver detalle de la factura PACM-15607.pdf":
+            - generic: PACM-15607.pdf
+        - cell "$4,227.50"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PACM-15607.pdf":
+          - button "Acciones para PACM-15607.pdf":
+      - row "Seleccionar transacción PACM-15606.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura PACM-15606.pdf $2,297.00 06 ago 2026 Pagado Acciones para PACM-15606.pdf":
+        - cell "Seleccionar transacción PACM-15606.pdf":
+          - checkbox "Seleccionar transacción PACM-15606.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura PACM-15606.pdf":
+          - button "Ver detalle de la factura PACM-15606.pdf":
+            - generic: PACM-15606.pdf
+        - cell "$2,297.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para PACM-15606.pdf":
+          - button "Acciones para PACM-15606.pdf":
+      - row "Seleccionar transacción OTA-ACC-260807.pdf Larena - Torre H OSCAR TAMAYO Incompleto Ver detalle de la factura OTA-ACC-260807.pdf $25,500.00 06 ago 2026 Pagado Acciones para OTA-ACC-260807.pdf":
+        - cell "Seleccionar transacción OTA-ACC-260807.pdf":
+          - checkbox "Seleccionar transacción OTA-ACC-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "OSCAR TAMAYO Incompleto":
+          - generic: OSCAR TAMAYO
+          - generic: Incompleto
+        - cell "Ver detalle de la factura OTA-ACC-260807.pdf":
+          - button "Ver detalle de la factura OTA-ACC-260807.pdf":
+            - generic: OTA-ACC-260807.pdf
+        - cell "$25,500.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para OTA-ACC-260807.pdf":
+          - button "Acciones para OTA-ACC-260807.pdf":
+      - row "Seleccionar transacción NAGE-2569.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2569.pdf $21,460.00 06 ago 2026 Pagado Acciones para NAGE-2569.pdf":
+        - cell "Seleccionar transacción NAGE-2569.pdf":
+          - checkbox "Seleccionar transacción NAGE-2569.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2569.pdf":
+          - button "Ver detalle de la factura NAGE-2569.pdf":
+            - generic: NAGE-2569.pdf
+        - cell "$21,460.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2569.pdf":
+          - button "Acciones para NAGE-2569.pdf":
+      - row "Seleccionar transacción NAGE-2567.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2567.pdf $27,376.00 06 ago 2026 Pagado Acciones para NAGE-2567.pdf":
+        - cell "Seleccionar transacción NAGE-2567.pdf":
+          - checkbox "Seleccionar transacción NAGE-2567.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2567.pdf":
+          - button "Ver detalle de la factura NAGE-2567.pdf":
+            - generic: NAGE-2567.pdf
+        - cell "$27,376.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2567.pdf":
+          - button "Acciones para NAGE-2567.pdf":
+      - row "Seleccionar transacción NAGE-2566.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2566.pdf $21,156.00 06 ago 2026 Pagado Acciones para NAGE-2566.pdf":
+        - cell "Seleccionar transacción NAGE-2566.pdf":
+          - checkbox "Seleccionar transacción NAGE-2566.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2566.pdf":
+          - button "Ver detalle de la factura NAGE-2566.pdf":
+            - generic: NAGE-2566.pdf
+        - cell "$21,156.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2566.pdf":
+          - button "Acciones para NAGE-2566.pdf":
+      - row "Seleccionar transacción NAGE-2563.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2563.pdf $30,276.00 06 ago 2026 Pagado Acciones para NAGE-2563.pdf":
+        - cell "Seleccionar transacción NAGE-2563.pdf":
+          - checkbox "Seleccionar transacción NAGE-2563.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2563.pdf":
+          - button "Ver detalle de la factura NAGE-2563.pdf":
+            - generic: NAGE-2563.pdf
+        - cell "$30,276.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2563.pdf":
+          - button "Acciones para NAGE-2563.pdf":
+      - row "Seleccionar transacción NAGE-2471.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2471.pdf $27,376.00 06 ago 2026 Pagado Acciones para NAGE-2471.pdf":
+        - cell "Seleccionar transacción NAGE-2471.pdf":
+          - checkbox "Seleccionar transacción NAGE-2471.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2471.pdf":
+          - button "Ver detalle de la factura NAGE-2471.pdf":
+            - generic: NAGE-2471.pdf
+        - cell "$27,376.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2471.pdf":
+          - button "Acciones para NAGE-2471.pdf":
+      - row "Seleccionar transacción NAGE-2470.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2470.pdf $21,460.00 06 ago 2026 Pagado Acciones para NAGE-2470.pdf":
+        - cell "Seleccionar transacción NAGE-2470.pdf":
+          - checkbox "Seleccionar transacción NAGE-2470.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2470.pdf":
+          - button "Ver detalle de la factura NAGE-2470.pdf":
+            - generic: NAGE-2470.pdf
+        - cell "$21,460.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2470.pdf":
+          - button "Acciones para NAGE-2470.pdf":
+      - row "Seleccionar transacción NAGE-2469.pdf Larena - Torre H LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto Ver detalle de la factura NAGE-2469.pdf $73,254.00 06 ago 2026 Pagado Acciones para NAGE-2469.pdf":
+        - cell "Seleccionar transacción NAGE-2469.pdf":
+          - checkbox "Seleccionar transacción NAGE-2469.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA) Incompleto":
+          - generic: LUIS MANUEL NAVARRO GONZALEZ (HERMANOS NAVARRO FERRETERIA)
+          - generic: Incompleto
+        - cell "Ver detalle de la factura NAGE-2469.pdf":
+          - button "Ver detalle de la factura NAGE-2469.pdf":
+            - generic: NAGE-2469.pdf
+        - cell "$73,254.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para NAGE-2469.pdf":
+          - button "Acciones para NAGE-2469.pdf":
+      - row "Seleccionar transacción MKP-COL-260807.pdf Larena - Torre H MONTSERRAT KARIME PAZ CARDENAS Incompleto Ver detalle de la factura MKP-COL-260807.pdf $37,181.00 06 ago 2026 Pagado Acciones para MKP-COL-260807.pdf":
+        - cell "Seleccionar transacción MKP-COL-260807.pdf":
+          - checkbox "Seleccionar transacción MKP-COL-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "MONTSERRAT KARIME PAZ CARDENAS Incompleto":
+          - generic: MONTSERRAT KARIME PAZ CARDENAS
+          - generic: Incompleto
+        - cell "Ver detalle de la factura MKP-COL-260807.pdf":
+          - button "Ver detalle de la factura MKP-COL-260807.pdf":
+            - generic: MKP-COL-260807.pdf
+        - cell "$37,181.00"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para MKP-COL-260807.pdf":
+          - button "Acciones para MKP-COL-260807.pdf":
+      - row "Seleccionar transacción LCO-CON-260807.pdf Larena - Torre H LUXIDA CONCRETOS S DE RL DE CV Incompleto Ver detalle de la factura LCO-CON-260807.pdf $23,159.86 06 ago 2026 Pagado Acciones para LCO-CON-260807.pdf":
+        - cell "Seleccionar transacción LCO-CON-260807.pdf":
+          - checkbox "Seleccionar transacción LCO-CON-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUXIDA CONCRETOS S DE RL DE CV Incompleto":
+          - generic: LUXIDA CONCRETOS S DE RL DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura LCO-CON-260807.pdf":
+          - button "Ver detalle de la factura LCO-CON-260807.pdf":
+            - generic: LCO-CON-260807.pdf
+        - cell "$23,159.86"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para LCO-CON-260807.pdf":
+          - button "Acciones para LCO-CON-260807.pdf":
+      - row "Seleccionar transacción LCO-10288.pdf Larena - Torre H LUXIDA CONCRETOS S DE RL DE CV Incompleto Ver detalle de la factura LCO-10288.pdf $38,112.06 06 ago 2026 Pagado Acciones para LCO-10288.pdf":
+        - cell "Seleccionar transacción LCO-10288.pdf":
+          - checkbox "Seleccionar transacción LCO-10288.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "LUXIDA CONCRETOS S DE RL DE CV Incompleto":
+          - generic: LUXIDA CONCRETOS S DE RL DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura LCO-10288.pdf":
+          - button "Ver detalle de la factura LCO-10288.pdf":
+            - generic: LCO-10288.pdf
+        - cell "$38,112.06"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para LCO-10288.pdf":
+          - button "Acciones para LCO-10288.pdf":
+      - row "Seleccionar transacción FPS-2515.pdf Larena - Torre H FERRETERÍA Y PLOMERÍA SANTANA, SA DE CV Incompleto Ver detalle de la factura FPS-2515.pdf $66,680.79 06 ago 2026 Pagado Acciones para FPS-2515.pdf":
+        - cell "Seleccionar transacción FPS-2515.pdf":
+          - checkbox "Seleccionar transacción FPS-2515.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "FERRETERÍA Y PLOMERÍA SANTANA, SA DE CV Incompleto":
+          - generic: FERRETERÍA Y PLOMERÍA SANTANA, SA DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura FPS-2515.pdf":
+          - button "Ver detalle de la factura FPS-2515.pdf":
+            - generic: FPS-2515.pdf
+        - cell "$66,680.79"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para FPS-2515.pdf":
+          - button "Acciones para FPS-2515.pdf":
+      - row "Seleccionar transacción FBU-INS-260807.pdf Larena - Torre H FIGUEROA Y DE BUEN, S.A. DE C.V. Incompleto Ver detalle de la factura FBU-INS-260807.pdf $661,805.90 06 ago 2026 Pagado Acciones para FBU-INS-260807.pdf":
+        - cell "Seleccionar transacción FBU-INS-260807.pdf":
+          - checkbox "Seleccionar transacción FBU-INS-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "FIGUEROA Y DE BUEN, S.A. DE C.V. Incompleto":
+          - generic: FIGUEROA Y DE BUEN, S.A. DE C.V.
+          - generic: Incompleto
+        - cell "Ver detalle de la factura FBU-INS-260807.pdf":
+          - button "Ver detalle de la factura FBU-INS-260807.pdf":
+            - generic: FBU-INS-260807.pdf
+        - cell "$661,805.90"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para FBU-INS-260807.pdf":
+          - button "Acciones para FBU-INS-260807.pdf":
+      - row "Seleccionar transacción CVM-HER-260807.pdf Larena - Torre H CYNTHIA VANESSA MACIAS JUAREZ Incompleto Ver detalle de la factura CVM-HER-260807.pdf $17,700.32 06 ago 2026 Pagado Acciones para CVM-HER-260807.pdf":
+        - cell "Seleccionar transacción CVM-HER-260807.pdf":
+          - checkbox "Seleccionar transacción CVM-HER-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "CYNTHIA VANESSA MACIAS JUAREZ Incompleto":
+          - generic: CYNTHIA VANESSA MACIAS JUAREZ
+          - generic: Incompleto
+        - cell "Ver detalle de la factura CVM-HER-260807.pdf":
+          - button "Ver detalle de la factura CVM-HER-260807.pdf":
+            - generic: CVM-HER-260807.pdf
+        - cell "$17,700.32"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para CVM-HER-260807.pdf":
+          - button "Acciones para CVM-HER-260807.pdf":
+      - row "Seleccionar transacción CVM-COL-260807.pdf Larena - Torre H CYNTHIA VANESSA MACIAS JUAREZ Incompleto Ver detalle de la factura CVM-COL-260807.pdf $10,824.25 06 ago 2026 Pagado Acciones para CVM-COL-260807.pdf":
+        - cell "Seleccionar transacción CVM-COL-260807.pdf":
+          - checkbox "Seleccionar transacción CVM-COL-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "CYNTHIA VANESSA MACIAS JUAREZ Incompleto":
+          - generic: CYNTHIA VANESSA MACIAS JUAREZ
+          - generic: Incompleto
+        - cell "Ver detalle de la factura CVM-COL-260807.pdf":
+          - button "Ver detalle de la factura CVM-COL-260807.pdf":
+            - generic: CVM-COL-260807.pdf
+        - cell "$10,824.25"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para CVM-COL-260807.pdf":
+          - button "Acciones para CVM-COL-260807.pdf":
+      - row "Seleccionar transacción COM-184198.pdf Larena - Torre H COMERCABOS SA DE CV Incompleto Ver detalle de la factura COM-184198.pdf $4,199.90 06 ago 2026 Pagado Acciones para COM-184198.pdf":
+        - cell "Seleccionar transacción COM-184198.pdf":
+          - checkbox "Seleccionar transacción COM-184198.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "COMERCABOS SA DE CV Incompleto":
+          - generic: COMERCABOS SA DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura COM-184198.pdf":
+          - button "Ver detalle de la factura COM-184198.pdf":
+            - generic: COM-184198.pdf
+        - cell "$4,199.90"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para COM-184198.pdf":
+          - button "Acciones para COM-184198.pdf":
+      - row "Seleccionar transacción AEA-COL-260807.pdf Larena - Torre H ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V. Incompleto Ver detalle de la factura AEA-COL-260807.pdf $93,020.40 06 ago 2026 Pagado Acciones para AEA-COL-260807.pdf":
+        - cell "Seleccionar transacción AEA-COL-260807.pdf":
+          - checkbox "Seleccionar transacción AEA-COL-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V. Incompleto":
+          - generic: ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.
+          - generic: Incompleto
+        - cell "Ver detalle de la factura AEA-COL-260807.pdf":
+          - button "Ver detalle de la factura AEA-COL-260807.pdf":
+            - generic: AEA-COL-260807.pdf
+        - cell "$93,020.40"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para AEA-COL-260807.pdf":
+          - button "Acciones para AEA-COL-260807.pdf":
+      - row "Seleccionar transacción ACB-COL-260807.pdf Larena - Torre H ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV Incompleto Ver detalle de la factura ACB-COL-260807.pdf $6,721.41 06 ago 2026 Pagado Acciones para ACB-COL-260807.pdf":
+        - cell "Seleccionar transacción ACB-COL-260807.pdf":
+          - checkbox "Seleccionar transacción ACB-COL-260807.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV Incompleto":
+          - generic: ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura ACB-COL-260807.pdf":
+          - button "Ver detalle de la factura ACB-COL-260807.pdf":
+            - generic: ACB-COL-260807.pdf
+        - cell "$6,721.41"
+        - cell "06 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para ACB-COL-260807.pdf":
+          - button "Acciones para ACB-COL-260807.pdf":
+      - row "Seleccionar transacción EFE-LARENAH-27072026.pdf Larena - Torre H EFECTIVO Genérico Ver detalle de la factura EFE-LARENAH-27072026.pdf $26,730.00 26 jul 2026 Pagado Acciones para EFE-LARENAH-27072026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAH-27072026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAH-27072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAH-27072026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAH-27072026.pdf":
+            - generic: EFE-LARENAH-27072026.pdf
+        - cell "$26,730.00"
+        - cell "26 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAH-27072026.pdf":
+          - button "Acciones para EFE-LARENAH-27072026.pdf":
+      - row "Seleccionar transacción DIS-LARENAH-27072026.pdf Larena - Torre H DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAH-27072026.pdf $69,894.87 26 jul 2026 Pagado Acciones para DIS-LARENAH-27072026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAH-27072026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAH-27072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAH-27072026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAH-27072026.pdf":
+            - generic: DIS-LARENAH-27072026.pdf
+        - cell "$69,894.87"
+        - cell "26 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAH-27072026.pdf":
+          - button "Acciones para DIS-LARENAH-27072026.pdf":
+      - row "Seleccionar transacción ACA--260724.pdf Larena - Torre H ACEROS CABOS SA DE CV Incompleto Ver detalle de la factura ACA--260724.pdf $4,534.61 23 jul 2026 Pagado Acciones para ACA--260724.pdf":
+        - cell "Seleccionar transacción ACA--260724.pdf":
+          - checkbox "Seleccionar transacción ACA--260724.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "ACEROS CABOS SA DE CV Incompleto":
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "Ver detalle de la factura ACA--260724.pdf":
+          - button "Ver detalle de la factura ACA--260724.pdf":
+            - generic: ACA--260724.pdf
+        - cell "$4,534.61"
+        - cell "23 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para ACA--260724.pdf":
+          - button "Acciones para ACA--260724.pdf":
+      - row "Seleccionar transacción EFE-LARENAH-20072026.pdf Larena - Torre H EFECTIVO Genérico Ver detalle de la factura EFE-LARENAH-20072026.pdf $25,280.88 19 jul 2026 Pagado Acciones para EFE-LARENAH-20072026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAH-20072026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAH-20072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAH-20072026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAH-20072026.pdf":
+            - generic: EFE-LARENAH-20072026.pdf
+        - cell "$25,280.88"
+        - cell "19 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAH-20072026.pdf":
+          - button "Acciones para EFE-LARENAH-20072026.pdf":
+      - row "Seleccionar transacción DIS-LARENAH-20072026.pdf Larena - Torre H DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAH-20072026.pdf $68,659.48 19 jul 2026 Pagado Acciones para DIS-LARENAH-20072026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAH-20072026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAH-20072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAH-20072026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAH-20072026.pdf":
+            - generic: DIS-LARENAH-20072026.pdf
+        - cell "$68,659.48"
+        - cell "19 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAH-20072026.pdf":
+          - button "Acciones para DIS-LARENAH-20072026.pdf":
+      - row "Seleccionar transacción EFE-LARENAH-13072026.pdf Larena - Torre H EFECTIVO Genérico Ver detalle de la factura EFE-LARENAH-13072026.pdf $15,135.18 12 jul 2026 Pagado Acciones para EFE-LARENAH-13072026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAH-13072026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAH-13072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAH-13072026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAH-13072026.pdf":
+            - generic: EFE-LARENAH-13072026.pdf
+        - cell "$15,135.18"
+        - cell "12 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAH-13072026.pdf":
+          - button "Acciones para EFE-LARENAH-13072026.pdf":
+      - row "Seleccionar transacción DIS-LARENAH-13072026.pdf Larena - Torre H DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAH-13072026.pdf $39,691.63 12 jul 2026 Pagado Acciones para DIS-LARENAH-13072026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAH-13072026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAH-13072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAH-13072026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAH-13072026.pdf":
+            - generic: DIS-LARENAH-13072026.pdf
+        - cell "$39,691.63"
+        - cell "12 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAH-13072026.pdf":
+          - button "Acciones para DIS-LARENAH-13072026.pdf":
+      - row "Seleccionar transacción EFE-LARENAH-06072026.pdf Larena - Torre H EFECTIVO Genérico Ver detalle de la factura EFE-LARENAH-06072026.pdf $23,186.00 05 jul 2026 Pagado Acciones para EFE-LARENAH-06072026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAH-06072026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAH-06072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAH-06072026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAH-06072026.pdf":
+            - generic: EFE-LARENAH-06072026.pdf
+        - cell "$23,186.00"
+        - cell "05 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAH-06072026.pdf":
+          - button "Acciones para EFE-LARENAH-06072026.pdf":
+      - row "Seleccionar transacción DIS-LARENAH-06072026.pdf Larena - Torre H DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAH-06072026.pdf $60,654.59 05 jul 2026 Pagado Acciones para DIS-LARENAH-06072026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAH-06072026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAH-06072026.pdf"
+        - cell "Larena - Torre H":
+          - generic: Larena - Torre H
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAH-06072026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAH-06072026.pdf":
+            - generic: DIS-LARENAH-06072026.pdf
+        - cell "$60,654.59"
+        - cell "05 jul 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAH-06072026.pdf":
+          - button "Acciones para DIS-LARENAH-06072026.pdf":
+      - row "Seleccionar transacción EFE-LARENAG-31082026.pdf Larena - Torre G EFECTIVO Genérico Ver detalle de la factura EFE-LARENAG-31082026.pdf $41,930.14 30 ago 2026 Pagado Acciones para EFE-LARENAG-31082026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAG-31082026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAG-31082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAG-31082026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAG-31082026.pdf":
+            - generic: EFE-LARENAG-31082026.pdf
+        - cell "$41,930.14"
+        - cell "30 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAG-31082026.pdf":
+          - button "Acciones para EFE-LARENAG-31082026.pdf":
+      - row "Seleccionar transacción DIS-MCALIZATOR-31082026.pdf Larena - Torre G DISPERSIÓN Genérico Ver detalle de la factura DIS-MCALIZATOR-31082026.pdf $56,743.16 30 ago 2026 Pagado Acciones para DIS-MCALIZATOR-31082026.pdf":
+        - cell "Seleccionar transacción DIS-MCALIZATOR-31082026.pdf":
+          - checkbox "Seleccionar transacción DIS-MCALIZATOR-31082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-MCALIZATOR-31082026.pdf":
+          - button "Ver detalle de la factura DIS-MCALIZATOR-31082026.pdf":
+            - generic: DIS-MCALIZATOR-31082026.pdf
+        - cell "$56,743.16"
+        - cell "30 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-MCALIZATOR-31082026.pdf":
+          - button "Acciones para DIS-MCALIZATOR-31082026.pdf":
+      - row "Seleccionar transacción DIS-LARENAG-31082026.pdf Larena - Torre G DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAG-31082026.pdf $86,189.49 30 ago 2026 Pagado Acciones para DIS-LARENAG-31082026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAG-31082026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAG-31082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAG-31082026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAG-31082026.pdf":
+            - generic: DIS-LARENAG-31082026.pdf
+        - cell "$86,189.49"
+        - cell "30 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAG-31082026.pdf":
+          - button "Acciones para DIS-LARENAG-31082026.pdf":
+      - row "Seleccionar transacción EFE-LARENAG-24082026.pdf Larena - Torre G EFECTIVO Genérico Ver detalle de la factura EFE-LARENAG-24082026.pdf $29,064.00 23 ago 2026 Pagado Acciones para EFE-LARENAG-24082026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAG-24082026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAG-24082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAG-24082026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAG-24082026.pdf":
+            - generic: EFE-LARENAG-24082026.pdf
+        - cell "$29,064.00"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAG-24082026.pdf":
+          - button "Acciones para EFE-LARENAG-24082026.pdf":
+      - row "Seleccionar transacción DIS-MCALIZATOR-24082026.pdf Larena - Torre G DISPERSIÓN Genérico Ver detalle de la factura DIS-MCALIZATOR-24082026.pdf $47,384.82 23 ago 2026 Pagado Acciones para DIS-MCALIZATOR-24082026.pdf":
+        - cell "Seleccionar transacción DIS-MCALIZATOR-24082026.pdf":
+          - checkbox "Seleccionar transacción DIS-MCALIZATOR-24082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-MCALIZATOR-24082026.pdf":
+          - button "Ver detalle de la factura DIS-MCALIZATOR-24082026.pdf":
+            - generic: DIS-MCALIZATOR-24082026.pdf
+        - cell "$47,384.82"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-MCALIZATOR-24082026.pdf":
+          - button "Acciones para DIS-MCALIZATOR-24082026.pdf":
+      - row "Seleccionar transacción DIS-LARENAG-24082026.pdf Larena - Torre G DISPERSIÓN Genérico Ver detalle de la factura DIS-LARENAG-24082026.pdf $76,103.61 23 ago 2026 Pagado Acciones para DIS-LARENAG-24082026.pdf":
+        - cell "Seleccionar transacción DIS-LARENAG-24082026.pdf":
+          - checkbox "Seleccionar transacción DIS-LARENAG-24082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "DISPERSIÓN Genérico":
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Ver detalle de la factura DIS-LARENAG-24082026.pdf":
+          - button "Ver detalle de la factura DIS-LARENAG-24082026.pdf":
+            - generic: DIS-LARENAG-24082026.pdf
+        - cell "$76,103.61"
+        - cell "23 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para DIS-LARENAG-24082026.pdf":
+          - button "Acciones para DIS-LARENAG-24082026.pdf":
+      - row "Seleccionar transacción EFE-LARENAG-10082026.pdf Larena - Torre G EFECTIVO Genérico Ver detalle de la factura EFE-LARENAG-10082026.pdf $35,064.00 09 ago 2026 Pagado Acciones para EFE-LARENAG-10082026.pdf":
+        - cell "Seleccionar transacción EFE-LARENAG-10082026.pdf":
+          - checkbox "Seleccionar transacción EFE-LARENAG-10082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-LARENAG-10082026.pdf":
+          - button "Ver detalle de la factura EFE-LARENAG-10082026.pdf":
+            - generic: EFE-LARENAG-10082026.pdf
+        - cell "$35,064.00"
+        - cell "09 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-LARENAG-10082026.pdf":
+          - button "Acciones para EFE-LARENAG-10082026.pdf":
+      - row "Seleccionar transacción EFE-BAOS-10082026.pdf Larena - Torre G EFECTIVO Genérico Ver detalle de la factura EFE-BAOS-10082026.pdf $21,631.98 09 ago 2026 Pagado Acciones para EFE-BAOS-10082026.pdf":
+        - cell "Seleccionar transacción EFE-BAOS-10082026.pdf":
+          - checkbox "Seleccionar transacción EFE-BAOS-10082026.pdf"
+        - cell "Larena - Torre G":
+          - generic: Larena - Torre G
+        - cell "EFECTIVO Genérico":
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Ver detalle de la factura EFE-BAOS-10082026.pdf":
+          - button "Ver detalle de la factura EFE-BAOS-10082026.pdf":
+            - generic: EFE-BAOS-10082026.pdf
+        - cell "$21,631.98"
+        - cell "09 ago 2026"
+        - cell "Pagado":
+          - generic: Pagado
+        - cell "Acciones para EFE-BAOS-10082026.pdf":
+          - button "Acciones para EFE-BAOS-10082026.pdf":
+      - row "Cargar más transacciones":
+        - cell "Cargar más transacciones":
+          - button "Cargar más transacciones"
+- region "Notifications alt+T"

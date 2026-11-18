@@ -1,0 +1,102 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - button "Colapsar Planos" [expanded]:
+  - list:
+    - button "Colapsar Biblioteca de planos" [expanded]:
+    - button "Biblioteca 1":
+      - generic: Biblioteca
+      - generic: "1"
+    - button "Artquitectura 70":
+      - generic: Artquitectura
+      - generic: "70"
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Proyecto
+  - heading "Planos Lote 77" [level=1]
+  - paragraph: Revisa documentos, marca observaciones y concentra la conversación técnica.
+  - button "Menciones":
+    - text: Menciones
+  - button "Cargar plano":
+    - text: Cargar plano
+  - button "Cargar carpeta":
+    - text: Cargar carpeta
+  - button "Planos 70":
+    - generic: Planos
+    - generic: "70"
+  - button "Observaciones abiertas 1":
+    - generic: Observaciones abiertas
+    - generic: "1"
+  - button "Planos revisados 0":
+    - generic: Planos revisados
+    - generic: "0"
+  - textbox "Buscar en esta ubicación"
+  - combobox:
+    - generic: Todos los estados
+  - generic: Nombre
+  - generic: Revisión
+  - generic: Estado
+  - generic: Actividad
+  - button "Artquitectura 70 planos — Carpeta 07 ago 2026, 11:11 a.m.":
+    - generic: Artquitectura
+    - generic: 70 planos
+    - paragraph: —
+    - paragraph: Carpeta
+    - paragraph: 07 ago 2026, 11:11 a.m.
+- region "Notifications alt+T"

@@ -1,0 +1,76 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Proyectos" [level=1]
+  - paragraph: Gestiona y consulta todos tus proyectos de construcción
+  - button "Creaciones de proyectos":
+    - text: Creaciones de proyectos
+  - button "Agregar Proyecto":
+    - text: Agregar Proyecto
+  - button "Subir Transacciones":
+    - text: Subir Transacciones
+  - textbox "Buscar..."
+  - combobox:
+    - generic: Todas las ubicaciones
+  - button "Configurar ubicaciones":
+    - text: Configurar ubicaciones
+  - table:
+    - rowgroup:
+      - row "Proyecto Ubicación Presupuesto original Presupuesto aprobado Pagado Avance obra Honorarios Fecha creación Status":
+        - columnheader "Proyecto"
+        - columnheader "Ubicación"
+        - columnheader "Presupuesto original"
+        - columnheader "Presupuesto aprobado"
+        - columnheader "Pagado"
+        - columnheader "Avance obra"
+        - columnheader "Honorarios"
+        - columnheader "Fecha creación"
+        - columnheader "Status"
+        - columnheader
+    - rowgroup:
+      - row "Lote 77 Los Cabos $49,744,133 $49,757,583 $10,566,364 21% $1,027,775 25 jun 2026 Activo Acciones de Lote 77":
+        - cell "Lote 77":
+          - link "Lote 77":
+            - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+        - cell "Los Cabos":
+          - generic: Los Cabos
+        - cell "$49,744,133":
+          - generic "$49,744,133.31": $49,744,133
+        - cell "$49,757,583":
+          - generic "$49,757,583.19": $49,757,583
+        - cell "$10,566,364":
+          - generic "$10,566,364.04": $10,566,364
+        - cell "21%":
+          - generic: 21%
+        - cell "$1,027,775":
+          - generic "$1,027,775.37": $1,027,775
+        - cell "25 jun 2026"
+        - cell "Activo":
+          - generic: Activo
+        - cell "Acciones de Lote 77":
+          - button "Acciones de Lote 77":
+- region "Notifications alt+T"

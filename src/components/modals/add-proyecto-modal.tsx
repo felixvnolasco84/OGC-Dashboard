@@ -46,6 +46,7 @@ export default function AddProyectoModal() {
   const creation = useBudgetCreation();
   const confirmedAttempt = useQuery(api.budgetCreationHistory.get, creation.attemptId ? { attempt_id: creation.attemptId } : "skip");
   const progressRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!isOpen || !creation.attemptId) return;
     const frame = requestAnimationFrame(() => progressRef.current?.scrollIntoView({ block: "start" }));
@@ -190,7 +191,15 @@ export default function AddProyectoModal() {
 
   return (
     <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent data-square-modal="" className="w-full sm:w-[800px] sm:max-w-[800px] overflow-y-auto">
+      <SheetContent data-square-modal="" className="w-full sm:w-[800px] sm:max-w-[800px] overflow-y-auto"
+        onOpenAutoFocus={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus();
+        }}
+      >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <FolderPlus className="h-5 w-5" />

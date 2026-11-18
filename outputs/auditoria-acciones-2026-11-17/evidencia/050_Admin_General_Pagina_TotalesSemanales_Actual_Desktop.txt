@@ -1,0 +1,66 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Administración" [level=1]
+  - paragraph: Herramientas para cargar y gestionar datos del proyecto
+  - text: Seleccionar Proyecto
+  - combobox:
+    - generic: Selecciona un proyecto
+  - text: Cargar Totales Semanales Proyectados
+  - generic: Carga los totales semanales agregados de las proyecciones de tu Excel
+  - paragraph: Total Semanas
+  - paragraph: "57"
+  - paragraph: Semanas con Datos
+  - paragraph: "57"
+  - paragraph: Total Proyectado
+  - paragraph: $31,338,304
+  - paragraph:
+    - strong: "Proyecto seleccionado:"
+    - text: Ninguno
+  - paragraph: Por favor selecciona un proyecto antes de cargar los datos.
+  - paragraph: "Vista previa de datos:"
+  - generic: Fecha
+  - generic: Monto
+  - generic: 29/9/2025
+  - generic: $ 1.060.475,01
+  - generic: 6/10/2025
+  - generic: $ 863.383,38
+  - generic: 13/10/2025
+  - generic: $ 198.842,63
+  - generic: 20/10/2025
+  - generic: $ 524.753,43
+  - generic: 27/10/2025
+  - generic: $ 609.490,24
+  - paragraph: ... y 52 semanas más
+  - button "Cargar Datos" [disabled]:
+    - text: Cargar Datos
+  - button "Eliminar" [disabled]:
+    - text: Eliminar
+  - paragraph:
+    - strong: "Nota:"
+    - text: Este proceso reemplazará todos los totales semanales existentes para el proyecto seleccionado. Los datos se cargarán automáticamente desde el archivo de configuración.
+- region "Notifications alt+T"

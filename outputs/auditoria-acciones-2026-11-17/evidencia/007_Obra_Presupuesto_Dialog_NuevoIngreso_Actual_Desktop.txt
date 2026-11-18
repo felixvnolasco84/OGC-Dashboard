@@ -1,0 +1,738 @@
+- list:
+  - button:
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - generic: Requisiciones
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - paragraph: Presupuesto
+  - heading [level=1]: Lote 77
+  - button:
+    - text: Excel de origen
+  - generic: Total Ingresos
+  - generic: $15,808,443
+  - generic: ".07"
+  - text: Neto
+  - generic: $5,242,079
+  - generic: ".03"
+  - button:
+    - text: Agregar
+  - button:
+    - generic: Abrir acciones de presupuesto
+  - paragraph: Presupuesto Original
+  - generic: $49,744,133
+  - generic: ".31"
+  - paragraph: Presupuesto aprobado
+  - generic: $49,757,583
+  - generic: ".19"
+  - generic: Aumento 0.03%
+  - paragraph: Gasto Total
+  - generic: $10,566,364
+  - generic: ".04"
+  - generic: Avance 21.24%
+  - paragraph: Por ejercer
+  - generic: $39,191,219
+  - generic: ".15"
+  - generic: Avance 21.24%
+  - generic: Partida
+  - button:
+    - generic: Todas
+  - generic: Familia
+  - button:
+    - generic: Todas
+  - generic: Fecha
+  - combobox:
+    - generic: Hoy (total)
+  - button:
+    - generic: Precio unitario
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Partida - Familia - Subpartida
+        - columnheader: Presupuesto original
+        - columnheader: Presupuesto aprobado
+        - columnheader: Pagado
+        - columnheader: Avance
+        - columnheader
+    - rowgroup:
+      - row:
+        - cell:
+          - button:
+          - generic: PRELIMINARES
+        - cell: $1,372,477.05
+        - cell:
+          - generic: $1,385,926.93
+          - generic: "Incremento: +$13,449.88"
+        - cell:
+          - generic: $1,190,091.22
+          - generic: Por gastar - $195,835.71
+        - cell:
+          - generic: 85.87%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MUROS DE CONT
+        - cell: $2,590,497.16
+        - cell:
+          - generic: $2,590,497.16
+        - cell:
+          - generic: $1,204,711.18
+          - generic: Por gastar - $1,385,785.99
+        - cell:
+          - generic: 46.51%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: CIMENTACIÓN
+        - cell: $3,074,691.29
+        - cell:
+          - generic: $3,074,691.29
+        - cell:
+          - generic: $1,483,940.60
+          - generic: Por gastar - $1,590,750.69
+        - cell:
+          - generic: 48.26%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: FIRME DE CIMENTACIÓN
+        - cell: $438,686.52
+        - cell:
+          - generic: $438,686.52
+        - cell:
+          - generic: $596.54
+          - generic: Por gastar - $438,089.98
+        - cell:
+          - generic: 0.14%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MUROS_PB
+        - cell: $1,488,522.36
+        - cell:
+          - generic: $1,488,522.36
+        - cell:
+          - generic: $896,288.85
+          - generic: Por gastar - $592,233.51
+        - cell:
+          - generic: 60.21%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: LOSA_PN
+        - cell: $2,082,996.39
+        - cell:
+          - generic: $2,082,996.39
+        - cell:
+          - generic: $1,753,921.64
+          - generic: Por gastar - $329,074.75
+        - cell:
+          - generic: 84.20%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MUROS_PN
+        - cell: $877,009.47
+        - cell:
+          - generic: $877,009.47
+        - cell:
+          - generic: $729,366.23
+          - generic: Por gastar - $147,643.24
+        - cell:
+          - generic: 83.17%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: LOSA_2N
+        - cell: $1,155,048.28
+        - cell:
+          - generic: $1,155,048.28
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $1,155,048.28
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MUROS PRETILES
+        - cell: $249,394.47
+        - cell:
+          - generic: $249,394.47
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $249,394.47
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: ALBERCA
+        - cell: $503,711.15
+        - cell:
+          - generic: $503,711.15
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $503,711.15
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: CISTERNA
+        - cell: $290,779.73
+        - cell:
+          - generic: $290,779.73
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $290,779.73
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: ESCALERA INTERNA
+        - cell: $52,978.00
+        - cell:
+          - generic: $52,978.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $52,978.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: ESCALERA EXTERNA 01
+        - cell: $240,679.45
+        - cell:
+          - generic: $240,679.45
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $240,679.45
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: ESCALERA EXTERNA 02
+        - cell: $84,435.87
+        - cell:
+          - generic: $84,435.87
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $84,435.87
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: FIRME DE ANDADO
+        - cell: $237,843.10
+        - cell:
+          - generic: $237,843.10
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $237,843.10
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: ALBAÑILERÍAS
+        - cell: $3,365,450.87
+        - cell:
+          - generic: $3,365,450.87
+        - cell:
+          - generic: $252,620.40
+          - generic: Por gastar - $3,112,830.47
+        - cell:
+          - generic: 7.51%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: PLOMERÍA
+        - cell: $1,277,000.00
+        - cell:
+          - generic: $1,277,000.00
+        - cell:
+          - generic: $628,222.67
+          - generic: Por gastar - $648,777.33
+        - cell:
+          - generic: 49.20%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: ELECTRICIDAD
+        - cell: $1,219,156.93
+        - cell:
+          - generic: $1,219,156.93
+        - cell:
+          - generic: $372,000.00
+          - generic: Por gastar - $847,156.93
+        - cell:
+          - generic: 30.51%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: LUMINARIAS
+        - cell: $749,972.16
+        - cell:
+          - generic: $749,972.16
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $749,972.16
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: IMPERMEABILIZACIÓN
+        - cell: $474,145.71
+        - cell:
+          - generic: $474,145.71
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $474,145.71
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: AIRE_ACONDICIONADO
+        - cell: $1,857,000.00
+        - cell:
+          - generic: $1,857,000.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $1,857,000.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: HERRERÍA
+        - cell: $745,257.27
+        - cell:
+          - generic: $745,257.27
+        - cell:
+          - generic: $55,758.88
+          - generic: Por gastar - $689,498.39
+        - cell:
+          - generic: 7.48%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: PINTURA_HERRERÍA
+        - cell: $330,000.00
+        - cell:
+          - generic: $330,000.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $330,000.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MÁRMOL
+        - cell: $4,572,260.00
+        - cell:
+          - generic: $4,572,260.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $4,572,260.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: RECUBRIMIENTOS
+        - cell: $494,416.60
+        - cell:
+          - generic: $494,416.60
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $494,416.60
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: YESO_PINTURA
+        - cell: $1,332,597.07
+        - cell:
+          - generic: $1,332,597.07
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $1,332,597.07
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: CANCELERÍA
+        - cell: $2,387,416.08
+        - cell:
+          - generic: $2,387,416.08
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $2,387,416.08
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: CARPINTERÍA
+        - cell: $2,579,378.80
+        - cell:
+          - generic: $2,579,378.80
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $2,579,378.80
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: HERRAJES
+        - cell: $58,200.00
+        - cell:
+          - generic: $58,200.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $58,200.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MOBILIARIO_EQUIPO
+        - cell: $219,500.00
+        - cell:
+          - generic: $219,500.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $219,500.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: MUEBLES_BAÑO
+        - cell: $353,800.00
+        - cell:
+          - generic: $353,800.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $353,800.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: GAS
+        - cell: $399,040.00
+        - cell:
+          - generic: $399,040.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $399,040.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: COCINA
+        - cell: $902,952.71
+        - cell:
+          - generic: $902,952.71
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $902,952.71
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: INSTALACIONES_ESPECIALES
+        - cell: $130,460.00
+        - cell:
+          - generic: $130,460.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $130,460.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: JARDÍN
+        - cell: $189,036.00
+        - cell:
+          - generic: $189,036.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $189,036.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: VARIOS
+        - cell: $315,000.00
+        - cell:
+          - generic: $315,000.00
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $315,000.00
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: VIATICOS
+        - cell: $3,613,120.00
+        - cell:
+          - generic: $3,613,120.00
+        - cell:
+          - generic: $799,774.65
+          - generic: Por gastar - $2,813,345.35
+        - cell:
+          - generic: 22.14%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: HONORARIOS
+        - cell: $5,076,588.90
+        - cell:
+          - generic: $5,076,588.90
+        - cell:
+          - generic: $1,027,775.37
+          - generic: Por gastar - $4,048,813.53
+        - cell:
+          - generic: 20.25%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: GENERAL CONDITIONS
+        - cell: $846,098.15
+        - cell:
+          - generic: $846,098.15
+        - cell:
+          - generic: $171,295.81
+          - generic: Por gastar - $674,802.34
+        - cell:
+          - generic: 20.25%
+        - cell:
+          - button:
+            - generic: Abrir menú
+      - row:
+        - cell:
+          - button:
+          - generic: VARIOS SH
+        - cell: $1,516,535.78
+        - cell:
+          - generic: $1,516,535.78
+        - cell:
+          - generic: $0.00
+          - generic: Por gastar - $1,516,535.78
+        - cell:
+          - generic: 0.00%
+        - cell:
+          - button:
+            - generic: Abrir menú
+  - paragraph: Todas las partidas han sido cargadas
+- region "Notifications alt+T"
+- dialog "Ingresos" [active]:
+  - heading "Ingresos" [level=2]
+  - paragraph: Lote 77
+  - heading "Nuevo ingreso" [level=3]
+  - paragraph: Completa los datos del ingreso.
+  - button:
+  - text: Monto
+  - spinbutton "Monto"
+  - text: Moneda
+  - combobox:
+    - generic: MXN
+  - combobox
+  - text: Fecha
+  - button "17/11/2026":
+    - text: 17/11/2026
+  - text: Descripción
+  - textbox "Descripción":
+    - /placeholder: Concepto o referencia del ingreso
+  - heading "Documento adjunto" [level=3]
+  - text: Tipo de documento
+  - combobox:
+    - generic: Seleccionar tipo
+  - combobox
+  - button "Cancelar"
+  - button "Agregar" [disabled]
+  - button "Close":
+    - generic: Close

@@ -1,0 +1,135 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs" [active]:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - main:
+    - paragraph: Proyecto
+    - heading "RFIs Lote 77" [level=1]
+    - button "Nueva RFI":
+      - text: Nueva RFI
+    - navigation "Vistas del registro RFI":
+      - button "Total 3":
+        - generic: Total
+        - generic: "3"
+      - button "Abiertas 3":
+        - generic: Abiertas
+        - generic: "3"
+      - button "Mi responsabilidad 0":
+        - generic: Mi responsabilidad
+        - generic: "0"
+      - button "Vencidas 1":
+        - generic: Vencidas
+        - generic: "1"
+      - button "Borradores 0":
+        - generic: Borradores
+        - generic: "0"
+      - button "Cerradas 0":
+        - generic: Cerradas
+        - generic: "0"
+    - generic: Buscar RFI
+    - textbox "Buscar RFI":
+      - /placeholder: Buscar por número, asunto, pregunta o responsable
+    - region "Tabla de RFIs":
+      - generic: RFI
+      - generic: Solicita
+      - generic: Responsable
+      - generic: Adjunto
+      - generic: Vencimiento
+      - generic: Status
+      - button "RFI-003 Solicitud permiso uso rampa lote 76 PRELIMINARES · SUBCONTRATOS Saul Aguirre Solicitado el 6 de septiembre de 2026 Isaac procopio Sin adjunto 19/09/26 Venció hace 59 días Pendiente":
+        - paragraph: RFI-003
+        - paragraph: Solicitud permiso uso rampa lote 76
+        - paragraph: PRELIMINARES · SUBCONTRATOS
+        - paragraph: Saul Aguirre
+        - paragraph: Solicitado el 6 de septiembre de 2026
+        - generic "Isaac procopio":
+          - generic "Isaac procopio": I
+        - generic: Sin adjunto
+        - paragraph: 19/09/26
+        - paragraph: Venció hace 59 días
+        - text: Pendiente
+      - button "RFI-002 Columna metálica MUROS_PB · ACERO Saul Aguirre Solicitado el 6 de septiembre de 2026 Isaac procopio Sin adjunto 11/09/26 Venció hace 67 días Pendiente":
+        - paragraph: RFI-002
+        - paragraph: Columna metálica
+        - paragraph: MUROS_PB · ACERO
+        - paragraph: Saul Aguirre
+        - paragraph: Solicitado el 6 de septiembre de 2026
+        - generic "Isaac procopio":
+          - generic "Isaac procopio": I
+        - generic: Sin adjunto
+        - paragraph: 11/09/26
+        - paragraph: Venció hace 67 días
+        - text: Pendiente
+      - button "RFI-001 CFE contrato PRELIMINARES · SUBCONTRATOS Saul Aguirre Solicitado el 8 de agosto de 2026 Isaac procopio, Rodrigo Ogarrio Sin adjunto 20/08/26 Venció hace 89 días Vencida":
+        - paragraph: RFI-001
+        - paragraph: CFE contrato
+        - paragraph: PRELIMINARES · SUBCONTRATOS
+        - paragraph: Saul Aguirre
+        - paragraph: Solicitado el 8 de agosto de 2026
+        - generic "Isaac procopio, Rodrigo Ogarrio":
+          - generic "Isaac procopio": I
+          - generic "Rodrigo Ogarrio": R
+        - generic: Sin adjunto
+        - paragraph: 20/08/26
+        - paragraph: Venció hace 89 días
+        - text: Vencida
+      - button "Agregar RFI":
+        - text: Agregar RFI
+- region "Notifications alt+T"

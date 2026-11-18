@@ -21,9 +21,9 @@ const page = (rows: any[], args: any) => {
   return { page: rows.slice(offset, offset + count), isDone: rows.length <= offset + count, continueCursor: String(offset + count) };
 };
 function queryData(name: string, args: any): any {
-  if (name === "users:getCurrentUser") return { _id: "writer", role: scenario === "viewer" ? "viewer" : "finance", name: "María Hernández", email: "writer@example.test" };
-  if (name === "ingresos:getByProyecto") return [{ _id: "income", proyecto: "project", monto: 1200, fecha: "01/10/2026", descripcion: "Anticipo actualizado · dato ficticio", moneda: "MXN", import_attempt_id: base._id }, { _id: "legacy", proyecto: "project", monto: 50, fecha: "30/09/2026", descripcion: "Ingreso anterior · dato ficticio", moneda: "MXN" }];
-  if (name === "ingresos:getTotalsByProyecto") return { total_ingresos: 1250, total_count: 2 };
+  if (name === "users:getCurrentUser") return scenario === "loading-user" ? undefined : { _id: "writer", role: ["viewer", "admin", "user", "unknown"].includes(scenario) ? scenario : "finance", name: "María Hernández", email: "writer@example.test" };
+  if (name === "ingresos:getByProyecto") return scenario === "loading-list" ? undefined : scenario === "empty-list" ? [] : [{ _id: "income", proyecto: "project", monto: 1200, fecha: "01/10/2026", descripcion: "Anticipo actualizado · dato ficticio", moneda: "MXN", import_attempt_id: base._id }, { _id: "legacy", proyecto: "project", monto: 50, fecha: "30/09/2026", descripcion: "Ingreso anterior · dato ficticio", moneda: "MXN" }];
+  if (name === "ingresos:getTotalsByProyecto") return scenario === "empty-list" ? { total_ingresos: 0, total_count: 0 } : { total_ingresos: 1250, total_count: 2 };
   if (name === "ogc_movimientos:getIncomeTotalsByProyecto") return { total_ingresos: 0, total_count: 0 };
   if (["ogc_movimientos:getIncomeByProyecto", "ingresos_documentos:getByProyecto", "ingresos_documentos:getByIngreso"].includes(name)) return [];
   if (name === "incomeImportHistory:listHistory") {

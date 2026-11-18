@@ -1,0 +1,48 @@
+{
+  "fechaCierre": "2026-11-18",
+  "propuestas": 27,
+  "capturasReales": 69,
+  "vistasPrincipales": 54,
+  "estadosComplementarios": 3,
+  "comparativas": 27,
+  "imagenesComprobadas": 153,
+  "enlacesLocalesComprobados": 516,
+  "build": "Vite 6.4.3 · compilación correcta · 1684 módulos",
+  "responsive": {
+    "desktop": "1440 × 1000",
+    "mobile": "390 × 844",
+    "intermedio": "27 vistas listas a 1024; sin desbordamiento de la página. Algunas tablas conservan desplazamiento interno."
+  },
+  "interacciones": [
+    {
+      "caso": "Presupuesto: ArrowDown",
+      "resultado": "Abre el menú y enfoca Agregar pago."
+    },
+    {
+      "caso": "Presupuesto: Escape desde elemento de menú",
+      "resultado": "Cierra el menú y devuelve el foco a Acciones de Presupuesto."
+    },
+    {
+      "caso": "Presupuesto: Excel de origen",
+      "resultado": "Abre un diálogo de demostración; Volver a la simulación lo cierra."
+    },
+    {
+      "caso": "Nueva RFI en la maqueta",
+      "resultado": "Abre un diálogo con Cancelar y Continuar; no se confirmó ningún registro real."
+    },
+    {
+      "caso": "Galería: filtro Ventas",
+      "resultado": "3 propuestas visibles."
+    },
+    {
+      "caso": "Galería: Ventas + búsqueda Presupuesto",
+      "resultado": "1 propuesta visible; al limpiar filtros vuelve a 27."
+    }
+  ],
+  "limites": [
+    "Revisión visual de las 54 vistas principales y estados adicionales. No prueba de todos los roles ni auditoría integral de accesibilidad.",
+    "Las simulaciones no ejecutan las operaciones originales; las comprobaciones corresponden a la maqueta.",
+    "La captura de /dashboard se rechazó y permanece en evidencia/bloqueos."
+  ],
+  "errors": []
+}

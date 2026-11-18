@@ -1,0 +1,60 @@
+[
+  {
+    "width": 390,
+    "keyboard": true,
+    "focus": true,
+    "globalHistory": true,
+    "notificationsWithoutSend": true,
+    "creationContext": true,
+    "layout": true
+  },
+  {
+    "width": 1024,
+    "keyboard": true,
+    "focus": true,
+    "globalHistory": true,
+    "notificationsWithoutSend": true,
+    "creationContext": true,
+    "layout": true
+  },
+  {
+    "width": 1440,
+    "keyboard": true,
+    "focus": true,
+    "globalHistory": true,
+    "notificationsWithoutSend": true,
+    "creationContext": true,
+    "layout": true
+  },
+  {
+    "role": "admin",
+    "permissions": true
+  },
+  {
+    "role": "finance",
+    "permissions": true
+  },
+  {
+    "role": "user",
+    "permissions": true
+  },
+  {
+    "role": "contratista",
+    "permissions": true
+  },
+  {
+    "role": "almacenista",
+    "permissions": true
+  },
+  {
+    "unread": [
+      "zero",
+      "loading",
+      "single",
+      "positive"
+    ],
+    "resetOnRoleChange": true,
+    "resetOnProjectChange": true,
+    "noWrites": true
+  }
+]

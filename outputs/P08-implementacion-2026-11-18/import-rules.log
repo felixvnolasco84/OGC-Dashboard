@@ -1,0 +1,13 @@
+
+> epi-group-react-vite@0.0.0 test:programa-import
+> vitest run --config vitest.config.ts --configLoader runner --no-isolate convex/programaObraImportHistory.test.mjs
+
+
+ RUN  v5.0.0 C:/Users/felix/Documents/OGC-Dashboard
+
+
+ Test Files  1 passed (1)
+      Tests  26 passed (26)
+   Start at  12:23:01
+   Duration  2.47s (tests 69%, transform 21%, import 10%, worker 1%)
+

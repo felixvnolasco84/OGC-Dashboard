@@ -1,0 +1,931 @@
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Presupuesto
+  - heading "Lote 77" [level=1]
+  - button "Excel de origen":
+    - text: Excel de origen
+  - generic "Ver ingresos del proyecto":
+    - generic: Total Ingresos
+    - generic: $15,808,443
+    - generic: ".07"
+    - text: Neto
+    - generic: $5,242,079
+    - generic: ".03"
+  - button "Agregar":
+    - text: Agregar
+  - button "Abrir acciones de presupuesto":
+    - generic: Abrir acciones de presupuesto
+  - paragraph: Presupuesto Original
+  - generic: $49,744,133
+  - generic: ".31"
+  - paragraph: Presupuesto aprobado
+  - generic: $49,757,583
+  - generic: ".19"
+  - generic: Aumento 0.03%
+  - paragraph: Gasto Total
+  - generic: $10,566,364
+  - generic: ".04"
+  - generic: Avance 21.24%
+  - paragraph: Por ejercer
+  - generic: $39,191,219
+  - generic: ".15"
+  - generic: Avance 21.24%
+  - generic: Partida
+  - button "Todas":
+    - generic: Todas
+  - generic: Familia
+  - button "Todas":
+    - generic: Todas
+  - generic: Fecha
+  - combobox:
+    - generic: Hoy (total)
+  - button "Precio unitario":
+    - generic: Precio unitario
+  - table:
+    - rowgroup:
+      - 'row "Partida - Familia - Subpartida Expandir PRELIMINARES PRELIMINARES Presupuesto original $1,372,477.05 Presupuesto aprobado $1,385,926.93 Incremento: +$13,449.88 Pagado $1,190,091.22 Por gastar - $195,835.71 Avance 85.87% Acciones Abrir menú"':
+        - cell "Partida - Familia - Subpartida Expandir PRELIMINARES PRELIMINARES":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir PRELIMINARES":
+          - generic: PRELIMINARES
+        - cell "Presupuesto original $1,372,477.05":
+          - generic: Presupuesto original
+          - generic: $1,372,477.05
+        - 'cell "Presupuesto aprobado $1,385,926.93 Incremento: +$13,449.88"':
+          - generic: Presupuesto aprobado
+          - generic: $1,385,926.93
+          - generic: "Incremento: +$13,449.88"
+        - cell "Pagado $1,190,091.22 Por gastar - $195,835.71":
+          - generic: Pagado
+          - generic: $1,190,091.22
+          - generic: Por gastar - $195,835.71
+        - cell "Avance 85.87%":
+          - generic: Avance
+          - generic: 85.87%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MUROS DE CONT MUROS DE CONT Presupuesto original $2,590,497.16 Presupuesto aprobado $2,590,497.16 Pagado $1,204,711.18 Por gastar - $1,385,785.99 Avance 46.51% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MUROS DE CONT MUROS DE CONT":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MUROS DE CONT":
+          - generic: MUROS DE CONT
+        - cell "Presupuesto original $2,590,497.16":
+          - generic: Presupuesto original
+          - generic: $2,590,497.16
+        - cell "Presupuesto aprobado $2,590,497.16":
+          - generic: Presupuesto aprobado
+          - generic: $2,590,497.16
+        - cell "Pagado $1,204,711.18 Por gastar - $1,385,785.99":
+          - generic: Pagado
+          - generic: $1,204,711.18
+          - generic: Por gastar - $1,385,785.99
+        - cell "Avance 46.51%":
+          - generic: Avance
+          - generic: 46.51%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir CIMENTACIÓN CIMENTACIÓN Presupuesto original $3,074,691.29 Presupuesto aprobado $3,074,691.29 Pagado $1,483,940.60 Por gastar - $1,590,750.69 Avance 48.26% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir CIMENTACIÓN CIMENTACIÓN":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir CIMENTACIÓN":
+          - generic: CIMENTACIÓN
+        - cell "Presupuesto original $3,074,691.29":
+          - generic: Presupuesto original
+          - generic: $3,074,691.29
+        - cell "Presupuesto aprobado $3,074,691.29":
+          - generic: Presupuesto aprobado
+          - generic: $3,074,691.29
+        - cell "Pagado $1,483,940.60 Por gastar - $1,590,750.69":
+          - generic: Pagado
+          - generic: $1,483,940.60
+          - generic: Por gastar - $1,590,750.69
+        - cell "Avance 48.26%":
+          - generic: Avance
+          - generic: 48.26%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir FIRME DE CIMENTACIÓN FIRME DE CIMENTACIÓN Presupuesto original $438,686.52 Presupuesto aprobado $438,686.52 Pagado $596.54 Por gastar - $438,089.98 Avance 0.14% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir FIRME DE CIMENTACIÓN FIRME DE CIMENTACIÓN":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir FIRME DE CIMENTACIÓN":
+          - generic: FIRME DE CIMENTACIÓN
+        - cell "Presupuesto original $438,686.52":
+          - generic: Presupuesto original
+          - generic: $438,686.52
+        - cell "Presupuesto aprobado $438,686.52":
+          - generic: Presupuesto aprobado
+          - generic: $438,686.52
+        - cell "Pagado $596.54 Por gastar - $438,089.98":
+          - generic: Pagado
+          - generic: $596.54
+          - generic: Por gastar - $438,089.98
+        - cell "Avance 0.14%":
+          - generic: Avance
+          - generic: 0.14%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MUROS_PB MUROS_PB Presupuesto original $1,488,522.36 Presupuesto aprobado $1,488,522.36 Pagado $896,288.85 Por gastar - $592,233.51 Avance 60.21% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MUROS_PB MUROS_PB":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MUROS_PB":
+          - generic: MUROS_PB
+        - cell "Presupuesto original $1,488,522.36":
+          - generic: Presupuesto original
+          - generic: $1,488,522.36
+        - cell "Presupuesto aprobado $1,488,522.36":
+          - generic: Presupuesto aprobado
+          - generic: $1,488,522.36
+        - cell "Pagado $896,288.85 Por gastar - $592,233.51":
+          - generic: Pagado
+          - generic: $896,288.85
+          - generic: Por gastar - $592,233.51
+        - cell "Avance 60.21%":
+          - generic: Avance
+          - generic: 60.21%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir LOSA_PN LOSA_PN Presupuesto original $2,082,996.39 Presupuesto aprobado $2,082,996.39 Pagado $1,753,921.64 Por gastar - $329,074.75 Avance 84.20% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir LOSA_PN LOSA_PN":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir LOSA_PN":
+          - generic: LOSA_PN
+        - cell "Presupuesto original $2,082,996.39":
+          - generic: Presupuesto original
+          - generic: $2,082,996.39
+        - cell "Presupuesto aprobado $2,082,996.39":
+          - generic: Presupuesto aprobado
+          - generic: $2,082,996.39
+        - cell "Pagado $1,753,921.64 Por gastar - $329,074.75":
+          - generic: Pagado
+          - generic: $1,753,921.64
+          - generic: Por gastar - $329,074.75
+        - cell "Avance 84.20%":
+          - generic: Avance
+          - generic: 84.20%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MUROS_PN MUROS_PN Presupuesto original $877,009.47 Presupuesto aprobado $877,009.47 Pagado $729,366.23 Por gastar - $147,643.24 Avance 83.17% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MUROS_PN MUROS_PN":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MUROS_PN":
+          - generic: MUROS_PN
+        - cell "Presupuesto original $877,009.47":
+          - generic: Presupuesto original
+          - generic: $877,009.47
+        - cell "Presupuesto aprobado $877,009.47":
+          - generic: Presupuesto aprobado
+          - generic: $877,009.47
+        - cell "Pagado $729,366.23 Por gastar - $147,643.24":
+          - generic: Pagado
+          - generic: $729,366.23
+          - generic: Por gastar - $147,643.24
+        - cell "Avance 83.17%":
+          - generic: Avance
+          - generic: 83.17%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir LOSA_2N LOSA_2N Presupuesto original $1,155,048.28 Presupuesto aprobado $1,155,048.28 Pagado $0.00 Por gastar - $1,155,048.28 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir LOSA_2N LOSA_2N":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir LOSA_2N":
+          - generic: LOSA_2N
+        - cell "Presupuesto original $1,155,048.28":
+          - generic: Presupuesto original
+          - generic: $1,155,048.28
+        - cell "Presupuesto aprobado $1,155,048.28":
+          - generic: Presupuesto aprobado
+          - generic: $1,155,048.28
+        - cell "Pagado $0.00 Por gastar - $1,155,048.28":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $1,155,048.28
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MUROS PRETILES MUROS PRETILES Presupuesto original $249,394.47 Presupuesto aprobado $249,394.47 Pagado $0.00 Por gastar - $249,394.47 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MUROS PRETILES MUROS PRETILES":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MUROS PRETILES":
+          - generic: MUROS PRETILES
+        - cell "Presupuesto original $249,394.47":
+          - generic: Presupuesto original
+          - generic: $249,394.47
+        - cell "Presupuesto aprobado $249,394.47":
+          - generic: Presupuesto aprobado
+          - generic: $249,394.47
+        - cell "Pagado $0.00 Por gastar - $249,394.47":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $249,394.47
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir ALBERCA ALBERCA Presupuesto original $503,711.15 Presupuesto aprobado $503,711.15 Pagado $0.00 Por gastar - $503,711.15 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir ALBERCA ALBERCA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir ALBERCA":
+          - generic: ALBERCA
+        - cell "Presupuesto original $503,711.15":
+          - generic: Presupuesto original
+          - generic: $503,711.15
+        - cell "Presupuesto aprobado $503,711.15":
+          - generic: Presupuesto aprobado
+          - generic: $503,711.15
+        - cell "Pagado $0.00 Por gastar - $503,711.15":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $503,711.15
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir CISTERNA CISTERNA Presupuesto original $290,779.73 Presupuesto aprobado $290,779.73 Pagado $0.00 Por gastar - $290,779.73 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir CISTERNA CISTERNA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir CISTERNA":
+          - generic: CISTERNA
+        - cell "Presupuesto original $290,779.73":
+          - generic: Presupuesto original
+          - generic: $290,779.73
+        - cell "Presupuesto aprobado $290,779.73":
+          - generic: Presupuesto aprobado
+          - generic: $290,779.73
+        - cell "Pagado $0.00 Por gastar - $290,779.73":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $290,779.73
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir ESCALERA INTERNA ESCALERA INTERNA Presupuesto original $52,978.00 Presupuesto aprobado $52,978.00 Pagado $0.00 Por gastar - $52,978.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir ESCALERA INTERNA ESCALERA INTERNA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir ESCALERA INTERNA":
+          - generic: ESCALERA INTERNA
+        - cell "Presupuesto original $52,978.00":
+          - generic: Presupuesto original
+          - generic: $52,978.00
+        - cell "Presupuesto aprobado $52,978.00":
+          - generic: Presupuesto aprobado
+          - generic: $52,978.00
+        - cell "Pagado $0.00 Por gastar - $52,978.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $52,978.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir ESCALERA EXTERNA 01 ESCALERA EXTERNA 01 Presupuesto original $240,679.45 Presupuesto aprobado $240,679.45 Pagado $0.00 Por gastar - $240,679.45 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir ESCALERA EXTERNA 01 ESCALERA EXTERNA 01":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir ESCALERA EXTERNA 01":
+          - generic: ESCALERA EXTERNA 01
+        - cell "Presupuesto original $240,679.45":
+          - generic: Presupuesto original
+          - generic: $240,679.45
+        - cell "Presupuesto aprobado $240,679.45":
+          - generic: Presupuesto aprobado
+          - generic: $240,679.45
+        - cell "Pagado $0.00 Por gastar - $240,679.45":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $240,679.45
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir ESCALERA EXTERNA 02 ESCALERA EXTERNA 02 Presupuesto original $84,435.87 Presupuesto aprobado $84,435.87 Pagado $0.00 Por gastar - $84,435.87 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir ESCALERA EXTERNA 02 ESCALERA EXTERNA 02":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir ESCALERA EXTERNA 02":
+          - generic: ESCALERA EXTERNA 02
+        - cell "Presupuesto original $84,435.87":
+          - generic: Presupuesto original
+          - generic: $84,435.87
+        - cell "Presupuesto aprobado $84,435.87":
+          - generic: Presupuesto aprobado
+          - generic: $84,435.87
+        - cell "Pagado $0.00 Por gastar - $84,435.87":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $84,435.87
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir FIRME DE ANDADO FIRME DE ANDADO Presupuesto original $237,843.10 Presupuesto aprobado $237,843.10 Pagado $0.00 Por gastar - $237,843.10 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir FIRME DE ANDADO FIRME DE ANDADO":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir FIRME DE ANDADO":
+          - generic: FIRME DE ANDADO
+        - cell "Presupuesto original $237,843.10":
+          - generic: Presupuesto original
+          - generic: $237,843.10
+        - cell "Presupuesto aprobado $237,843.10":
+          - generic: Presupuesto aprobado
+          - generic: $237,843.10
+        - cell "Pagado $0.00 Por gastar - $237,843.10":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $237,843.10
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir ALBAÑILERÍAS ALBAÑILERÍAS Presupuesto original $3,365,450.87 Presupuesto aprobado $3,365,450.87 Pagado $252,620.40 Por gastar - $3,112,830.47 Avance 7.51% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir ALBAÑILERÍAS ALBAÑILERÍAS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir ALBAÑILERÍAS":
+          - generic: ALBAÑILERÍAS
+        - cell "Presupuesto original $3,365,450.87":
+          - generic: Presupuesto original
+          - generic: $3,365,450.87
+        - cell "Presupuesto aprobado $3,365,450.87":
+          - generic: Presupuesto aprobado
+          - generic: $3,365,450.87
+        - cell "Pagado $252,620.40 Por gastar - $3,112,830.47":
+          - generic: Pagado
+          - generic: $252,620.40
+          - generic: Por gastar - $3,112,830.47
+        - cell "Avance 7.51%":
+          - generic: Avance
+          - generic: 7.51%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir PLOMERÍA PLOMERÍA Presupuesto original $1,277,000.00 Presupuesto aprobado $1,277,000.00 Pagado $628,222.67 Por gastar - $648,777.33 Avance 49.20% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir PLOMERÍA PLOMERÍA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir PLOMERÍA":
+          - generic: PLOMERÍA
+        - cell "Presupuesto original $1,277,000.00":
+          - generic: Presupuesto original
+          - generic: $1,277,000.00
+        - cell "Presupuesto aprobado $1,277,000.00":
+          - generic: Presupuesto aprobado
+          - generic: $1,277,000.00
+        - cell "Pagado $628,222.67 Por gastar - $648,777.33":
+          - generic: Pagado
+          - generic: $628,222.67
+          - generic: Por gastar - $648,777.33
+        - cell "Avance 49.20%":
+          - generic: Avance
+          - generic: 49.20%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir ELECTRICIDAD ELECTRICIDAD Presupuesto original $1,219,156.93 Presupuesto aprobado $1,219,156.93 Pagado $372,000.00 Por gastar - $847,156.93 Avance 30.51% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir ELECTRICIDAD ELECTRICIDAD":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir ELECTRICIDAD":
+          - generic: ELECTRICIDAD
+        - cell "Presupuesto original $1,219,156.93":
+          - generic: Presupuesto original
+          - generic: $1,219,156.93
+        - cell "Presupuesto aprobado $1,219,156.93":
+          - generic: Presupuesto aprobado
+          - generic: $1,219,156.93
+        - cell "Pagado $372,000.00 Por gastar - $847,156.93":
+          - generic: Pagado
+          - generic: $372,000.00
+          - generic: Por gastar - $847,156.93
+        - cell "Avance 30.51%":
+          - generic: Avance
+          - generic: 30.51%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir LUMINARIAS LUMINARIAS Presupuesto original $749,972.16 Presupuesto aprobado $749,972.16 Pagado $0.00 Por gastar - $749,972.16 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir LUMINARIAS LUMINARIAS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir LUMINARIAS":
+          - generic: LUMINARIAS
+        - cell "Presupuesto original $749,972.16":
+          - generic: Presupuesto original
+          - generic: $749,972.16
+        - cell "Presupuesto aprobado $749,972.16":
+          - generic: Presupuesto aprobado
+          - generic: $749,972.16
+        - cell "Pagado $0.00 Por gastar - $749,972.16":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $749,972.16
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir IMPERMEABILIZACIÓN IMPERMEABILIZACIÓN Presupuesto original $474,145.71 Presupuesto aprobado $474,145.71 Pagado $0.00 Por gastar - $474,145.71 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir IMPERMEABILIZACIÓN IMPERMEABILIZACIÓN":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir IMPERMEABILIZACIÓN":
+          - generic: IMPERMEABILIZACIÓN
+        - cell "Presupuesto original $474,145.71":
+          - generic: Presupuesto original
+          - generic: $474,145.71
+        - cell "Presupuesto aprobado $474,145.71":
+          - generic: Presupuesto aprobado
+          - generic: $474,145.71
+        - cell "Pagado $0.00 Por gastar - $474,145.71":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $474,145.71
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir AIRE_ACONDICIONADO AIRE_ACONDICIONADO Presupuesto original $1,857,000.00 Presupuesto aprobado $1,857,000.00 Pagado $0.00 Por gastar - $1,857,000.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir AIRE_ACONDICIONADO AIRE_ACONDICIONADO":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir AIRE_ACONDICIONADO":
+          - generic: AIRE_ACONDICIONADO
+        - cell "Presupuesto original $1,857,000.00":
+          - generic: Presupuesto original
+          - generic: $1,857,000.00
+        - cell "Presupuesto aprobado $1,857,000.00":
+          - generic: Presupuesto aprobado
+          - generic: $1,857,000.00
+        - cell "Pagado $0.00 Por gastar - $1,857,000.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $1,857,000.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir HERRERÍA HERRERÍA Presupuesto original $745,257.27 Presupuesto aprobado $745,257.27 Pagado $55,758.88 Por gastar - $689,498.39 Avance 7.48% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir HERRERÍA HERRERÍA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir HERRERÍA":
+          - generic: HERRERÍA
+        - cell "Presupuesto original $745,257.27":
+          - generic: Presupuesto original
+          - generic: $745,257.27
+        - cell "Presupuesto aprobado $745,257.27":
+          - generic: Presupuesto aprobado
+          - generic: $745,257.27
+        - cell "Pagado $55,758.88 Por gastar - $689,498.39":
+          - generic: Pagado
+          - generic: $55,758.88
+          - generic: Por gastar - $689,498.39
+        - cell "Avance 7.48%":
+          - generic: Avance
+          - generic: 7.48%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir PINTURA_HERRERÍA PINTURA_HERRERÍA Presupuesto original $330,000.00 Presupuesto aprobado $330,000.00 Pagado $0.00 Por gastar - $330,000.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir PINTURA_HERRERÍA PINTURA_HERRERÍA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir PINTURA_HERRERÍA":
+          - generic: PINTURA_HERRERÍA
+        - cell "Presupuesto original $330,000.00":
+          - generic: Presupuesto original
+          - generic: $330,000.00
+        - cell "Presupuesto aprobado $330,000.00":
+          - generic: Presupuesto aprobado
+          - generic: $330,000.00
+        - cell "Pagado $0.00 Por gastar - $330,000.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $330,000.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MÁRMOL MÁRMOL Presupuesto original $4,572,260.00 Presupuesto aprobado $4,572,260.00 Pagado $0.00 Por gastar - $4,572,260.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MÁRMOL MÁRMOL":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MÁRMOL":
+          - generic: MÁRMOL
+        - cell "Presupuesto original $4,572,260.00":
+          - generic: Presupuesto original
+          - generic: $4,572,260.00
+        - cell "Presupuesto aprobado $4,572,260.00":
+          - generic: Presupuesto aprobado
+          - generic: $4,572,260.00
+        - cell "Pagado $0.00 Por gastar - $4,572,260.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $4,572,260.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir RECUBRIMIENTOS RECUBRIMIENTOS Presupuesto original $494,416.60 Presupuesto aprobado $494,416.60 Pagado $0.00 Por gastar - $494,416.60 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir RECUBRIMIENTOS RECUBRIMIENTOS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir RECUBRIMIENTOS":
+          - generic: RECUBRIMIENTOS
+        - cell "Presupuesto original $494,416.60":
+          - generic: Presupuesto original
+          - generic: $494,416.60
+        - cell "Presupuesto aprobado $494,416.60":
+          - generic: Presupuesto aprobado
+          - generic: $494,416.60
+        - cell "Pagado $0.00 Por gastar - $494,416.60":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $494,416.60
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir YESO_PINTURA YESO_PINTURA Presupuesto original $1,332,597.07 Presupuesto aprobado $1,332,597.07 Pagado $0.00 Por gastar - $1,332,597.07 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir YESO_PINTURA YESO_PINTURA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir YESO_PINTURA":
+          - generic: YESO_PINTURA
+        - cell "Presupuesto original $1,332,597.07":
+          - generic: Presupuesto original
+          - generic: $1,332,597.07
+        - cell "Presupuesto aprobado $1,332,597.07":
+          - generic: Presupuesto aprobado
+          - generic: $1,332,597.07
+        - cell "Pagado $0.00 Por gastar - $1,332,597.07":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $1,332,597.07
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir CANCELERÍA CANCELERÍA Presupuesto original $2,387,416.08 Presupuesto aprobado $2,387,416.08 Pagado $0.00 Por gastar - $2,387,416.08 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir CANCELERÍA CANCELERÍA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir CANCELERÍA":
+          - generic: CANCELERÍA
+        - cell "Presupuesto original $2,387,416.08":
+          - generic: Presupuesto original
+          - generic: $2,387,416.08
+        - cell "Presupuesto aprobado $2,387,416.08":
+          - generic: Presupuesto aprobado
+          - generic: $2,387,416.08
+        - cell "Pagado $0.00 Por gastar - $2,387,416.08":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $2,387,416.08
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir CARPINTERÍA CARPINTERÍA Presupuesto original $2,579,378.80 Presupuesto aprobado $2,579,378.80 Pagado $0.00 Por gastar - $2,579,378.80 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir CARPINTERÍA CARPINTERÍA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir CARPINTERÍA":
+          - generic: CARPINTERÍA
+        - cell "Presupuesto original $2,579,378.80":
+          - generic: Presupuesto original
+          - generic: $2,579,378.80
+        - cell "Presupuesto aprobado $2,579,378.80":
+          - generic: Presupuesto aprobado
+          - generic: $2,579,378.80
+        - cell "Pagado $0.00 Por gastar - $2,579,378.80":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $2,579,378.80
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir HERRAJES HERRAJES Presupuesto original $58,200.00 Presupuesto aprobado $58,200.00 Pagado $0.00 Por gastar - $58,200.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir HERRAJES HERRAJES":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir HERRAJES":
+          - generic: HERRAJES
+        - cell "Presupuesto original $58,200.00":
+          - generic: Presupuesto original
+          - generic: $58,200.00
+        - cell "Presupuesto aprobado $58,200.00":
+          - generic: Presupuesto aprobado
+          - generic: $58,200.00
+        - cell "Pagado $0.00 Por gastar - $58,200.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $58,200.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MOBILIARIO_EQUIPO MOBILIARIO_EQUIPO Presupuesto original $219,500.00 Presupuesto aprobado $219,500.00 Pagado $0.00 Por gastar - $219,500.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MOBILIARIO_EQUIPO MOBILIARIO_EQUIPO":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MOBILIARIO_EQUIPO":
+          - generic: MOBILIARIO_EQUIPO
+        - cell "Presupuesto original $219,500.00":
+          - generic: Presupuesto original
+          - generic: $219,500.00
+        - cell "Presupuesto aprobado $219,500.00":
+          - generic: Presupuesto aprobado
+          - generic: $219,500.00
+        - cell "Pagado $0.00 Por gastar - $219,500.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $219,500.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir MUEBLES_BAÑO MUEBLES_BAÑO Presupuesto original $353,800.00 Presupuesto aprobado $353,800.00 Pagado $0.00 Por gastar - $353,800.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir MUEBLES_BAÑO MUEBLES_BAÑO":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir MUEBLES_BAÑO":
+          - generic: MUEBLES_BAÑO
+        - cell "Presupuesto original $353,800.00":
+          - generic: Presupuesto original
+          - generic: $353,800.00
+        - cell "Presupuesto aprobado $353,800.00":
+          - generic: Presupuesto aprobado
+          - generic: $353,800.00
+        - cell "Pagado $0.00 Por gastar - $353,800.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $353,800.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir GAS GAS Presupuesto original $399,040.00 Presupuesto aprobado $399,040.00 Pagado $0.00 Por gastar - $399,040.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir GAS GAS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir GAS":
+          - generic: GAS
+        - cell "Presupuesto original $399,040.00":
+          - generic: Presupuesto original
+          - generic: $399,040.00
+        - cell "Presupuesto aprobado $399,040.00":
+          - generic: Presupuesto aprobado
+          - generic: $399,040.00
+        - cell "Pagado $0.00 Por gastar - $399,040.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $399,040.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir COCINA COCINA Presupuesto original $902,952.71 Presupuesto aprobado $902,952.71 Pagado $0.00 Por gastar - $902,952.71 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir COCINA COCINA":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir COCINA":
+          - generic: COCINA
+        - cell "Presupuesto original $902,952.71":
+          - generic: Presupuesto original
+          - generic: $902,952.71
+        - cell "Presupuesto aprobado $902,952.71":
+          - generic: Presupuesto aprobado
+          - generic: $902,952.71
+        - cell "Pagado $0.00 Por gastar - $902,952.71":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $902,952.71
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir INSTALACIONES_ESPECIALES INSTALACIONES_ESPECIALES Presupuesto original $130,460.00 Presupuesto aprobado $130,460.00 Pagado $0.00 Por gastar - $130,460.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir INSTALACIONES_ESPECIALES INSTALACIONES_ESPECIALES":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir INSTALACIONES_ESPECIALES":
+          - generic: INSTALACIONES_ESPECIALES
+        - cell "Presupuesto original $130,460.00":
+          - generic: Presupuesto original
+          - generic: $130,460.00
+        - cell "Presupuesto aprobado $130,460.00":
+          - generic: Presupuesto aprobado
+          - generic: $130,460.00
+        - cell "Pagado $0.00 Por gastar - $130,460.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $130,460.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir JARDÍN JARDÍN Presupuesto original $189,036.00 Presupuesto aprobado $189,036.00 Pagado $0.00 Por gastar - $189,036.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir JARDÍN JARDÍN":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir JARDÍN":
+          - generic: JARDÍN
+        - cell "Presupuesto original $189,036.00":
+          - generic: Presupuesto original
+          - generic: $189,036.00
+        - cell "Presupuesto aprobado $189,036.00":
+          - generic: Presupuesto aprobado
+          - generic: $189,036.00
+        - cell "Pagado $0.00 Por gastar - $189,036.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $189,036.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir VARIOS VARIOS Presupuesto original $315,000.00 Presupuesto aprobado $315,000.00 Pagado $0.00 Por gastar - $315,000.00 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir VARIOS VARIOS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir VARIOS":
+          - generic: VARIOS
+        - cell "Presupuesto original $315,000.00":
+          - generic: Presupuesto original
+          - generic: $315,000.00
+        - cell "Presupuesto aprobado $315,000.00":
+          - generic: Presupuesto aprobado
+          - generic: $315,000.00
+        - cell "Pagado $0.00 Por gastar - $315,000.00":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $315,000.00
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir VIATICOS VIATICOS Presupuesto original $3,613,120.00 Presupuesto aprobado $3,613,120.00 Pagado $799,774.65 Por gastar - $2,813,345.35 Avance 22.14% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir VIATICOS VIATICOS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir VIATICOS":
+          - generic: VIATICOS
+        - cell "Presupuesto original $3,613,120.00":
+          - generic: Presupuesto original
+          - generic: $3,613,120.00
+        - cell "Presupuesto aprobado $3,613,120.00":
+          - generic: Presupuesto aprobado
+          - generic: $3,613,120.00
+        - cell "Pagado $799,774.65 Por gastar - $2,813,345.35":
+          - generic: Pagado
+          - generic: $799,774.65
+          - generic: Por gastar - $2,813,345.35
+        - cell "Avance 22.14%":
+          - generic: Avance
+          - generic: 22.14%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir HONORARIOS HONORARIOS Presupuesto original $5,076,588.90 Presupuesto aprobado $5,076,588.90 Pagado $1,027,775.37 Por gastar - $4,048,813.53 Avance 20.25% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir HONORARIOS HONORARIOS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir HONORARIOS":
+          - generic: HONORARIOS
+        - cell "Presupuesto original $5,076,588.90":
+          - generic: Presupuesto original
+          - generic: $5,076,588.90
+        - cell "Presupuesto aprobado $5,076,588.90":
+          - generic: Presupuesto aprobado
+          - generic: $5,076,588.90
+        - cell "Pagado $1,027,775.37 Por gastar - $4,048,813.53":
+          - generic: Pagado
+          - generic: $1,027,775.37
+          - generic: Por gastar - $4,048,813.53
+        - cell "Avance 20.25%":
+          - generic: Avance
+          - generic: 20.25%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir GENERAL CONDITIONS GENERAL CONDITIONS Presupuesto original $846,098.15 Presupuesto aprobado $846,098.15 Pagado $171,295.81 Por gastar - $674,802.34 Avance 20.25% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir GENERAL CONDITIONS GENERAL CONDITIONS":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir GENERAL CONDITIONS":
+          - generic: GENERAL CONDITIONS
+        - cell "Presupuesto original $846,098.15":
+          - generic: Presupuesto original
+          - generic: $846,098.15
+        - cell "Presupuesto aprobado $846,098.15":
+          - generic: Presupuesto aprobado
+          - generic: $846,098.15
+        - cell "Pagado $171,295.81 Por gastar - $674,802.34":
+          - generic: Pagado
+          - generic: $171,295.81
+          - generic: Por gastar - $674,802.34
+        - cell "Avance 20.25%":
+          - generic: Avance
+          - generic: 20.25%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Partida - Familia - Subpartida Expandir VARIOS SH VARIOS SH Presupuesto original $1,516,535.78 Presupuesto aprobado $1,516,535.78 Pagado $0.00 Por gastar - $1,516,535.78 Avance 0.00% Acciones Abrir menú":
+        - cell "Partida - Familia - Subpartida Expandir VARIOS SH VARIOS SH":
+          - generic: Partida - Familia - Subpartida
+          - button "Expandir VARIOS SH":
+          - generic: VARIOS SH
+        - cell "Presupuesto original $1,516,535.78":
+          - generic: Presupuesto original
+          - generic: $1,516,535.78
+        - cell "Presupuesto aprobado $1,516,535.78":
+          - generic: Presupuesto aprobado
+          - generic: $1,516,535.78
+        - cell "Pagado $0.00 Por gastar - $1,516,535.78":
+          - generic: Pagado
+          - generic: $0.00
+          - generic: Por gastar - $1,516,535.78
+        - cell "Avance 0.00%":
+          - generic: Avance
+          - generic: 0.00%
+        - cell "Acciones Abrir menú":
+          - generic: Acciones
+          - button "Abrir menú":
+            - generic: Abrir menú
+  - paragraph: Todas las partidas han sido cargadas
+- region "Notifications alt+T"

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { useConvex, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -151,21 +151,38 @@ function AttemptItems({ attemptId, onViewTransaction }: {
   );
 }
 
-export function LaborImportHistoryDialog({ projectId }: { projectId: Id<"desarrollos"> }) {
-  const [open, setOpen] = useState(false);
+type LaborImportHistoryDialogProps = {
+  projectId: Id<"desarrollos">;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+  onCloseAutoFocus?: ComponentPropsWithoutRef<typeof DialogContent>["onCloseAutoFocus"];
+};
+
+export function LaborImportHistoryDialog({ projectId, open: controlledOpen, onOpenChange, hideTrigger = false, onCloseAutoFocus }: LaborImportHistoryDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
   const [cursors, setCursors] = useState<Array<string | null>>([null]);
   const [expandedId, setExpandedId] = useState<Id<"labor_payment_import_attempts"> | null>(null);
+  useEffect(() => {
+    setCursors([null]);
+    setExpandedId(null);
+  }, [open, projectId]);
   const openTransaction = useTransactionDetailsModal(state => state.onOpen);
   const result = useQuery(api.laborImportHistory.listHistory, open ? {
     proyecto: projectId, paginationOpts: { cursor: cursors[cursors.length - 1], numItems: 25 },
   } : "skip");
   return (
     <>
-      <Button type="button" variant="outline" size="lg" className="rounded-none" onClick={() => { setCursors([null]); setExpandedId(null); setOpen(true); }}>
+      {!hideTrigger && <Button type="button" variant="outline" size="lg" className="rounded-none" onClick={() => { setCursors([null]); setExpandedId(null); setOpen(true); }}>
         <History className="h-4 w-4" /> Historial de cargas
-      </Button>
+      </Button>}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent variant="ledger" className="flex flex-col">
+        <DialogContent onCloseAutoFocus={onCloseAutoFocus} variant="ledger" className="flex flex-col">
           <DialogHeader variant="ledger">
             <DialogTitle>Historial de cargas</DialogTitle>
             <DialogDescription>Excel originales e intentos confirmados de este proyecto, del más reciente al más antiguo.</DialogDescription>

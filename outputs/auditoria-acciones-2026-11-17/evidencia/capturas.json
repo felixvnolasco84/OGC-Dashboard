@@ -1,0 +1,715 @@
+[
+  {
+    "name": "001_Obra_Presupuesto_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/001_Obra_Presupuesto_Pagina_Cabecera_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "001",
+    "title": "001 Obra Presupuesto Pagina Cabecera Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "002_Obra_Presupuesto_Menu_Agregar_Actual_Desktop",
+    "file": "actuales/002_Obra_Presupuesto_Menu_Agregar_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "id": "002",
+    "title": "002 Obra Presupuesto Menu Agregar Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "003_Obra_Presupuesto_Dialog_RegistrarPagos_Actual_Desktop",
+    "file": "actuales/003_Obra_Presupuesto_Dialog_RegistrarPagos_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "003",
+    "title": "003 Obra Presupuesto Dialog RegistrarPagos Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "004_Obra_Presupuesto_Dialog_ExcelOrigen_Actual_Desktop",
+    "file": "actuales/004_Obra_Presupuesto_Dialog_ExcelOrigen_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Estado vacío: proyecto sin respaldo del Excel inicial.",
+    "id": "004",
+    "title": "004 Obra Presupuesto Dialog ExcelOrigen Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "id": "005",
+    "name": "005_Obra_Presupuesto_Menu_Acciones_Actual_Desktop",
+    "file": "actuales/005_Obra_Presupuesto_Menu_Acciones_Actual_Desktop.jpg",
+    "title": "005 Obra Presupuesto Menu Acciones Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "006",
+    "name": "006_Obra_Presupuesto_Dialog_Ingresos_Actual_Desktop",
+    "file": "actuales/006_Obra_Presupuesto_Dialog_Ingresos_Actual_Desktop.jpg",
+    "title": "006 Obra Presupuesto Dialog Ingresos Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "007",
+    "name": "007_Obra_Presupuesto_Dialog_NuevoIngreso_Actual_Desktop",
+    "file": "actuales/007_Obra_Presupuesto_Dialog_NuevoIngreso_Actual_Desktop.jpg",
+    "title": "007 Obra Presupuesto Dialog NuevoIngreso Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "008",
+    "name": "008_Obra_Control_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/008_Obra_Control_Pagina_Cabecera_Actual_Desktop.jpg",
+    "title": "008 Obra Control Pagina Cabecera Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "009",
+    "name": "009_Obra_Reportes_Pagina_Generar_Actual_Desktop",
+    "file": "actuales/009_Obra_Reportes_Pagina_Generar_Actual_Desktop.jpg",
+    "title": "009 Obra Reportes Pagina Generar Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "010",
+    "name": "010_Obra_Reportes_Tab_Programaciones_Actual_Desktop",
+    "file": "actuales/010_Obra_Reportes_Tab_Programaciones_Actual_Desktop.jpg",
+    "title": "010 Obra Reportes Tab Programaciones Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "011",
+    "name": "011_Obra_Reportes_Tab_Historial_Actual_Desktop",
+    "file": "actuales/011_Obra_Reportes_Tab_Historial_Actual_Desktop.jpg",
+    "title": "011 Obra Reportes Tab Historial Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "012",
+    "name": "012_Obra_Programa_Pagina_BarraHerramientas_Actual_Desktop",
+    "file": "actuales/012_Obra_Programa_Pagina_BarraHerramientas_Actual_Desktop.jpg",
+    "title": "012 Obra Programa Pagina BarraHerramientas Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "013",
+    "name": "013_Obra_Programa_Menu_Archivo_Actual_Desktop",
+    "file": "actuales/013_Obra_Programa_Menu_Archivo_Actual_Desktop.jpg",
+    "title": "013 Obra Programa Menu Archivo Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "014",
+    "name": "014_Obra_Programa_Dialog_ExportarPDF_Actual_Desktop",
+    "file": "actuales/014_Obra_Programa_Dialog_ExportarPDF_Actual_Desktop.jpg",
+    "title": "014 Obra Programa Dialog ExportarPDF Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "015",
+    "name": "015_Obra_Bitacora_Pagina_Controles_Actual_Desktop",
+    "file": "actuales/015_Obra_Bitacora_Pagina_Controles_Actual_Desktop.jpg",
+    "title": "015 Obra Bitacora Pagina Controles Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "016",
+    "name": "016_Obra_Bitacora_Dialog_NuevaEntrada_Actual_Desktop",
+    "file": "actuales/016_Obra_Bitacora_Dialog_NuevaEntrada_Actual_Desktop.jpg",
+    "title": "016 Obra Bitacora Dialog NuevaEntrada Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "017",
+    "name": "017_Obra_Requisiciones_Pagina_CabeceraFiltros_Actual_Desktop",
+    "file": "actuales/017_Obra_Requisiciones_Pagina_CabeceraFiltros_Actual_Desktop.jpg",
+    "title": "017 Obra Requisiciones Pagina CabeceraFiltros Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "018",
+    "name": "018_Obra_Requisiciones_Dialog_NuevaRequisicion_Actual_Desktop",
+    "file": "actuales/018_Obra_Requisiciones_Dialog_NuevaRequisicion_Actual_Desktop.jpg",
+    "title": "018 Obra Requisiciones Dialog NuevaRequisicion Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "019",
+    "name": "019_Obra_RFIs_Pagina_Registro_Actual_Desktop",
+    "file": "actuales/019_Obra_RFIs_Pagina_Registro_Actual_Desktop.jpg",
+    "title": "019 Obra RFIs Pagina Registro Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "020",
+    "name": "020_Obra_RFIs_Dialog_Detalle_Actual_Desktop",
+    "file": "actuales/020_Obra_RFIs_Dialog_Detalle_Actual_Desktop.jpg",
+    "title": "020 Obra RFIs Dialog Detalle Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "021",
+    "name": "021_Obra_RFIs_Formulario_CreacionRapida_Actual_Desktop",
+    "file": "actuales/021_Obra_RFIs_Formulario_CreacionRapida_Actual_Desktop.jpg",
+    "title": "021 Obra RFIs Formulario CreacionRapida Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "022",
+    "name": "022_Obra_Planos_Pagina_Biblioteca_Actual_Desktop",
+    "file": "actuales/022_Obra_Planos_Pagina_Biblioteca_Actual_Desktop.jpg",
+    "title": "022 Obra Planos Pagina Biblioteca Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "023",
+    "name": "023_Obra_Planos_Visor_BarraHerramientas_Actual_Desktop",
+    "file": "actuales/023_Obra_Planos_Visor_BarraHerramientas_Actual_Desktop.jpg",
+    "title": "023 Obra Planos Visor BarraHerramientas Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "024",
+    "name": "024_Obra_Documentos_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/024_Obra_Documentos_Pagina_Cabecera_Actual_Desktop.jpg",
+    "title": "024 Obra Documentos Pagina Cabecera Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "025",
+    "name": "025_Obra_Documentos_Dialog_NuevaCarpeta_Actual_Desktop",
+    "file": "actuales/025_Obra_Documentos_Dialog_NuevaCarpeta_Actual_Desktop.jpg",
+    "title": "025 Obra Documentos Dialog NuevaCarpeta Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "026",
+    "name": "026_Obra_Transacciones_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/026_Obra_Transacciones_Pagina_Cabecera_Actual_Desktop.jpg",
+    "title": "026 Obra Transacciones Pagina Cabecera Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "027",
+    "name": "027_Obra_Transacciones_Panel_Filtros_Actual_Desktop",
+    "file": "actuales/027_Obra_Transacciones_Panel_Filtros_Actual_Desktop.jpg",
+    "title": "027 Obra Transacciones Panel Filtros Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "028",
+    "name": "028_Obra_Transacciones_Dialog_Detalle_Actual_Desktop",
+    "file": "actuales/028_Obra_Transacciones_Dialog_Detalle_Actual_Desktop.jpg",
+    "title": "028 Obra Transacciones Dialog Detalle Actual Desktop",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "029",
+    "name": "029_General_Proveedores_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/029_General_Proveedores_Pagina_Cabecera_Actual_Desktop.jpg",
+    "title": "029 General Proveedores Pagina Cabecera Actual Desktop",
+    "url": "http://localhost:5173/proveedores",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "030",
+    "name": "030_General_Proveedores_Dialog_NuevoProveedor_Actual_Desktop",
+    "file": "actuales/030_General_Proveedores_Dialog_NuevoProveedor_Actual_Desktop.jpg",
+    "title": "030 General Proveedores Dialog NuevoProveedor Actual Desktop",
+    "url": "http://localhost:5173/proveedores",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "031",
+    "name": "031_General_PyL_Pagina_BarraAcciones_Actual_Desktop",
+    "file": "actuales/031_General_PyL_Pagina_BarraAcciones_Actual_Desktop.jpg",
+    "title": "031 General PyL Pagina BarraAcciones Actual Desktop",
+    "url": "http://localhost:5173/pnl",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "032",
+    "name": "032_General_PyL_Dialog_Configuracion_Actual_Desktop",
+    "file": "actuales/032_General_PyL_Dialog_Configuracion_Actual_Desktop.jpg",
+    "title": "032 General PyL Dialog Configuracion Actual Desktop",
+    "url": "http://localhost:5173/pnl",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "033",
+    "name": "033_General_PyL_Tab_WorkInProgress_Actual_Desktop",
+    "file": "actuales/033_General_PyL_Tab_WorkInProgress_Actual_Desktop.jpg",
+    "title": "033 General PyL Tab WorkInProgress Actual Desktop",
+    "url": "http://localhost:5173/pnl",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "034",
+    "name": "034_General_PyL_Tab_Rentabilidad_Actual_Desktop",
+    "file": "actuales/034_General_PyL_Tab_Rentabilidad_Actual_Desktop.jpg",
+    "title": "034 General PyL Tab Rentabilidad Actual Desktop",
+    "url": "http://localhost:5173/pnl",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "035",
+    "name": "035_General_Documentos_Pagina_Acciones_Actual_Desktop",
+    "file": "actuales/035_General_Documentos_Pagina_Acciones_Actual_Desktop.jpg",
+    "title": "035 General Documentos Pagina Acciones Actual Desktop",
+    "url": "http://localhost:5173/documentos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "036",
+    "name": "036_General_Tareas_Pagina_Controles_Actual_Desktop",
+    "file": "actuales/036_General_Tareas_Pagina_Controles_Actual_Desktop.jpg",
+    "title": "036 General Tareas Pagina Controles Actual Desktop",
+    "url": "http://localhost:5173/tareas",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "037",
+    "name": "037_General_Tareas_Dialog_NuevaTarea_Actual_Desktop",
+    "file": "actuales/037_General_Tareas_Dialog_NuevaTarea_Actual_Desktop.jpg",
+    "title": "037 General Tareas Dialog NuevaTarea Actual Desktop",
+    "url": "http://localhost:5173/tareas",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "038",
+    "name": "038_General_Proyectos_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/038_General_Proyectos_Pagina_Cabecera_Actual_Desktop.jpg",
+    "title": "038 General Proyectos Pagina Cabecera Actual Desktop",
+    "url": "http://localhost:5173/proyectos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "039",
+    "name": "039_General_Proyectos_Dialog_CrearProyecto_Actual_Desktop",
+    "file": "actuales/039_General_Proyectos_Dialog_CrearProyecto_Actual_Desktop.jpg",
+    "title": "039 General Proyectos Dialog CrearProyecto Actual Desktop",
+    "url": "http://localhost:5173/proyectos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "040",
+    "name": "040_Admin_Usuarios_Pagina_Acciones_Actual_Desktop",
+    "file": "actuales/040_Admin_Usuarios_Pagina_Acciones_Actual_Desktop.jpg",
+    "title": "040 Admin Usuarios Pagina Acciones Actual Desktop",
+    "url": "http://localhost:5173/usuarios",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "041",
+    "name": "041_Admin_Usuarios_Pagina_Invitacion_Actual_Desktop",
+    "file": "actuales/041_Admin_Usuarios_Pagina_Invitacion_Actual_Desktop.jpg",
+    "title": "041 Admin Usuarios Pagina Invitacion Actual Desktop",
+    "url": "http://localhost:5173/usuarios/nuevo",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "042",
+    "name": "042_Admin_Flujo_Pagina_CargaProyecciones_Actual_Desktop",
+    "file": "actuales/042_Admin_Flujo_Pagina_CargaProyecciones_Actual_Desktop.jpg",
+    "title": "042 Admin Flujo Pagina CargaProyecciones Actual Desktop",
+    "url": "http://localhost:5173/admin/flujo",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "043",
+    "name": "043_Ventas_Proyectos_Pagina_SinProyectos_Actual_Desktop",
+    "file": "actuales/043_Ventas_Proyectos_Pagina_SinProyectos_Actual_Desktop.jpg",
+    "title": "043 Ventas Proyectos Pagina SinProyectos Actual Desktop",
+    "url": "http://localhost:5173/sales-proyectos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "044",
+    "name": "044_Ventas_Proyectos_Dialog_CrearProyecto_Actual_Desktop",
+    "file": "actuales/044_Ventas_Proyectos_Dialog_CrearProyecto_Actual_Desktop.jpg",
+    "title": "044 Ventas Proyectos Dialog CrearProyecto Actual Desktop",
+    "url": "http://localhost:5173/sales-proyectos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "045",
+    "name": "045_Ventas_Documentos_Pagina_Cabecera_Actual_Desktop",
+    "file": "actuales/045_Ventas_Documentos_Pagina_Cabecera_Actual_Desktop.jpg",
+    "title": "045 Ventas Documentos Pagina Cabecera Actual Desktop",
+    "url": "http://localhost:5173/sales-documentos",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "id": "046",
+    "name": "046_Ventas_Transacciones_Pagina_Listado_Actual_Desktop",
+    "file": "actuales/046_Ventas_Transacciones_Pagina_Listado_Actual_Desktop.jpg",
+    "title": "046 Ventas Transacciones Pagina Listado Actual Desktop",
+    "url": "http://localhost:5173/sales-transacciones",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "name": "047_Ventas_Gestion_Pagina_SinProyectos_Actual_Desktop",
+    "file": "actuales/047_Ventas_Gestion_Pagina_SinProyectos_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/sales-gestion",
+    "note": "No hay proyectos de ventas seleccionables en la sesión.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "047",
+    "title": "047 Ventas Gestion Pagina SinProyectos Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "id": "048",
+    "name": "048_Ventas_Usuarios_Pagina_Acceso_Actual_Desktop",
+    "file": "actuales/048_Ventas_Usuarios_Pagina_Acceso_Actual_Desktop.jpg",
+    "title": "048 Ventas Usuarios Pagina Acceso Actual Desktop",
+    "url": "http://localhost:5173/sales-usuarios",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "name": "049_Admin_VentasFlujo_Pagina_SinProyecto_Actual_Desktop",
+    "file": "actuales/049_Admin_VentasFlujo_Pagina_SinProyecto_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/admin/sales-flujo",
+    "note": "Selector sin proyectos disponibles; no hay una vista por proyecto que se pueda validar.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "049",
+    "title": "049 Admin VentasFlujo Pagina SinProyecto Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "id": "050",
+    "name": "050_Admin_General_Pagina_TotalesSemanales_Actual_Desktop",
+    "file": "actuales/050_Admin_General_Pagina_TotalesSemanales_Actual_Desktop.jpg",
+    "title": "050 Admin General Pagina TotalesSemanales Actual Desktop",
+    "url": "http://localhost:5173/admin",
+    "verification": "Captura visual real",
+    "note": "Observación sin confirmar operaciones de escritura."
+  },
+  {
+    "name": "051_General_Transacciones_Pagina_Controles_Actual_Desktop",
+    "file": "actuales/051_General_Transacciones_Pagina_Controles_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/transacciones",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "051",
+    "title": "051 General Transacciones Pagina Controles Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "052_Obra_Flujo_Pagina_Controles_Actual_Desktop",
+    "file": "actuales/052_Obra_Flujo_Pagina_Controles_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/flujo",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "052",
+    "title": "052 Obra Flujo Pagina Controles Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "053_Obra_Proveedores_Pagina_Controles_Actual_Desktop",
+    "file": "actuales/053_Obra_Proveedores_Pagina_Controles_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/proveedores",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "053",
+    "title": "053 Obra Proveedores Pagina Controles Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "054_Obra_Tareas_Pagina_Controles_Actual_Desktop",
+    "file": "actuales/054_Obra_Tareas_Pagina_Controles_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/tareas?proyecto=jh7298n8vwk2fz4f20d27q153s89ap52",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "054",
+    "title": "054 Obra Tareas Pagina Controles Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "055_Obra_Autorizaciones_Tab_PermisosLegal_Actual_Desktop",
+    "file": "actuales/055_Obra_Autorizaciones_Tab_PermisosLegal_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/autorizaciones",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "055",
+    "title": "055 Obra Autorizaciones Tab PermisosLegal Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "056_Obra_Autorizaciones_Tab_Contratos_Actual_Desktop",
+    "file": "actuales/056_Obra_Autorizaciones_Tab_Contratos_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/autorizaciones",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "056",
+    "title": "056 Obra Autorizaciones Tab Contratos Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "057_Obra_Autorizaciones_Tab_IMSSSIROC_Actual_Desktop",
+    "file": "actuales/057_Obra_Autorizaciones_Tab_IMSSSIROC_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/autorizaciones",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "057",
+    "title": "057 Obra Autorizaciones Tab IMSSSIROC Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "058_Obra_RFIs_Pagina_NuevaRFI_Actual_Desktop",
+    "file": "actuales/058_Obra_RFIs_Pagina_NuevaRFI_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis/nueva",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "058",
+    "title": "058 Obra RFIs Pagina NuevaRFI Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "060_Legacy_CargaExcel_Pagina_Seleccion_Actual_Desktop",
+    "file": "actuales/060_Legacy_CargaExcel_Pagina_Seleccion_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/upload",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "060",
+    "title": "060 Legacy CargaExcel Pagina Seleccion Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "061_General_Inicio_Pagina_Resumen_Actual_Desktop",
+    "file": "actuales/061_General_Inicio_Pagina_Resumen_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "061",
+    "title": "061 General Inicio Pagina Resumen Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "062_Obra_Presupuesto_Menu_Partida_Actual_Desktop",
+    "file": "actuales/062_Obra_Presupuesto_Menu_Partida_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "062",
+    "title": "062 Obra Presupuesto Menu Partida Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "063_Obra_Presupuesto_Dialog_EditarPartida_Actual_Desktop",
+    "file": "actuales/063_Obra_Presupuesto_Dialog_EditarPartida_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "063",
+    "title": "063 Obra Presupuesto Dialog EditarPartida Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "064_Obra_Presupuesto_Pagina_Cabecera_Actual_Movil",
+    "file": "actuales/064_Obra_Presupuesto_Pagina_Cabecera_Actual_Movil.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "id": "064",
+    "title": "064 Obra Presupuesto Pagina Cabecera Actual Movil",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "065_Obra_Presupuesto_Dialog_Ingresos_Actual_Movil",
+    "file": "actuales/065_Obra_Presupuesto_Dialog_Ingresos_Actual_Movil.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "id": "065",
+    "title": "065 Obra Presupuesto Dialog Ingresos Actual Movil",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "066_Obra_Transacciones_Panel_Filtros_Actual_Movil",
+    "file": "actuales/066_Obra_Transacciones_Panel_Filtros_Actual_Movil.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 844,
+      "width": 390
+    },
+    "id": "066",
+    "title": "066 Obra Transacciones Panel Filtros Actual Movil",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "067_Obra_Transacciones_Dialog_SubirPagosFuerzaLaboral_Actual_Desktop",
+    "file": "actuales/067_Obra_Transacciones_Dialog_SubirPagosFuerzaLaboral_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "067",
+    "title": "067 Obra Transacciones Dialog SubirPagosFuerzaLaboral Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "068_Obra_Presupuesto_Dialog_CargarFactura_Actual_Desktop",
+    "file": "actuales/068_Obra_Presupuesto_Dialog_CargarFactura_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "068",
+    "title": "068 Obra Presupuesto Dialog CargarFactura Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "069_General_Asistente_Panel_Controles_Actual_Desktop",
+    "file": "actuales/069_General_Asistente_Panel_Controles_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "069",
+    "title": "069 General Asistente Panel Controles Actual Desktop",
+    "verification": "Captura visual real"
+  },
+  {
+    "name": "070_Obra_Presupuesto_Dialog_AgregarElementos_Actual_Desktop",
+    "file": "actuales/070_Obra_Presupuesto_Dialog_AgregarElementos_Actual_Desktop.jpg",
+    "url": "http://localhost:5173/proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto",
+    "note": "Observación sin confirmar operaciones de escritura.",
+    "viewport": {
+      "height": 1000,
+      "width": 1440
+    },
+    "id": "070",
+    "title": "070 Obra Presupuesto Dialog AgregarElementos Actual Desktop",
+    "verification": "Captura visual real"
+  }
+]

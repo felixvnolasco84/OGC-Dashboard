@@ -1,0 +1,43 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - main:
+    - heading "Subir Archivo Excel" [level=1]
+    - paragraph: Sube tu archivo Excel para procesarlo automáticamente
+    - text: Seleccionar Archivo
+    - generic: Arrastra y suelta tu archivo Excel aquí o haz clic para seleccionar
+    - paragraph: Selecciona un archivo Excel
+    - paragraph: "Archivos soportados: .xlsx, .xls (máx. 10MB)"
+    - button "Explorar Archivos"
+    - text: Instrucciones
+    - list:
+      - listitem: • Asegúrate de que tu archivo Excel tenga el formato correcto
+      - listitem: "• La primera fila debe contener los encabezados: PARTIDA, FAMILIA, SUBPARTIDA, etc."
+      - listitem: • El archivo no debe exceder los 10MB de tamaño
+      - listitem: • Solo se aceptan archivos con extensión .xlsx o .xls
+      - listitem: • Los registros duplicados serán ignorados automáticamente
+- region "Notifications alt+T"

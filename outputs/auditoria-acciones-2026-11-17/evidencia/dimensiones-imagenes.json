@@ -1,0 +1,920 @@
+[
+  {
+    "file": "actuales/001_Obra_Presupuesto_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 90813
+  },
+  {
+    "file": "actuales/002_Obra_Presupuesto_Menu_Agregar_Actual_Desktop.jpg",
+    "width": 960,
+    "height": 667,
+    "bytes": 39916
+  },
+  {
+    "file": "actuales/003_Obra_Presupuesto_Dialog_RegistrarPagos_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 71968
+  },
+  {
+    "file": "actuales/004_Obra_Presupuesto_Dialog_ExcelOrigen_Actual_Desktop.jpg",
+    "width": 960,
+    "height": 667,
+    "bytes": 28861
+  },
+  {
+    "file": "actuales/005_Obra_Presupuesto_Menu_Acciones_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 95232
+  },
+  {
+    "file": "actuales/006_Obra_Presupuesto_Dialog_Ingresos_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 81596
+  },
+  {
+    "file": "actuales/007_Obra_Presupuesto_Dialog_NuevoIngreso_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 56591
+  },
+  {
+    "file": "actuales/008_Obra_Control_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 91307
+  },
+  {
+    "file": "actuales/009_Obra_Reportes_Pagina_Generar_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 108121
+  },
+  {
+    "file": "actuales/010_Obra_Reportes_Tab_Programaciones_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 95242
+  },
+  {
+    "file": "actuales/011_Obra_Reportes_Tab_Historial_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 83821
+  },
+  {
+    "file": "actuales/012_Obra_Programa_Pagina_BarraHerramientas_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 123027
+  },
+  {
+    "file": "actuales/013_Obra_Programa_Menu_Archivo_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 122843
+  },
+  {
+    "file": "actuales/014_Obra_Programa_Dialog_ExportarPDF_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 85391
+  },
+  {
+    "file": "actuales/015_Obra_Bitacora_Pagina_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 92609
+  },
+  {
+    "file": "actuales/016_Obra_Bitacora_Dialog_NuevaEntrada_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 61107
+  },
+  {
+    "file": "actuales/017_Obra_Requisiciones_Pagina_CabeceraFiltros_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 59842
+  },
+  {
+    "file": "actuales/018_Obra_Requisiciones_Dialog_NuevaRequisicion_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 54377
+  },
+  {
+    "file": "actuales/019_Obra_RFIs_Pagina_Registro_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 78086
+  },
+  {
+    "file": "actuales/020_Obra_RFIs_Dialog_Detalle_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 80909
+  },
+  {
+    "file": "actuales/021_Obra_RFIs_Formulario_CreacionRapida_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 86627
+  },
+  {
+    "file": "actuales/022_Obra_Planos_Pagina_Biblioteca_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 59473
+  },
+  {
+    "file": "actuales/023_Obra_Planos_Visor_BarraHerramientas_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 114502
+  },
+  {
+    "file": "actuales/024_Obra_Documentos_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 85993
+  },
+  {
+    "file": "actuales/025_Obra_Documentos_Dialog_NuevaCarpeta_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 51253
+  },
+  {
+    "file": "actuales/026_Obra_Transacciones_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 113462
+  },
+  {
+    "file": "actuales/027_Obra_Transacciones_Panel_Filtros_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 100937
+  },
+  {
+    "file": "actuales/028_Obra_Transacciones_Dialog_Detalle_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 77358
+  },
+  {
+    "file": "actuales/029_General_Proveedores_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 95832
+  },
+  {
+    "file": "actuales/030_General_Proveedores_Dialog_NuevoProveedor_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 60748
+  },
+  {
+    "file": "actuales/031_General_PyL_Pagina_BarraAcciones_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 63580
+  },
+  {
+    "file": "actuales/032_General_PyL_Dialog_Configuracion_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 63660
+  },
+  {
+    "file": "actuales/033_General_PyL_Tab_WorkInProgress_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 66298
+  },
+  {
+    "file": "actuales/034_General_PyL_Tab_Rentabilidad_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 80532
+  },
+  {
+    "file": "actuales/035_General_Documentos_Pagina_Acciones_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 76952
+  },
+  {
+    "file": "actuales/036_General_Tareas_Pagina_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 39200
+  },
+  {
+    "file": "actuales/037_General_Tareas_Dialog_NuevaTarea_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 51181
+  },
+  {
+    "file": "actuales/038_General_Proyectos_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 55110
+  },
+  {
+    "file": "actuales/039_General_Proyectos_Dialog_CrearProyecto_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 72216
+  },
+  {
+    "file": "actuales/040_Admin_Usuarios_Pagina_Acciones_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 42233
+  },
+  {
+    "file": "actuales/041_Admin_Usuarios_Pagina_Invitacion_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 49658
+  },
+  {
+    "file": "actuales/042_Admin_Flujo_Pagina_CargaProyecciones_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 51997
+  },
+  {
+    "file": "actuales/043_Ventas_Proyectos_Pagina_SinProyectos_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 39517
+  },
+  {
+    "file": "actuales/044_Ventas_Proyectos_Dialog_CrearProyecto_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 54949
+  },
+  {
+    "file": "actuales/045_Ventas_Documentos_Pagina_Cabecera_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 97801
+  },
+  {
+    "file": "actuales/046_Ventas_Transacciones_Pagina_Listado_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96105
+  },
+  {
+    "file": "actuales/047_Ventas_Gestion_Pagina_SinProyectos_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 40047
+  },
+  {
+    "file": "actuales/048_Ventas_Usuarios_Pagina_Acceso_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 46323
+  },
+  {
+    "file": "actuales/049_Admin_VentasFlujo_Pagina_SinProyecto_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 34567
+  },
+  {
+    "file": "actuales/050_Admin_General_Pagina_TotalesSemanales_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 62761
+  },
+  {
+    "file": "actuales/051_General_Transacciones_Pagina_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 111171
+  },
+  {
+    "file": "actuales/052_Obra_Flujo_Pagina_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 84717
+  },
+  {
+    "file": "actuales/053_Obra_Proveedores_Pagina_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 88721
+  },
+  {
+    "file": "actuales/054_Obra_Tareas_Pagina_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 39498
+  },
+  {
+    "file": "actuales/055_Obra_Autorizaciones_Tab_PermisosLegal_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 60751
+  },
+  {
+    "file": "actuales/056_Obra_Autorizaciones_Tab_Contratos_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 47504
+  },
+  {
+    "file": "actuales/057_Obra_Autorizaciones_Tab_IMSSSIROC_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 75320
+  },
+  {
+    "file": "actuales/058_Obra_RFIs_Pagina_NuevaRFI_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 74900
+  },
+  {
+    "file": "actuales/060_Legacy_CargaExcel_Pagina_Seleccion_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 61885
+  },
+  {
+    "file": "actuales/061_General_Inicio_Pagina_Resumen_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 54829
+  },
+  {
+    "file": "actuales/062_Obra_Presupuesto_Menu_Partida_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 87676
+  },
+  {
+    "file": "actuales/063_Obra_Presupuesto_Dialog_EditarPartida_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 66211
+  },
+  {
+    "file": "actuales/064_Obra_Presupuesto_Pagina_Cabecera_Actual_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 24223
+  },
+  {
+    "file": "actuales/065_Obra_Presupuesto_Dialog_Ingresos_Actual_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 29334
+  },
+  {
+    "file": "actuales/066_Obra_Transacciones_Panel_Filtros_Actual_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 29612
+  },
+  {
+    "file": "actuales/067_Obra_Transacciones_Dialog_SubirPagosFuerzaLaboral_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 65497
+  },
+  {
+    "file": "actuales/068_Obra_Presupuesto_Dialog_CargarFactura_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 63960
+  },
+  {
+    "file": "actuales/069_General_Asistente_Panel_Controles_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 63815
+  },
+  {
+    "file": "actuales/070_Obra_Presupuesto_Dialog_AgregarElementos_Actual_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 53687
+  },
+  {
+    "file": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96681
+  },
+  {
+    "file": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 36313
+  },
+  {
+    "file": "comparativas/P01_Obra_Presupuesto_Pagina_cabecera_Antes_Despues.jpg",
+    "width": 960,
+    "height": 667,
+    "bytes": 51015
+  },
+  {
+    "file": "propuestas/P02_Obra_Presupuesto_Pagina_filtros_y_visualizacion_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 93155
+  },
+  {
+    "file": "propuestas/P02_Obra_Presupuesto_Pagina_filtros_y_visualizacion_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 25909
+  },
+  {
+    "file": "comparativas/P02_Obra_Presupuesto_Pagina_filtros_y_visualizacion_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 104136
+  },
+  {
+    "file": "propuestas/P03_Obra_Presupuesto_Dialogo_Ingresos_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 87765
+  },
+  {
+    "file": "propuestas/P03_Obra_Presupuesto_Dialogo_Ingresos_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 32176
+  },
+  {
+    "file": "comparativas/P03_Obra_Presupuesto_Dialogo_Ingresos_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 98577
+  },
+  {
+    "file": "propuestas/P04_Obra_Presupuesto_Dialogo_Registrar_pagos_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 74275
+  },
+  {
+    "file": "propuestas/P04_Obra_Presupuesto_Dialogo_Registrar_pagos_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 34027
+  },
+  {
+    "file": "comparativas/P04_Obra_Presupuesto_Dialogo_Registrar_pagos_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 95969
+  },
+  {
+    "file": "propuestas/P05_General_Proyectos_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 56997
+  },
+  {
+    "file": "propuestas/P05_General_Proyectos_Pagina_cabecera_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 29461
+  },
+  {
+    "file": "comparativas/P05_General_Proyectos_Pagina_cabecera_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 79012
+  },
+  {
+    "file": "propuestas/P06_Obra_Transacciones_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 120481
+  },
+  {
+    "file": "propuestas/P06_Obra_Transacciones_Pagina_cabecera_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 27366
+  },
+  {
+    "file": "comparativas/P06_Obra_Transacciones_Pagina_cabecera_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 112550
+  },
+  {
+    "file": "propuestas/P07_Obra_Transacciones_Panel_filtros_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 112312
+  },
+  {
+    "file": "propuestas/P07_Obra_Transacciones_Panel_filtros_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 25766
+  },
+  {
+    "file": "comparativas/P07_Obra_Transacciones_Panel_filtros_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 112915
+  },
+  {
+    "file": "propuestas/P08_Obra_Programa_Pagina_barra_de_herramientas_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 114602
+  },
+  {
+    "file": "propuestas/P08_Obra_Programa_Pagina_barra_de_herramientas_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 35864
+  },
+  {
+    "file": "comparativas/P08_Obra_Programa_Pagina_barra_de_herramientas_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 112328
+  },
+  {
+    "file": "propuestas/P09_Obra_Bitacora_Pagina_selector_de_vista_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 97610
+  },
+  {
+    "file": "propuestas/P09_Obra_Bitacora_Pagina_selector_de_vista_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 28760
+  },
+  {
+    "file": "comparativas/P09_Obra_Bitacora_Pagina_selector_de_vista_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 102425
+  },
+  {
+    "file": "propuestas/P10_Obra_Requisiciones_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 62782
+  },
+  {
+    "file": "propuestas/P10_Obra_Requisiciones_Pagina_cabecera_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 32070
+  },
+  {
+    "file": "comparativas/P10_Obra_Requisiciones_Pagina_cabecera_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 84268
+  },
+  {
+    "file": "propuestas/P11_Obra_Requisiciones_Tarjeta_acciones_de_estado_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 74199
+  },
+  {
+    "file": "propuestas/P11_Obra_Requisiciones_Tarjeta_acciones_de_estado_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 35814
+  },
+  {
+    "file": "comparativas/P11_Obra_Requisiciones_Tarjeta_acciones_de_estado_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 91883
+  },
+  {
+    "file": "propuestas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 82987
+  },
+  {
+    "file": "propuestas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 29126
+  },
+  {
+    "file": "comparativas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 98321
+  },
+  {
+    "file": "propuestas/P13_Obra_RFIs_Dialogo_detalle_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 86662
+  },
+  {
+    "file": "propuestas/P13_Obra_RFIs_Dialogo_detalle_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 45543
+  },
+  {
+    "file": "comparativas/P13_Obra_RFIs_Dialogo_detalle_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96116
+  },
+  {
+    "file": "propuestas/P14_Obra_Planos_Pagina_biblioteca_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 63808
+  },
+  {
+    "file": "propuestas/P14_Obra_Planos_Pagina_biblioteca_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 28727
+  },
+  {
+    "file": "comparativas/P14_Obra_Planos_Pagina_biblioteca_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 81079
+  },
+  {
+    "file": "propuestas/P15_Obra_Planos_Visor_acciones_del_archivo_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 62052
+  },
+  {
+    "file": "propuestas/P15_Obra_Planos_Visor_acciones_del_archivo_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 25736
+  },
+  {
+    "file": "comparativas/P15_Obra_Planos_Visor_acciones_del_archivo_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96998
+  },
+  {
+    "file": "propuestas/P16_General_y_Obra_Documentos_Pagina_cabecera_y_vista_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 80356
+  },
+  {
+    "file": "propuestas/P16_General_y_Obra_Documentos_Pagina_cabecera_y_vista_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 29803
+  },
+  {
+    "file": "comparativas/P16_General_y_Obra_Documentos_Pagina_cabecera_y_vista_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 98329
+  },
+  {
+    "file": "propuestas/P17_General_Documentos_Tabla_acciones_de_carpeta_archivo_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 93484
+  },
+  {
+    "file": "propuestas/P17_General_Documentos_Tabla_acciones_de_carpeta_archivo_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 27655
+  },
+  {
+    "file": "comparativas/P17_General_Documentos_Tabla_acciones_de_carpeta_archivo_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96582
+  },
+  {
+    "file": "propuestas/P18_General_Proveedores_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96701
+  },
+  {
+    "file": "propuestas/P18_General_Proveedores_Pagina_cabecera_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 28721
+  },
+  {
+    "file": "comparativas/P18_General_Proveedores_Pagina_cabecera_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 104221
+  },
+  {
+    "file": "propuestas/P19_General_PyL_Pagina_herramientas_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 68722
+  },
+  {
+    "file": "propuestas/P19_General_PyL_Pagina_herramientas_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 27702
+  },
+  {
+    "file": "comparativas/P19_General_PyL_Pagina_herramientas_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 89615
+  },
+  {
+    "file": "propuestas/P20_Obra_Autorizaciones_Tarjetas_documentos_y_responsables_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 78804
+  },
+  {
+    "file": "propuestas/P20_Obra_Autorizaciones_Tarjetas_documentos_y_responsables_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 34187
+  },
+  {
+    "file": "comparativas/P20_Obra_Autorizaciones_Tarjetas_documentos_y_responsables_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 97534
+  },
+  {
+    "file": "propuestas/P21_Obra_Flujo_Pagina_origen_e_historial_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 78899
+  },
+  {
+    "file": "propuestas/P21_Obra_Flujo_Pagina_origen_e_historial_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 26294
+  },
+  {
+    "file": "comparativas/P21_Obra_Flujo_Pagina_origen_e_historial_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 91999
+  },
+  {
+    "file": "propuestas/P22_Ventas_Documentos_Pagina_cabecera_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 96654
+  },
+  {
+    "file": "propuestas/P22_Ventas_Documentos_Pagina_cabecera_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 29261
+  },
+  {
+    "file": "comparativas/P22_Ventas_Documentos_Pagina_cabecera_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 100244
+  },
+  {
+    "file": "propuestas/P23_General_Dialogos_Dialogo_edicion_de_partida_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 75450
+  },
+  {
+    "file": "propuestas/P23_General_Dialogos_Dialogo_edicion_de_partida_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 28696
+  },
+  {
+    "file": "comparativas/P23_General_Dialogos_Dialogo_edicion_de_partida_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 98736
+  },
+  {
+    "file": "propuestas/P24_Ventas_Presupuesto_Pagina_cabecera_referencia_de_codigo_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 38557
+  },
+  {
+    "file": "propuestas/P24_Ventas_Presupuesto_Pagina_cabecera_referencia_de_codigo_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 24309
+  },
+  {
+    "file": "comparativas/P24_Ventas_Presupuesto_Pagina_cabecera_referencia_de_codigo_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 77917
+  },
+  {
+    "file": "propuestas/P25_Ventas_Transacciones_del_proyecto_Pagina_cabecera_referencia_de_codigo_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 42133
+  },
+  {
+    "file": "propuestas/P25_Ventas_Transacciones_del_proyecto_Pagina_cabecera_referencia_de_codigo_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 26463
+  },
+  {
+    "file": "comparativas/P25_Ventas_Transacciones_del_proyecto_Pagina_cabecera_referencia_de_codigo_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 86452
+  },
+  {
+    "file": "propuestas/P26_General_y_Obra_Tareas_Pagina_filtros_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 41809
+  },
+  {
+    "file": "propuestas/P26_General_y_Obra_Tareas_Pagina_filtros_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 22731
+  },
+  {
+    "file": "comparativas/P26_General_y_Obra_Tareas_Pagina_filtros_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 76931
+  },
+  {
+    "file": "propuestas/P27_Obra_Presupuesto_Tabla_menu_de_partida_Propuesta_Desktop.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 98322
+  },
+  {
+    "file": "propuestas/P27_Obra_Presupuesto_Tabla_menu_de_partida_Propuesta_Movil.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 27687
+  },
+  {
+    "file": "comparativas/P27_Obra_Presupuesto_Tabla_menu_de_partida_Antes_Despues.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 101464
+  },
+  {
+    "file": "propuestas/P12_Obra_RFIs_Pagina_filtros_de_estado_y_creacion_rapida_Propuesta_Desktop_Creacion_rapida.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 57993
+  },
+  {
+    "file": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Movil_Menu_cerrado.jpg",
+    "width": 390,
+    "height": 844,
+    "bytes": 27835
+  },
+  {
+    "file": "propuestas/P01_Obra_Presupuesto_Pagina_cabecera_Propuesta_Desktop_Menu_cerrado.jpg",
+    "width": 1440,
+    "height": 1000,
+    "bytes": 88560
+  }
+]

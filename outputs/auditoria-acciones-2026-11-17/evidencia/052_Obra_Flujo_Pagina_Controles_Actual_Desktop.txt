@@ -1,0 +1,3011 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Flujo de Caja Proyectado" [level=1]
+  - paragraph: Lote 77
+  - button "Historial de cargas":
+    - text: Historial de cargas
+  - button "Ver origen vigente"
+  - generic: "Archivo:"
+  - generic: FLUJO L77.xlsx
+  - generic: "Cargado:"
+  - generic: 26 de junio de 2026
+  - paragraph: Total Proyectado
+  - paragraph: $49,744,130
+  - paragraph: Semanas
+  - paragraph: "62"
+  - paragraph: Partidas
+  - paragraph: "40"
+  - paragraph: Promedio Semanal
+  - paragraph: $802,325
+  - generic: Filtros
+  - generic: Filtra las proyecciones por partida
+  - combobox:
+    - generic: Todas las partidas
+  - text: Desglose Semanal
+  - generic: Proyecciones de flujo de caja por semana
+  - table:
+    - rowgroup:
+      - row "Semana Partidas Total":
+        - columnheader "Semana"
+        - columnheader "Partidas"
+        - columnheader "Total"
+    - rowgroup:
+      - row "25/05/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,102,111.53":
+        - cell "25/05/2026 Ver origen":
+          - text: 25/05/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,102,111.53":
+          - generic: $1,102,111.53
+      - row "01/06/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $985,482.95":
+        - cell "01/06/2026 Ver origen":
+          - text: 01/06/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$985,482.95":
+          - generic: $985,482.95
+      - row "08/06/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,507,788.97":
+        - cell "08/06/2026 Ver origen":
+          - text: 08/06/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,507,788.97":
+          - generic: $1,507,788.97
+      - row "15/06/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $344,007.85":
+        - cell "15/06/2026 Ver origen":
+          - text: 15/06/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$344,007.85":
+          - generic: $344,007.85
+      - row "22/06/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $398,184.65":
+        - cell "22/06/2026 Ver origen":
+          - text: 22/06/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$398,184.65":
+          - generic: $398,184.65
+      - row "29/06/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $470,879.58":
+        - cell "29/06/2026 Ver origen":
+          - text: 29/06/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$470,879.58":
+          - generic: $470,879.58
+      - row "06/07/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,126,206.29":
+        - cell "06/07/2026 Ver origen":
+          - text: 06/07/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,126,206.29":
+          - generic: $1,126,206.29
+      - row "13/07/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $902,629.11":
+        - cell "13/07/2026 Ver origen":
+          - text: 13/07/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$902,629.11":
+          - generic: $902,629.11
+      - row "20/07/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $731,069.85":
+        - cell "20/07/2026 Ver origen":
+          - text: 20/07/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$731,069.85":
+          - generic: $731,069.85
+      - row "27/07/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,170,823.47":
+        - cell "27/07/2026 Ver origen":
+          - text: 27/07/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,170,823.47":
+          - generic: $1,170,823.47
+      - row "03/08/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $3,567,999.84":
+        - cell "03/08/2026 Ver origen":
+          - text: 03/08/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$3,567,999.84":
+          - generic: $3,567,999.84
+      - row "10/08/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,345,688.25":
+        - cell "10/08/2026 Ver origen":
+          - text: 10/08/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,345,688.25":
+          - generic: $1,345,688.25
+      - row "17/08/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $739,073.94":
+        - cell "17/08/2026 Ver origen":
+          - text: 17/08/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$739,073.94":
+          - generic: $739,073.94
+      - row "24/08/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $739,073.94":
+        - cell "24/08/2026 Ver origen":
+          - text: 24/08/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$739,073.94":
+          - generic: $739,073.94
+      - row "31/08/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $439,271.45":
+        - cell "31/08/2026 Ver origen":
+          - text: 31/08/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$439,271.45":
+          - generic: $439,271.45
+      - row "07/09/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $439,271.45":
+        - cell "07/09/2026 Ver origen":
+          - text: 07/09/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$439,271.45":
+          - generic: $439,271.45
+      - row "14/09/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $452,515.95":
+        - cell "14/09/2026 Ver origen":
+          - text: 14/09/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$452,515.95":
+          - generic: $452,515.95
+      - row "21/09/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,664,538.86":
+        - cell "21/09/2026 Ver origen":
+          - text: 21/09/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,664,538.86":
+          - generic: $1,664,538.86
+      - row "28/09/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $750,086.86":
+        - cell "28/09/2026 Ver origen":
+          - text: 28/09/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$750,086.86":
+          - generic: $750,086.86
+      - row "05/10/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $2,246,262.67":
+        - cell "05/10/2026 Ver origen":
+          - text: 05/10/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$2,246,262.67":
+          - generic: $2,246,262.67
+      - row "12/10/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $524,196.31":
+        - cell "12/10/2026 Ver origen":
+          - text: 12/10/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$524,196.31":
+          - generic: $524,196.31
+      - row "19/10/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,498,818.17":
+        - cell "19/10/2026 Ver origen":
+          - text: 19/10/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,498,818.17":
+          - generic: $1,498,818.17
+      - row "26/10/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,498,818.17":
+        - cell "26/10/2026 Ver origen":
+          - text: 26/10/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,498,818.17":
+          - generic: $1,498,818.17
+      - row "02/11/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $2,798,718.17":
+        - cell "02/11/2026 Ver origen":
+          - text: 02/11/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$2,798,718.17":
+          - generic: $2,798,718.17
+      - row "09/11/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $584,140.59":
+        - cell "09/11/2026 Ver origen":
+          - text: 09/11/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$584,140.59":
+          - generic: $584,140.59
+      - row "16/11/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $514,553.03":
+        - cell "16/11/2026 Ver origen":
+          - text: 16/11/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$514,553.03":
+          - generic: $514,553.03
+      - row "23/11/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $514,553.03":
+        - cell "23/11/2026 Ver origen":
+          - text: 23/11/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$514,553.03":
+          - generic: $514,553.03
+      - row "30/11/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $707,061.08":
+        - cell "30/11/2026 Ver origen":
+          - text: 30/11/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$707,061.08":
+          - generic: $707,061.08
+      - row "07/12/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $707,061.08":
+        - cell "07/12/2026 Ver origen":
+          - text: 07/12/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$707,061.08":
+          - generic: $707,061.08
+      - row "14/12/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $707,061.08":
+        - cell "14/12/2026 Ver origen":
+          - text: 14/12/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$707,061.08":
+          - generic: $707,061.08
+      - row "21/12/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $816,168.13":
+        - cell "21/12/2026 Ver origen":
+          - text: 21/12/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$816,168.13":
+          - generic: $816,168.13
+      - row "28/12/2026 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $816,168.13":
+        - cell "28/12/2026 Ver origen":
+          - text: 28/12/2026
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$816,168.13":
+          - generic: $816,168.13
+      - row "04/01/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,408,747.5":
+        - cell "04/01/2027 Ver origen":
+          - text: 04/01/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,408,747.5":
+          - generic: $1,408,747.5
+      - row "11/01/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $700,363.69":
+        - cell "11/01/2027 Ver origen":
+          - text: 11/01/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$700,363.69":
+          - generic: $700,363.69
+      - row "18/01/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $514,376.7":
+        - cell "18/01/2027 Ver origen":
+          - text: 18/01/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$514,376.7":
+          - generic: $514,376.7
+      - row "25/01/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $514,376.7":
+        - cell "25/01/2027 Ver origen":
+          - text: 25/01/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$514,376.7":
+          - generic: $514,376.7
+      - row "01/02/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $514,376.7":
+        - cell "01/02/2027 Ver origen":
+          - text: 01/02/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$514,376.7":
+          - generic: $514,376.7
+      - row "08/02/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $442,417.96":
+        - cell "08/02/2027 Ver origen":
+          - text: 08/02/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$442,417.96":
+          - generic: $442,417.96
+      - row "15/02/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $442,417.96":
+        - cell "15/02/2027 Ver origen":
+          - text: 15/02/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$442,417.96":
+          - generic: $442,417.96
+      - row "22/02/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $442,417.96":
+        - cell "22/02/2027 Ver origen":
+          - text: 22/02/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$442,417.96":
+          - generic: $442,417.96
+      - row "01/03/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $560,463.47":
+        - cell "01/03/2027 Ver origen":
+          - text: 01/03/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$560,463.47":
+          - generic: $560,463.47
+      - row "08/03/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $560,463.47":
+        - cell "08/03/2027 Ver origen":
+          - text: 08/03/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$560,463.47":
+          - generic: $560,463.47
+      - row "15/03/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $560,463.47":
+        - cell "15/03/2027 Ver origen":
+          - text: 15/03/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$560,463.47":
+          - generic: $560,463.47
+      - row "22/03/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $560,463.47":
+        - cell "22/03/2027 Ver origen":
+          - text: 22/03/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$560,463.47":
+          - generic: $560,463.47
+      - row "29/03/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $560,463.47":
+        - cell "29/03/2027 Ver origen":
+          - text: 29/03/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$560,463.47":
+          - generic: $560,463.47
+      - row "05/04/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $583,794.79":
+        - cell "05/04/2027 Ver origen":
+          - text: 05/04/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$583,794.79":
+          - generic: $583,794.79
+      - row "12/04/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $649,794.79":
+        - cell "12/04/2027 Ver origen":
+          - text: 12/04/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$649,794.79":
+          - generic: $649,794.79
+      - row "19/04/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $525,819.28":
+        - cell "19/04/2027 Ver origen":
+          - text: 19/04/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$525,819.28":
+          - generic: $525,819.28
+      - row "26/04/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $504,082.61":
+        - cell "26/04/2027 Ver origen":
+          - text: 26/04/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$504,082.61":
+          - generic: $504,082.61
+      - row "03/05/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,486,558.9":
+        - cell "03/05/2027 Ver origen":
+          - text: 03/05/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,486,558.9":
+          - generic: $1,486,558.9
+      - row "10/05/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $262,075.94":
+        - cell "10/05/2027 Ver origen":
+          - text: 10/05/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$262,075.94":
+          - generic: $262,075.94
+      - row "17/05/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $954,189.29":
+        - cell "17/05/2027 Ver origen":
+          - text: 17/05/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$954,189.29":
+          - generic: $954,189.29
+      - row "24/05/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $751,600.55":
+        - cell "24/05/2027 Ver origen":
+          - text: 24/05/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$751,600.55":
+          - generic: $751,600.55
+      - row "31/05/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $751,600.55":
+        - cell "31/05/2027 Ver origen":
+          - text: 31/05/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$751,600.55":
+          - generic: $751,600.55
+      - row "07/06/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $1,328,577.56":
+        - cell "07/06/2027 Ver origen":
+          - text: 07/06/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$1,328,577.56":
+          - generic: $1,328,577.56
+      - row "14/06/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $374,303.2":
+        - cell "14/06/2027 Ver origen":
+          - text: 14/06/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$374,303.2":
+          - generic: $374,303.2
+      - row "21/06/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $303,543.2":
+        - cell "21/06/2027 Ver origen":
+          - text: 21/06/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$303,543.2":
+          - generic: $303,543.2
+      - row "28/06/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $141,442.77":
+        - cell "28/06/2027 Ver origen":
+          - text: 28/06/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$141,442.77":
+          - generic: $141,442.77
+      - row "05/07/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $416,538.46":
+        - cell "05/07/2027 Ver origen":
+          - text: 05/07/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$416,538.46":
+          - generic: $416,538.46
+      - row "12/07/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $118,111.45":
+        - cell "12/07/2027 Ver origen":
+          - text: 12/07/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$118,111.45":
+          - generic: $118,111.45
+      - row "19/07/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $0":
+        - cell "19/07/2027 Ver origen":
+          - text: 19/07/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$0":
+          - generic: $0
+      - row "26/07/2027 Ver origen PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH $0":
+        - cell "26/07/2027 Ver origen":
+          - text: 26/07/2027
+          - button "Ver origen"
+        - cell "PRELIMINARES MUROS DE CONT CIMENTACIÓN FIRME DE CIMENTACIÓN MUROS_PB LOSA_PN MUROS_PN LOSA_2N MUROS PRETILES ALBERCA CISTERNA ESCALERA INTERNA ESCALERA EXTERNA 01 ESCALERA EXTERNA 02 FIRME DE ANDADO ALBAÑILERÍAS PLOMERÍA ELECTRICIDAD LUMINARIAS IMPERMEABILIZACIÓN AIRE_ACONDICIONADO HERRERÍA PINTURA_HERRERÍA MÁRMOL RECUBRIMIENTOS YESO_PINTURA CANCELERÍA CARPINTERÍA HERRAJES MOBILIARIO_EQUIPO MUEBLES_BAÑO GAS COCINA INSTALACIONES_ESPECIALES JARDÍN VARIOS VIATICOS HONORARIOS GENERAL CONDITIONS VARIOS SH":
+          - generic: PRELIMINARES
+          - generic: MUROS DE CONT
+          - generic: CIMENTACIÓN
+          - generic: FIRME DE CIMENTACIÓN
+          - generic: MUROS_PB
+          - generic: LOSA_PN
+          - generic: MUROS_PN
+          - generic: LOSA_2N
+          - generic: MUROS PRETILES
+          - generic: ALBERCA
+          - generic: CISTERNA
+          - generic: ESCALERA INTERNA
+          - generic: ESCALERA EXTERNA 01
+          - generic: ESCALERA EXTERNA 02
+          - generic: FIRME DE ANDADO
+          - generic: ALBAÑILERÍAS
+          - generic: PLOMERÍA
+          - generic: ELECTRICIDAD
+          - generic: LUMINARIAS
+          - generic: IMPERMEABILIZACIÓN
+          - generic: AIRE_ACONDICIONADO
+          - generic: HERRERÍA
+          - generic: PINTURA_HERRERÍA
+          - generic: MÁRMOL
+          - generic: RECUBRIMIENTOS
+          - generic: YESO_PINTURA
+          - generic: CANCELERÍA
+          - generic: CARPINTERÍA
+          - generic: HERRAJES
+          - generic: MOBILIARIO_EQUIPO
+          - generic: MUEBLES_BAÑO
+          - generic: GAS
+          - generic: COCINA
+          - generic: INSTALACIONES_ESPECIALES
+          - generic: JARDÍN
+          - generic: VARIOS
+          - generic: VIATICOS
+          - generic: HONORARIOS
+          - generic: GENERAL CONDITIONS
+          - generic: VARIOS SH
+        - cell "$0":
+          - generic: $0
+    - rowgroup:
+      - row "Total 40 partidas $49,744,130.31":
+        - cell "Total"
+        - cell "40 partidas"
+        - cell "$49,744,130.31"
+- region "Notifications alt+T"

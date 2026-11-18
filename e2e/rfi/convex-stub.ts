@@ -27,7 +27,12 @@ let revision = 0, sequence = 0;
 const listeners = new Set<() => void>();
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 const publish = () => { revision++; listeners.forEach((listener) => listener()); };
-export const fixtureState = { calls: [] as string[], fail: params.get("fail") || "", status: "Datos simulados; sin conexión al servidor", uploads: 0 };
+export const fixtureState = {
+  calls: [] as string[], requests: [] as Array<{ name: string; args: Record<string, unknown> }>,
+  fail: params.get("fail") || "", status: "Datos simulados; sin conexión al servidor", uploads: 0,
+  canCreate: !["finance", "viewer"].includes(params.get("role") || ""),
+  listMode: params.get("listState") || "ready",
+};
 const snapshot = () => rfiReviewSnapshot(rfi, responses, attachments);
 const detail = () => ({
   rfi: { ...rfi, code: "RFI-027", derived_status: rfi.status, manager: users[1], creator: users[0], assignees: users.filter((u) => rfi.assignee_ids.includes(u._id)), official_response_count: responses.filter((r) => r.is_official).length, response_count: responses.length, attachment_count: attachments.length, last_activity_at: rfi.updated_at, is_unread: false, is_my_responsibility: true },
@@ -36,24 +41,40 @@ const detail = () => ({
   attachments: attachments.filter((a) => !a.response_id).map((a) => ({ ...a, url: null })), history,
   permissions: { can_edit: ["draft", "pending_manager_review"].includes(rfi.status), can_delete: rfi.status === "draft", can_submit: rfi.status === "draft", can_open: rfi.status === "pending_manager_review", can_respond: rfi.status === "open", can_mark_official: rfi.status === "open", can_close: rfi.status === "open", can_reopen: rfi.status === "closed", can_attach: rfi.status !== "closed" },
 });
+// P12 cases are opt-in; existing detail/editor fixtures retain their single RFI.
+function listRows(project: string) {
+  if (fixtureState.listMode === "empty") return [];
+  const base = detail().rfi;
+  if (project === "other") return [{ ...base, _id: "other-rfi", proyecto: "other", code: "RFI-101", subject: "Otro proyecto", status: "closed", derived_status: "closed", is_my_responsibility: false }];
+  const variants = [
+    { _id: "rfi", code: "RFI-027", subject: base.subject, status: base.status, derived_status: base.status, is_my_responsibility: true, creator: users[1], location: "Azotea norte", partida_id: "partida", familia: "Cubiertas", sub_partida: "Impermeabilización" },
+    { _id: "pending", code: "RFI-028", subject: "Revisión de estructura", status: "pending_manager_review", derived_status: "pending_manager_review", is_my_responsibility: false },
+    { _id: "late", code: "RFI-029", subject: "Juntas de fachada", status: "open", derived_status: "overdue", is_my_responsibility: false },
+    { _id: "draft", code: "RFI-030", subject: "Borrador de instalaciones", status: "draft", derived_status: "draft", is_my_responsibility: true },
+    { _id: "closed", code: "RFI-031", subject: "Cierre de acceso", status: "closed", derived_status: "closed", is_my_responsibility: true },
+    { _id: "my-late", code: "RFI-032", subject: "Revisión de acabados", status: "open", derived_status: "overdue", is_my_responsibility: true },
+  ];
+  return variants.map((variant) => ({ ...base, question: "Consulta de prueba", ...variant, ...(variant._id === "rfi" ? { question: base.question } : {}), manager: { ...users[1], name: "Nombre anterior del responsable" }, assignees: [{ ...users[2], name: "Nombre anterior del asignado" }] }));
+}
 export function useQuery(reference: Parameters<typeof getFunctionName>[0], args?: unknown) {
   const tick = useSyncExternalStore(subscribe, () => revision);
   const name = getFunctionName(reference);
+  const projectKey = typeof args === "object" && args ? String((args as { proyecto?: string; id?: string }).proyecto ?? (args as { id?: string }).id) : "";
   return useMemo(() => {
     if (args === "skip") return undefined;
     if (name === "rfis:getDetail") return detail();
-    if (name === "rfis:listByProject") return [detail().rfi];
-    if (name === "desarrollos:getById") return { _id: "project", nombre: "Proyecto Alameda · Datos de prueba" };
-    if (name === "rfis:getFormOptions") return { project: { _id: "project", nombre: "Proyecto Alameda" }, current_user: users[0], can_create: true, users, partidas: [] };
+    if (name === "rfis:listByProject") return params.has("list") ? fixtureState.listMode === "loading" ? undefined : listRows(projectKey) : [detail().rfi];
+    if (name === "desarrollos:getById") return fixtureState.listMode === "error" ? null : { _id: projectKey, nombre: projectKey === "other" ? "Otro proyecto" : "Proyecto Alameda · Datos de prueba" };
+    if (name === "rfis:getFormOptions") return { project: { _id: projectKey, nombre: "Proyecto Alameda" }, current_user: users[0], can_create: fixtureState.canCreate, users, partidas: params.has("list") ? [{ _id: "partida", nombre: "Losa nervada" }] : [] };
     throw new Error(`Consulta sin simular: ${name}`);
-  }, [name, tick, args === "skip"]);
+  }, [name, tick, args === "skip", projectKey]);
 }
 export function useMutation(reference: Parameters<typeof getFunctionName>[0]) {
   const name = getFunctionName(reference);
   return useMemo(() => async (args: Record<string, unknown>) => {
     if (name === "rfis:markAsRead") return;
-    fixtureState.calls.push(name); publish();
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    fixtureState.calls.push(name); fixtureState.requests.push({ name, args: structuredClone(args) }); publish();
+    await new Promise((resolve) => setTimeout(resolve, Number(params.get("delay")) || 700));
     if (fixtureState.fail === "action" && !name.includes("Upload")) throw new Error("No se pudo aplicar la acción. Error de prueba.");
     if (args.expected_review && args.expected_review !== snapshot()) throw new Error("La RFI cambió mientras la revisabas. Actualiza la revisión antes de continuar.");
     if (name === "rfis:generateUploadUrl") return "/rfi-mock-upload";
@@ -80,6 +101,7 @@ export function useMutation(reference: Parameters<typeof getFunctionName>[0]) {
 }
 export function fixtureChange() { rfi = { ...rfi, question: "Pregunta actualizada por otra persona: verificar también los pasos de instalaciones.", updated_at: ++sequence }; fixtureState.status = "Cambio concurrente simulado"; publish(); }
 export function restoreFixture() { fixtureState.fail = ""; fixtureState.status = "Error simulado desactivado"; publish(); }
+export function fixtureSetCreatePermission(allowed: boolean) { fixtureState.canCreate = allowed; publish(); }
 export function subscribeFixture() { return useSyncExternalStore(subscribe, () => revision); }
 const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, init) => {

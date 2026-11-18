@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { Check, Globe2, Loader2, Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ export default function ProjectLocationsModal({
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -92,6 +93,13 @@ export default function ProjectLocationsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-square-modal=""
         className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-xl flex-col overflow-hidden p-0"
+        onOpenAutoFocus={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus();
+        }}
       >
         <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
           <DialogTitle className="text-xl font-normal">Configurar ubicaciones</DialogTitle>

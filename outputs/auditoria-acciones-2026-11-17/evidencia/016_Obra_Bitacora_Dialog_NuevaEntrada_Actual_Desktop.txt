@@ -1,0 +1,187 @@
+- list:
+  - button:
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - generic: Requisiciones
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - paragraph: Bitácora
+  - heading [level=1]: Lote 77
+  - text: En línea
+  - button [pressed]:
+    - text: Agrupado
+  - button:
+    - text: Calendario
+  - button:
+    - text: Agregar reporte
+  - main:
+    - heading [level=2]: Estructura
+    - button:
+      - generic: Agregar reporte a Estructura
+    - article:
+      - button:
+        - generic: 14 Noviembre, 2026
+        - generic: ALBAÑILERÍAS
+        - generic: Sin problemas
+        - generic: ACERO
+        - generic: CIMBRA
+        - generic: CEMENTANTES
+        - generic: MANO_OBRA
+      - generic: S
+      - generic: Saul Aguirre
+      - button:
+    - article:
+      - button:
+        - generic: 13 Noviembre, 2026
+        - generic: ALBAÑILERÍAS
+        - generic: Sin problemas
+        - generic: ACERO
+        - generic: CIMBRA
+        - generic: CEMENTANTES
+        - generic: MANO_OBRA
+      - generic: S
+      - generic: Saul Aguirre
+      - button:
+    - article:
+      - button:
+        - generic: 12 Noviembre, 2026
+        - generic: ALBAÑILERÍAS
+        - generic: Sin problemas
+        - generic: ACERO
+        - generic: CIMBRA
+        - generic: CEMENTANTES
+        - generic: MANO_OBRA
+      - generic: S
+      - generic: Saul Aguirre
+      - button:
+    - article:
+      - button:
+        - generic: 11 Noviembre, 2026
+        - generic: ESCALERA EXTERNA 01
+        - generic: Sin problemas
+        - generic: ACERO
+        - generic: CIMBRA
+        - generic: CONCRETOS
+        - generic: MANO_OBRA
+      - generic: S
+      - generic: Saul Aguirre
+      - button:
+    - article:
+      - button:
+        - generic: 10 Noviembre, 2026
+        - generic: ALBAÑILERÍAS
+        - generic: Sin problemas
+        - generic: ACERO
+        - generic: CIMBRA
+        - generic: CEMENTANTES
+        - generic: RECUBRIMIENTOS
+      - generic: S
+      - generic: Saul Aguirre
+      - button:
+    - article:
+      - button:
+        - generic: 9 Noviembre, 2026
+        - generic: ALBAÑILERÍAS
+        - generic: Sin problemas
+        - generic: ACERO
+        - generic: CIMBRA
+        - generic: RECUBRIMIENTOS
+        - generic: MANO_OBRA
+      - generic: S
+      - generic: Saul Aguirre
+      - button:
+    - button:
+      - text: Expandir (44 más)
+    - button: Cargar más reportes
+- region "Notifications alt+T"
+- dialog "Nueva Entrada de Bitácora":
+  - banner:
+    - heading "Nueva Entrada de Bitácora" [level=2]
+    - paragraph: Registro diario de avance
+    - button "Cerrar modal" [active]:
+  - generic: Categoría *
+  - combobox:
+    - generic: Selecciona una categoría
+  - combobox
+  - generic: Partida (Nivel 1) *
+  - combobox:
+    - generic: Selecciona una partida
+  - combobox
+  - generic: Fecha *
+  - button "17/11/2026":
+    - text: 17/11/2026
+  - generic: Responsable *
+  - textbox: Felix Enrique Vega Nolasco
+  - generic: Estado *
+  - combobox:
+    - generic: Sin problemas
+  - combobox
+  - text: Retos / Incidencias
+  - textbox "Retos / Incidencias":
+    - /placeholder: Describe los retos o incidencias del día…
+  - generic: Avance del día *
+  - textbox "TORRE I INSTALACIÓN DE ACCESORIOS 80%":
+    - /placeholder: "TORRE I\nINSTALACIÓN DE ACCESORIOS 80%"
+  - paragraph: Describe el avance detallado del día. Puedes usar líneas separadas para cada actividad.
+  - generic: Fotografías
+  - button "Haz clic para agregar fotos PNG, JPG, JPEG hasta 10MB":
+    - generic: Haz clic para agregar fotos
+    - generic: PNG, JPG, JPEG hasta 10MB
+  - generic: Documentos
+  - button "Haz clic para agregar documentos PDF, DOC, DOCX, XLS, XLSX hasta 10MB":
+    - generic: Haz clic para agregar documentos
+    - generic: PDF, DOC, DOCX, XLS, XLSX hasta 10MB
+  - contentinfo:
+    - button "Cancelar"
+    - button "Crear Entrada"

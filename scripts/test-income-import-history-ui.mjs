@@ -37,7 +37,10 @@ try {
       await page.evaluate(() => sessionStorage.clear()); await page.reload();
       await page.getByRole("button", { name: "Abrir ingresos de prueba", exact: true }).click();
     };
-    const bulk = () => page.getByRole("button", { name: "Carga masiva", exact: true }).click();
+    const bulk = async () => {
+      await page.getByRole("button", { name: "Acciones de ingresos", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Carga masiva", exact: true }).click();
+    };
     const file = () => page.locator('#income-bulk-file').setInputFiles({ name: originalName, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: bytes });
     const validate = async () => {
       await bulk(); await file(); await page.getByRole("button", { name: "Validar archivo", exact: true }).click();
@@ -45,9 +48,37 @@ try {
       assert.equal(await page.evaluate(() => window.incomeImportRecorded.mutations.length), 0, "Preview must not create an attempt");
       await expect(page.getByText("Registro 2 de la respuesta · fila de Excel no informada", { exact: true })).toBeVisible();
     };
-    const history = async () => { await page.getByRole("button", { name: "Historial de cargas", exact: true }).click(); await expect(page.getByRole("heading", { name: "Historial de cargas de ingresos", exact: true })).toBeVisible(); await expect(page.getByRole("dialog")).toHaveCSS("opacity", "1"); };
+    const history = async () => {
+      const trigger = page.getByRole("button", { name: "Historial de cargas", exact: true });
+      if (await trigger.count()) await trigger.click();
+      else {
+        await page.getByRole("button", { name: "Acciones de ingresos", exact: true }).click();
+        await page.getByRole("menuitem", { name: "Historial de cargas", exact: true }).click();
+      }
+      await expect(page.getByRole("heading", { name: "Historial de cargas de ingresos", exact: true })).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCSS("opacity", "1");
+    };
     const overflow = async () => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Overflow at ${width}`);
-    await open("history"); await history(); await overflow();
+    await open("history");
+    const actions = page.getByRole("button", { name: "Acciones de ingresos", exact: true });
+    await expect(page.getByRole("button", { name: "Nuevo ingreso", exact: true })).toBeVisible();
+    await actions.press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Carga masiva", exact: true })).toBeFocused();
+    await page.keyboard.press("Escape"); await expect(actions).toBeFocused();
+    await actions.press("Enter");
+    await expect(page.getByRole("menuitem", { name: "Carga masiva", exact: true })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitem", { name: "Historial de cargas", exact: true })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Historial de cargas de ingresos", exact: true })).toBeVisible();
+    await page.keyboard.press("Escape"); await expect(actions).toBeFocused();
+    await page.getByRole("button", { name: "Nuevo ingreso", exact: true }).click();
+    await expect(page.getByText("Nuevo ingreso", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Agregar", exact: true })).toBeDisabled();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+    await bulk(); await expect(page.getByRole("button", { name: "Volver a ingresos", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Volver a ingresos", exact: true }).click();
+    await history(); await overflow();
     await expect(page.getByText("Archivo original no disponible", { exact: true })).toBeVisible();
     await page.screenshot({ path: `${output}/history-${width}.png`, fullPage: true });
     const downloading = page.waitForEvent("download"); await page.getByRole("button", { name: "Descargar Excel", exact: true }).first().click();
@@ -68,10 +99,40 @@ try {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Archivo Excel de origen", exact: true }).last().click();
     await expect(page.getByText(/Sin información de archivo de origen/)).toBeVisible();
-    await open("viewer"); await expect(page.getByRole("button", { name: "Carga masiva", exact: true })).toHaveCount(0); await history(); await overflow();
+    for (const role of ["viewer", "user", "unknown", "loading-user"]) {
+      await open(role);
+      await expect(page.getByRole("button", { name: "Nuevo ingreso", exact: true })).toHaveCount(0);
+      await actions.click();
+      await expect(page.getByRole("menuitem", { name: "Carga masiva", exact: true })).toHaveCount(0);
+      await page.getByRole("menuitem", { name: "Historial de cargas", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Historial de cargas de ingresos", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Continuar carga", exact: true })).toHaveCount(0);
+      await overflow();
+    }
+    await open("admin"); await expect(page.getByRole("button", { name: "Nuevo ingreso", exact: true })).toBeVisible();
+    await bulk(); await page.getByRole("button", { name: "Volver a ingresos", exact: true }).click();
+    await open("empty-list"); await expect(page.getByText("No hay ingresos registrados", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Agregar primer ingreso", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Cancelar", exact: true }).click(); await history();
+    await open("loading-list"); await expect(page.getByLabel("Cargando ingresos", { exact: true })).toBeVisible(); await history();
     await open("pagination"); await history(); await expect(page.getByRole("article")).toHaveCount(25);
     await page.getByRole("button", { name: "Siguiente", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(1);
     await page.getByRole("button", { name: "Anterior", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(25);
+    await page.getByRole("button", { name: "Ver registros", exact: true }).first().click();
+    await page.keyboard.press("Escape"); await expect(actions).toBeFocused();
+    await history(); await expect(page.getByRole("article")).toHaveCount(25);
+    await expect(page.getByRole("button", { name: "Ocultar registros", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Siguiente", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(1);
+    await page.evaluate(() => window.incomePreviewModal.getState().onOpen({ projectId: "project-other", projectName: "Otro proyecto ficticio" }));
+    await expect(actions).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Historial de cargas de ingresos", exact: true })).toHaveCount(0);
+    await history(); await expect(page.getByRole("article")).toHaveCount(25);
+    await page.evaluate(() => window.incomePreviewModal.getState().onClose());
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("button", { name: "Abrir ingresos de prueba", exact: true }).click();
+    await expect(actions).toBeVisible(); await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Historial de cargas de ingresos", exact: true })).toHaveCount(0);
     await open("empty"); await history(); await expect(page.getByText(/Todavía no hay cargas/)).toBeVisible();
     for (const scenario of ["success", "lost-response", "import-error", "repeat"]) {
       await open(scenario); await validate();
@@ -106,5 +167,5 @@ try {
     await page.close();
   }
   assert.deepEqual(errors, []);
-  console.log("Income import UI passed at 1440/390/320px: history, readers, pagination, original bytes/name/formulas, source/legacy metadata, preview, repeated confirmation warning, upload retry after refresh, financial errors and lost-response recovery. All data are fictional.");
+  console.log("Income import UI passed at 1440/390/320px: P03 toolbar, admin/finance/readers/unknown/loading roles, keyboard/focus, new form, empty/loading lists, bulk navigation, history close/reopen/project switch, pagination, original bytes/name/formulas, source/legacy metadata, preview, repeated confirmation warning, upload retry after refresh, financial errors and lost-response recovery. All data are fictional.");
 } finally { if (browser) await browser.close(); await server.close(); }

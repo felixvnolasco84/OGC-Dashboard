@@ -1,0 +1,174 @@
+- list:
+  - button:
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - generic: Requisiciones
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - main:
+    - paragraph: Proyecto
+    - heading [level=1]: RFIs Lote 77
+    - button:
+      - text: Nueva RFI
+    - navigation:
+      - button:
+        - generic: Total
+        - generic: "3"
+      - button:
+        - generic: Abiertas
+        - generic: "3"
+      - button:
+        - generic: Mi responsabilidad
+        - generic: "0"
+      - button:
+        - generic: Vencidas
+        - generic: "1"
+      - button:
+        - generic: Borradores
+        - generic: "0"
+      - button:
+        - generic: Cerradas
+        - generic: "0"
+    - generic: Buscar RFI
+    - textbox:
+      - /placeholder: Buscar por número, asunto, pregunta o responsable
+    - region:
+      - generic: RFI
+      - generic: Solicita
+      - generic: Responsable
+      - generic: Adjunto
+      - generic: Vencimiento
+      - generic: Status
+      - button:
+        - paragraph: RFI-003
+        - paragraph: Solicitud permiso uso rampa lote 76
+        - paragraph: PRELIMINARES · SUBCONTRATOS
+        - paragraph: Saul Aguirre
+        - paragraph: Solicitado el 6 de septiembre de 2026
+        - generic: I
+        - generic: Sin adjunto
+        - paragraph: 19/09/26
+        - paragraph: Venció hace 59 días
+        - text: Pendiente
+      - button:
+        - paragraph: RFI-002
+        - paragraph: Columna metálica
+        - paragraph: MUROS_PB · ACERO
+        - paragraph: Saul Aguirre
+        - paragraph: Solicitado el 6 de septiembre de 2026
+        - generic: I
+        - generic: Sin adjunto
+        - paragraph: 11/09/26
+        - paragraph: Venció hace 67 días
+        - text: Pendiente
+      - button:
+        - paragraph: RFI-001
+        - paragraph: CFE contrato
+        - paragraph: PRELIMINARES · SUBCONTRATOS
+        - paragraph: Saul Aguirre
+        - paragraph: Solicitado el 8 de agosto de 2026
+        - generic: I
+        - generic: R
+        - generic: Sin adjunto
+        - paragraph: 20/08/26
+        - paragraph: Venció hace 89 días
+        - text: Vencida
+      - button:
+        - text: Agregar RFI
+- region "Notifications alt+T"
+- dialog "Detalle de RFI":
+  - button "Close" [active]:
+    - generic: Close
+  - heading "Detalle de RFI" [level=2]
+  - paragraph: Consulta la información, respuestas e historial de la RFI.
+  - banner "Acciones de RFI-003":
+    - generic: S
+    - paragraph: Saul Aguirre
+    - paragraph: Solicitado el 6 de septiembre de 2026
+    - button "Editar"
+    - button "Abrir RFI":
+      - text: Abrir RFI
+  - tablist:
+    - tab "General" [selected]
+    - tab "Respuestas 0":
+      - text: Respuestas
+      - generic: "0"
+    - tab "Historial"
+  - tabpanel "General":
+    - paragraph: RFI-003
+    - heading "Solicitud permiso uso rampa lote 76" [level=1]
+    - paragraph: PRELIMINARES · SUBCONTRATOS
+    - paragraph: 19/09/26
+    - paragraph: Venció hace 59 días
+    - text: Pendiente
+    - heading "Se podrá solicitar permiso para uso rampa del lote 76, para uso del lunes 14 de septiembre al viernes 2 de octubre. Es decir 3 o 2 semanas de uso." [level=2]
+    - paragraph: "-Se requiere cortar tierra para liberar el área de alberca, cuarto de máquinas. -Esa tierra se requiere para rellenar muro de contención. Este corte se realizaría con maquinaria de SOCAL, pero se requiere entrar por lote 76."
+    - heading "Referencias" [level=2]
+    - term: Proyecto
+    - definition: Lote 77
+    - term: Partida
+    - definition: PRELIMINARES
+    - term: Familia
+    - definition: SUBCONTRATOS
+    - term: Subpartida
+    - definition: Sin especificar
+    - term: Plano
+    - definition: Sin especificar
+    - term: Revisión
+    - definition: Revisión 0
+    - heading "Impacto" [level=2]
+    - paragraph: Costo
+    - paragraph: Sí
+    - paragraph: Programa
+    - paragraph: Sí

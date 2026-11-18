@@ -1,0 +1,393 @@
+[
+  {
+    "line": 91,
+    "attrs": {
+      "path": "\"/sign-in/*\"",
+      "element": "{<SignInPage />}"
+    },
+    "content": ""
+  },
+  {
+    "line": 92,
+    "attrs": {
+      "path": "\"/sign-up/*\"",
+      "element": "{<SignUpPage />}"
+    },
+    "content": ""
+  },
+  {
+    "line": 93,
+    "attrs": {
+      "path": "\"/accept-invitation/*\"",
+      "element": "{<AcceptInvitationPage />}"
+    },
+    "content": ""
+  },
+  {
+    "line": 96,
+    "attrs": {
+      "element": "{<WebsiteLayout />}"
+    },
+    "content": " <Route index element={<ProtectedRoute requiredRole=\"admin\" allowedRoles={[\"almacenista\"]}> <RoleHomePage /> </ProtectedRoute>} /> <Route path=\"/proyectos\" element={ <ProtectedRoute requiredRole=\"admin\"> <ProyectosTablePage /> </ProtectedRoute> } /> <Route path=\"/sales-proyectos\" element={ <ProtectedRoute requiredRole=\"admin\"> <SalesProyectosTablePage /> </ProtectedRoute> } /> <Route path=\"/transacciones\" element={ <ProtectedRoute requiredRole=\"admin\"> <TransaccionesTablePage /> </ProtectedRoute"
+  },
+  {
+    "line": 97,
+    "attrs": {
+      "index": "true",
+      "element": "{<ProtectedRoute requiredRole=\"admin\" allowedRoles={[\"almacenista\"]}>\r\n                  <RoleHomePage />\r\n                </ProtectedRoute>}"
+    },
+    "content": ""
+  },
+  {
+    "line": 100,
+    "attrs": {
+      "path": "\"/proyectos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <ProyectosTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 105,
+    "attrs": {
+      "path": "\"/sales-proyectos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <SalesProyectosTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 110,
+    "attrs": {
+      "path": "\"/transacciones\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <TransaccionesTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 115,
+    "attrs": {
+      "path": "\"/sales-transacciones\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <SalesTransaccionesTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 120,
+    "attrs": {
+      "path": "\"/proveedores\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <ProveedoresTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 125,
+    "attrs": {
+      "path": "\"/pnl\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <ProfitAndLossPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 130,
+    "attrs": {
+      "path": "\"/documentos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <DocumentosPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 135,
+    "attrs": {
+      "path": "\"/sales-documentos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <SalesDocumentosPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 140,
+    "attrs": {
+      "path": "\"/tareas\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <TareasPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 147,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/presupuesto\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"viewer\">\r\n                    <PresupuestoPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 152,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/control\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"viewer\">\r\n                    <ControlPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 157,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/reportes\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <ReportesPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 163,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/programa\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <ProgramaObra />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 168,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/tareas\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <ProyectoTareasPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 173,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/planos/:planoId\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <PlanosPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 178,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/planos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <PlanosPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 183,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/documentos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <ProyectoDocumentosPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 188,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/transacciones\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <ProyectoTransaccionesTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 193,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/proveedores\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <ProyectoProveedoresTablePage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 198,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/partidas/:id\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <PartidaDetails />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 203,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/flujo\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <ProyectoFlujoPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 208,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/bitacora\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <BitacoraPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 213,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/requisiciones\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\" allowedRoles={[\"almacenista\"]}>\r\n                    <ProyectoRequisicionesPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 218,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/rfis/nueva\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <RFINewPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 223,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/rfis/:rfiId/editar\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <RFINewPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 228,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/rfis/:rfiId\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <RFIDetailPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 233,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/rfis\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"contratista\">\r\n                    <RFIListPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 238,
+    "attrs": {
+      "path": "\"/proyecto/:proyectoId/autorizaciones\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <AutorizacionesObraPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 245,
+    "attrs": {
+      "path": "\"/sales-proyecto/:salesProyectoId/documentos\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <SalesProyectoDocumentosPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 251,
+    "attrs": {
+      "path": "\"/sales-proyecto/:salesProyectoId/presupuesto\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <SalesPresupuestoTable />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 256,
+    "attrs": {
+      "path": "\"/sales-proyecto/:salesProyectoId/transacciones\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <SalesProyectoTransaccionesPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 261,
+    "attrs": {
+      "path": "\"/sales-proyecto/:salesProyectoId/control\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <ControlSalePage/>\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 266,
+    "attrs": {
+      "path": "\"/sales-proyecto/:salesProyectoId/flujo\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"user\">\r\n                    <SalesProyectoFlujoPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 273,
+    "attrs": {
+      "path": "\"/admin\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <AdminPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 278,
+    "attrs": {
+      "path": "\"/admin/flujo\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <AdminFlujoPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 283,
+    "attrs": {
+      "path": "\"/admin/sales-flujo\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <AdminSalesFlujoPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 288,
+    "attrs": {
+      "path": "\"/usuarios\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <UserManagementPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 293,
+    "attrs": {
+      "path": "\"/usuarios/nuevo\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <NewUserPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 298,
+    "attrs": {
+      "path": "\"/sales-gestion\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <SalesProjectManagementPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 303,
+    "attrs": {
+      "path": "\"/sales-usuarios\"",
+      "element": "{\r\n                  <ProtectedRoute requiredRole=\"admin\">\r\n                    <SalesUserManagementPage />\r\n                  </ProtectedRoute>\r\n                }"
+    },
+    "content": ""
+  },
+  {
+    "line": 310,
+    "attrs": {
+      "path": "\"/upload\"",
+      "element": "{<App />}"
+    },
+    "content": ""
+  },
+  {
+    "line": 311,
+    "attrs": {
+      "path": "\"/dashboard\"",
+      "element": "{<Dashboard />}"
+    },
+    "content": ""
+  },
+  {
+    "line": 312,
+    "attrs": {
+      "path": "\"/legal\"",
+      "element": "{<Legales />}"
+    },
+    "content": ""
+  },
+  {
+    "line": 313,
+    "attrs": {
+      "path": "\"/aviso-de-privacidad\"",
+      "element": "{<AvisoPrivacidad />}"
+    },
+    "content": ""
+  }
+]

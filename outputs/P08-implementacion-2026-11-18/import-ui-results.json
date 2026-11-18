@@ -1,0 +1,100 @@
+{
+  "passed": true,
+  "fixtures": "Datos ficticios en localhost; transporte simulado, componentes reales",
+  "bytes": [
+    "xls",
+    "xlsx"
+  ],
+  "results": [
+    {
+      "width": 1440,
+      "scenario": "upload-error",
+      "status": "failed"
+    },
+    {
+      "width": 1440,
+      "scenario": "metadata-error",
+      "status": "failed"
+    },
+    {
+      "width": 1440,
+      "scenario": "import-error",
+      "status": "failed"
+    },
+    {
+      "width": 1440,
+      "scenario": "lost-response",
+      "status": "completed"
+    },
+    {
+      "width": 1440,
+      "scenario": "lost-start",
+      "status": "completed"
+    },
+    {
+      "width": 1440,
+      "scenario": "uncertain",
+      "status": "completed"
+    },
+    {
+      "width": 390,
+      "scenario": "upload-error",
+      "status": "failed"
+    },
+    {
+      "width": 390,
+      "scenario": "metadata-error",
+      "status": "failed"
+    },
+    {
+      "width": 390,
+      "scenario": "import-error",
+      "status": "failed"
+    },
+    {
+      "width": 390,
+      "scenario": "lost-response",
+      "status": "completed"
+    },
+    {
+      "width": 390,
+      "scenario": "lost-start",
+      "status": "completed"
+    },
+    {
+      "width": 390,
+      "scenario": "uncertain",
+      "status": "completed"
+    },
+    {
+      "width": 320,
+      "scenario": "upload-error",
+      "status": "failed"
+    },
+    {
+      "width": 320,
+      "scenario": "metadata-error",
+      "status": "failed"
+    },
+    {
+      "width": 320,
+      "scenario": "import-error",
+      "status": "failed"
+    },
+    {
+      "width": 320,
+      "scenario": "lost-response",
+      "status": "completed"
+    },
+    {
+      "width": 320,
+      "scenario": "lost-start",
+      "status": "completed"
+    },
+    {
+      "width": 320,
+      "scenario": "uncertain",
+      "status": "completed"
+    }
+  ]
+}

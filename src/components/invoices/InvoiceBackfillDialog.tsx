@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentPropsWithoutRef } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { Bot, FileClock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,10 +10,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTransactionDocumentosModal } from "@/hooks/transaction-documentos-modal";
 
-export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollos"> }) {
+type InvoiceBackfillDialogProps = {
+  projectId: Id<"desarrollos">;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+  onCloseAutoFocus?: ComponentPropsWithoutRef<typeof DialogContent>["onCloseAutoFocus"];
+};
+
+export function InvoiceBackfillDialog({ projectId, open: controlledOpen, onOpenChange, hideTrigger = false, onCloseAutoFocus }: InvoiceBackfillDialogProps) {
   const currentUser = useQuery(api.users.getCurrentUser);
   const canReview = currentUser?.role === "admin" || currentUser?.role === "finance";
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [failures, setFailures] = useState<Record<string, string>>({});
@@ -105,12 +118,12 @@ export function InvoiceBackfillDialog({ projectId }: { projectId: Id<"desarrollo
 
   return (
     <>
-      <Button variant="outline" size="lg" className="flex items-center gap-2 rounded-none py-6 text-muted-foreground" onClick={() => setOpen(true)}>
+      {!hideTrigger && <Button variant="outline" size="lg" className="flex items-center gap-2 rounded-none py-6 text-muted-foreground" onClick={() => setOpen(true)}>
         Facturas IA
         {queue?.length ? <Badge className="ml-1 rounded-full px-1.5">{queue.length}</Badge> : <Bot className="h-5 w-5" />}
-      </Button>
+      </Button>}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-hidden p-0" data-square-modal="">
+        <DialogContent onCloseAutoFocus={onCloseAutoFocus} className="max-h-[90vh] max-w-2xl overflow-hidden p-0" data-square-modal="">
           <DialogHeader className="border-b border-border px-6 py-5">
             <DialogTitle>Facturas y revisión con IA</DialogTitle>
             <DialogDescription>Procesa archivos históricos y abre los análisis que necesitan aprobación humana.</DialogDescription>

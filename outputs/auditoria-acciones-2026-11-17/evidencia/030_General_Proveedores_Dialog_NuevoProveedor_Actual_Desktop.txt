@@ -1,0 +1,413 @@
+- list:
+  - button:
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - heading [level=1]: Proveedores
+  - paragraph: Catálogo global vinculado directamente a transacciones y requisiciones.
+  - generic: "Mostrando: 25+"
+  - button:
+    - text: Actualizar desde Excel
+  - button:
+    - text: Sincronizar transacciones
+  - button:
+    - text: Nuevo proveedor
+  - textbox:
+    - /placeholder: Buscar proveedor
+  - combobox:
+    - generic: Todos los proyectos
+  - combobox:
+    - generic: Activos
+  - combobox:
+    - generic: "Razón social: A–Z"
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader:
+          - button:
+            - text: Razón social
+        - columnheader: RFC
+        - columnheader: Estado
+        - columnheader: Contacto
+        - columnheader: Banco
+        - columnheader:
+          - button:
+            - text: Transacciones
+        - columnheader:
+          - button:
+            - text: Proyectos
+        - columnheader:
+          - button:
+            - text: Monto total
+        - columnheader
+    - rowgroup:
+      - row:
+        - cell: "0"
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $50,600.00
+        - cell:
+          - button:
+      - row:
+        - cell: ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $6,721.41
+        - cell:
+          - button:
+      - row:
+        - cell: ACEROS CABOS SA DE CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "20"
+        - cell: "6"
+        - cell: $1,750,774.30
+        - cell:
+          - button:
+      - row:
+        - cell: ACEROS DEL PAFIFICO
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "2"
+        - cell: "2"
+        - cell: $452,730.40
+        - cell:
+          - button:
+      - row:
+        - cell: AIMEÉ RAFFOUL RUBÍ
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $12,528.00
+        - cell:
+          - button:
+      - row:
+        - cell: Alejandra Medina Toledo
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "60"
+        - cell: "2"
+        - cell: $2,031,923.28
+        - cell:
+          - button:
+      - row:
+        - cell: ALEJANDRO SILVA GASTELUM
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "2"
+        - cell: "2"
+        - cell: $832,341.85
+        - cell:
+          - button:
+      - row:
+        - cell: AMA ITALY IMPORTS SA DE CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $90,480.00
+        - cell:
+          - button:
+      - row:
+        - cell: AMADO FRANCISCO VAZQUEZ PEREZ
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "8"
+        - cell: "4"
+        - cell: $3,278,045.33
+        - cell:
+          - button:
+      - row:
+        - cell: AMY JACKELINE FLORES MEJIA
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "2"
+        - cell: "2"
+        - cell: $120,060.99
+        - cell:
+          - button:
+      - row:
+        - cell: ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $93,020.40
+        - cell:
+          - button:
+      - row:
+        - cell: Anima arrendi SA de CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "4"
+        - cell: "2"
+        - cell: $1,393,800.74
+        - cell:
+          - button:
+      - row:
+        - cell: ARNOLDO JIMENEZ JIMENEZ
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $5,800.00
+        - cell:
+          - button:
+      - row:
+        - cell: AUTOTRANSPORTES 3 GUERRAS
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $35,729.74
+        - cell:
+          - button:
+      - row:
+        - cell: BENJAMIN CHAVEZ HERNANDEZ
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $19,000.00
+        - cell:
+          - button:
+      - row:
+        - cell: BERNARDO JAVIER FLORES
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $100,000.00
+        - cell:
+          - button:
+      - row:
+        - cell: BERNARDO JAVIER FLORES FLOMEL
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $271,222.67
+        - cell:
+          - button:
+      - row:
+        - cell: BERNARDO JAVIER FLORES HERNANDEZ
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "2"
+        - cell: "2"
+        - cell: $764,000.00
+        - cell:
+          - button:
+      - row:
+        - cell: Briodesign SA de CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "8"
+        - cell: "2"
+        - cell: $366,569.82
+        - cell:
+          - button:
+      - row:
+        - cell: Camilo Fabian Meneses
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "18"
+        - cell: "2"
+        - cell: $1,218,120.00
+        - cell:
+          - button:
+      - row:
+        - cell: CAPELINI SA DE CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $92,516.19
+        - cell:
+          - button:
+      - row:
+        - cell: CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $1,250,000.00
+        - cell:
+          - button:
+      - row:
+        - cell: Cementos y aceros urcadena SA de CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "1"
+        - cell: "1"
+        - cell: $547,837.00
+        - cell:
+          - button:
+      - row:
+        - cell: CEMEX SAB DE CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "3"
+        - cell: "1"
+        - cell: $922,571.20
+        - cell:
+          - button:
+      - row:
+        - cell: Cerramientos venster SA de CV
+        - cell: —
+        - cell:
+          - generic: Incompleto
+        - cell: —
+        - cell: —
+        - cell:
+          - button: "2"
+        - cell: "2"
+        - cell: $1,547,714.14
+        - cell:
+          - button:
+  - button: Cargar más proveedores
+- region "Notifications alt+T"
+- dialog "Nuevo proveedor":
+  - heading "Nuevo proveedor" [level=2]
+  - paragraph: Solo la razón social es obligatoria. El proveedor se considera completo cuando también tiene RFC.
+  - text: Razón social *
+  - textbox [active]
+  - text: RFC
+  - textbox
+  - text: Dirección
+  - textbox
+  - text: Contacto
+  - textbox
+  - text: Teléfono
+  - textbox
+  - text: Banco
+  - textbox
+  - text: Cuenta
+  - textbox
+  - text: CLABE
+  - textbox
+  - button "Cancelar"
+  - button "Guardar" [disabled]
+  - button "Close":
+    - generic: Close

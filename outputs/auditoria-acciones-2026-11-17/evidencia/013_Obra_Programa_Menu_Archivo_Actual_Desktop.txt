@@ -1,0 +1,435 @@
+- list:
+  - button:
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - generic: Requisiciones
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - paragraph: Programa de Obra
+  - heading [level=1]: Lote 77
+  - generic: Avance físico
+  - strong: 31.4%
+  - button:
+    - generic: Retrasadas
+    - strong: "31"
+  - button:
+    - generic: Alertas
+    - strong: "7"
+  - button:
+    - text: Historial de cargas
+  - button: Actividades por frente
+  - button [expanded]:
+    - text: Archivo
+  - textbox:
+    - /placeholder: Buscar partida o familia...
+  - combobox:
+    - generic: Todos los estados
+  - button:
+    - text: Hoy
+  - button:
+    - text: Vista
+  - button: Leyenda
+  - generic: Partida · Familia
+  - generic: Presupuesto
+  - button:
+  - generic: PRELIMINARES
+  - button:
+  - generic: $1,385,927
+  - button:
+  - generic: MUROS DE CONT
+  - button:
+  - generic: $2,590,497
+  - button:
+  - generic: CIMENTACIÓN
+  - button:
+  - generic: $3,074,691
+  - button:
+  - generic: FIRME DE CIMENTACIÓN
+  - button:
+  - generic: $438,687
+  - button:
+  - generic: CISTERNA
+  - button:
+  - generic: $290,780
+  - button:
+  - generic: MUROS_PB
+  - button:
+  - generic: $1,488,522
+  - button:
+  - generic: LOSA_PN
+  - button:
+  - generic: $2,082,996
+  - button:
+  - generic: ESCALERA INTERNA
+  - button:
+  - generic: $52,978
+  - button:
+  - generic: ESCALERA EXTERNA 01
+  - button:
+  - generic: $240,679
+  - button:
+  - generic: MUROS_PN
+  - button:
+  - generic: $877,009
+  - button:
+  - generic: LOSA_2N
+  - button:
+  - generic: $1,155,048
+  - button:
+  - generic: ESCALERA EXTERNA 02
+  - button:
+  - generic: $84,436
+  - button:
+  - generic: MUROS PRETILES
+  - button:
+  - generic: $249,394
+  - button:
+  - generic: ALBERCA
+  - button:
+  - generic: $503,711
+  - button:
+  - generic: FIRME DE ANDADO
+  - button:
+  - generic: $237,843
+  - button:
+  - generic: ALBAÑILERÍAS
+  - button:
+  - generic: $3,365,451
+  - button:
+  - generic: PLOMERÍA
+  - button:
+  - generic: $1,277,000
+  - button:
+  - generic: ELECTRICIDAD
+  - button:
+  - generic: $1,219,157
+  - button:
+  - generic: GAS
+  - button:
+  - generic: $399,040
+  - button:
+  - generic: LUMINARIAS
+  - button:
+  - generic: $749,972
+  - button:
+  - generic: IMPERMEABILIZACIÓN
+  - button:
+  - generic: $474,146
+  - button:
+  - generic: AIRE_ACONDICIONADO
+  - button:
+  - generic: $1,857,000
+  - button:
+  - generic: YESO_PINTURA
+  - button:
+  - generic: $1,332,597
+  - button:
+  - generic: HERRERÍA
+  - button:
+  - generic: $745,257
+  - button:
+  - generic: PINTURA_HERRERÍA
+  - button:
+  - generic: $330,000
+  - button:
+  - generic: MÁRMOL
+  - button:
+  - generic: $4,572,260
+  - button:
+  - generic: RECUBRIMIENTOS
+  - button:
+  - generic: $494,417
+  - button:
+  - generic: CANCELERÍA
+  - button:
+  - generic: $2,387,416
+  - button:
+  - generic: CARPINTERÍA
+  - button:
+  - generic: $2,579,379
+  - button:
+  - generic: HERRAJES
+  - button:
+  - generic: $58,200
+  - button:
+  - generic: MOBILIARIO_EQUIPO
+  - button:
+  - generic: $219,500
+  - button:
+  - generic: MUEBLES_BAÑO
+  - button:
+  - generic: $353,800
+  - button:
+  - generic: COCINA
+  - button:
+  - generic: $902,953
+  - button:
+  - generic: INSTALACIONES_ESPECIALES
+  - button:
+  - generic: $130,460
+  - button:
+  - generic: JARDÍN
+  - button:
+  - generic: $189,036
+  - button:
+  - generic: VARIOS SH
+  - button:
+  - generic: $1,516,536
+  - generic: "2026"
+  - generic: "2027"
+  - generic: Febrero
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: Marzo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Abril
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Mayo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Junio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Julio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Agosto
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Septiembre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Octubre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Noviembre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Diciembre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Enero
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Febrero
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: Marzo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Abril
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Mayo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Junio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Julio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: PRELIMINARES
+  - generic: 75%
+  - generic: 86%
+  - generic: MUROS DE CONT
+  - generic: 84%
+  - generic: 47%
+  - generic: CIMENTACIÓN
+  - generic: 89%
+  - generic: 48%
+  - generic: FIRME DE CIMENTACIÓN
+  - generic: 85%
+  - generic: CISTERNA
+  - generic: MUROS_PB
+  - generic: 83%
+  - generic: 60%
+  - generic: LOSA_PN
+  - generic: 83%
+  - generic: 84%
+  - generic: ESCALERA INTERNA
+  - generic: 100%
+  - generic: ESCALERA EXTERNA 01
+  - generic: MUROS_PN
+  - generic: 92%
+  - generic: 83%
+  - generic: LOSA_2N
+  - generic: 100%
+  - generic: ESCALERA EXTERNA 02
+  - generic: 100%
+  - generic: MUROS PRETILES
+  - generic: 70%
+  - generic: ALBERCA
+  - generic: FIRME DE ANDADO
+  - generic: ALBAÑILERÍAS
+  - generic: 1%
+  - generic: 8%
+  - generic: PLOMERÍA
+  - generic: 26%
+  - generic: 49%
+  - button:
+  - button:
+  - generic: ELECTRICIDAD
+  - generic: 26%
+  - generic: 31%
+  - button
+  - button:
+  - button:
+  - generic: GAS
+  - generic: 16%
+  - button:
+  - button:
+  - generic: LUMINARIAS
+  - button:
+  - button:
+  - generic: IMPERMEABILIZACIÓN
+  - button:
+  - button:
+  - generic: AIRE_ACONDICIONADO
+  - button:
+  - button:
+  - button:
+  - generic: YESO_PINTURA
+  - button:
+  - button:
+  - generic: HERRERÍA
+  - generic: 7%
+  - button:
+  - generic: PINTURA_HERRERÍA
+  - generic: MÁRMOL
+  - button:
+  - button:
+  - generic: RECUBRIMIENTOS
+  - button:
+  - generic: CANCELERÍA
+  - button:
+  - button:
+  - button:
+  - generic: CARPINTERÍA
+  - button:
+  - button:
+  - generic: HERRAJES
+  - generic: MOBILIARIO_EQUIPO
+  - generic: MUEBLES_BAÑO
+  - button:
+  - button:
+  - generic: COCINA
+  - button:
+  - button:
+  - generic: INSTALACIONES_ESPECIALES
+  - generic: JARDÍN
+  - generic: VARIOS SH
+  - button:
+  - button:
+- region "Notifications alt+T"
+- menu "Archivo" [active]:
+  - menuitem "Exportar PDF":
+    - text: Exportar PDF
+  - separator
+  - menuitem "Cargar Excel":
+    - text: Cargar Excel

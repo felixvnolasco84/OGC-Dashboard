@@ -1,0 +1,165 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Proyecto
+  - heading "Reportes Lote 77" [level=1]
+  - paragraph: Genera y programa reportes semanales de obra con el nuevo formato ejecutivo, cifras verificables y contenido ajustado a los permisos de cada destinatario.
+  - button "Detalles del perfil Completo":
+    - text: "Perfil: Completo"
+  - tablist:
+    - tab "Generar ahora"
+    - tab "Programaciones"
+    - tab "Historial" [active] [selected]
+  - tabpanel "Historial":
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-11-01 a 2026-11-09
+    - paragraph: Solicitado 9 nov 2026, 2:28 p.m. · 1 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/f7bda749-8f1d-4968-a419-82d2aa6e073b
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-18
+    - paragraph: Solicitado 18 sep 2026, 1:57 p.m. · 1 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/0f37474a-6cf4-47a6-999d-63485fc060f0
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-10
+    - paragraph: Solicitado 11 sep 2026, 8:22 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/24c5a5c3-a6fb-43b1-be5b-62cb11aff2da
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-10
+    - paragraph: Solicitado 11 sep 2026, 1:48 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/d875f95c-4443-427e-92a7-35428e0aa02a
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-11
+    - paragraph: Solicitado 11 sep 2026, 1:42 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/d253a6b4-c5b2-42cc-9f6b-6245fd6a66a5
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-11
+    - paragraph: Solicitado 11 sep 2026, 1:29 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/f15ae886-dccd-4895-8e4d-88fa560f30b3
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-11
+    - paragraph: Solicitado 11 sep 2026, 1:09 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/1b4ad704-ff4c-40a5-aef6-e4eb6ea8c173
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-10
+    - paragraph: Solicitado 11 sep 2026, 12:51 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/9cda920e-b9df-48f5-a15c-9ec1ee408dd6
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-10
+    - paragraph: Solicitado 11 sep 2026, 11:53 a.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/bedd13bc-78e7-4964-b041-e284157c84df
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-10
+    - paragraph: Solicitado 11 sep 2026, 11:09 a.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/315659ca-7b98-45bd-bddb-94fc9f5b92ad
+      - text: Descargar PDF
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-09-01 a 2026-09-10
+    - paragraph: Solicitado 10 sep 2026, 1:35 p.m. · 1 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/7d67e585-af3e-4985-aafa-51006a9774ad
+      - text: Descargar PDF
+    - generic: Con advertencias
+    - generic: Manual
+    - paragraph: 2026-07-27 a 2026-08-01
+    - paragraph: Solicitado 6 ago 2026, 2:50 p.m. · 0 enviados · 1 fallidos
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/0709a977-10cf-4bc0-810f-9980c7b45cba
+      - text: Descargar PDF
+    - button "Reintentar":
+      - text: Reintentar
+    - generic: Completado
+    - generic: Manual
+    - paragraph: 2026-07-01 a 2026-07-31
+    - paragraph: Solicitado 3 ago 2026, 5:18 p.m. · 0 enviados
+    - link "Descargar PDF":
+      - /url: https://animated-walrus-612.convex.cloud/api/storage/ca371b34-0c44-48d7-94ef-74b835071ade
+      - text: Descargar PDF
+- region "Notifications alt+T"

@@ -1,0 +1,391 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores" [active]:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Proveedores" [level=1]
+  - paragraph: Catálogo global vinculado directamente a transacciones y requisiciones.
+  - generic: "Mostrando: 25+"
+  - button "Actualizar desde Excel":
+    - text: Actualizar desde Excel
+  - button "Sincronizar transacciones":
+    - text: Sincronizar transacciones
+  - button "Nuevo proveedor":
+    - text: Nuevo proveedor
+  - textbox "Buscar proveedor"
+  - combobox:
+    - generic: Todos los proyectos
+  - combobox:
+    - generic: Activos
+  - combobox "Ordenar proveedores":
+    - generic: "Razón social: A–Z"
+  - table:
+    - rowgroup:
+      - row "Razón social RFC Estado Contacto Banco Transacciones Proyectos Monto total":
+        - columnheader "Razón social":
+          - button "Razón social":
+            - text: Razón social
+        - columnheader "RFC"
+        - columnheader "Estado"
+        - columnheader "Contacto"
+        - columnheader "Banco"
+        - columnheader "Transacciones":
+          - button "Transacciones":
+            - text: Transacciones
+        - columnheader "Proyectos":
+          - button "Proyectos":
+            - text: Proyectos
+        - columnheader "Monto total":
+          - button "Monto total":
+            - text: Monto total
+        - columnheader
+    - rowgroup:
+      - row "0 — Incompleto — — Ver 1 transacciones de 0 1 $50,600.00 Acciones para 0":
+        - cell "0"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de 0":
+          - button "Ver 1 transacciones de 0": "1"
+        - cell "1"
+        - cell "$50,600.00"
+        - cell "Acciones para 0":
+          - button "Acciones para 0":
+      - row "ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV — Incompleto — — Ver 1 transacciones de ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV 1 $6,721.41 Acciones para ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV":
+        - cell "ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV":
+          - button "Ver 1 transacciones de ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV": "1"
+        - cell "1"
+        - cell "$6,721.41"
+        - cell "Acciones para ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV":
+          - button "Acciones para ACABADOS CONSTRUCTIVOS DE LA BAJA SA DE CV":
+      - row "ACEROS CABOS SA DE CV — Incompleto — — Ver 20 transacciones de ACEROS CABOS SA DE CV 6 $1,750,774.30 Acciones para ACEROS CABOS SA DE CV":
+        - cell "ACEROS CABOS SA DE CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 20 transacciones de ACEROS CABOS SA DE CV":
+          - button "Ver 20 transacciones de ACEROS CABOS SA DE CV": "20"
+        - cell "6"
+        - cell "$1,750,774.30"
+        - cell "Acciones para ACEROS CABOS SA DE CV":
+          - button "Acciones para ACEROS CABOS SA DE CV":
+      - row "ACEROS DEL PAFIFICO — Incompleto — — Ver 2 transacciones de ACEROS DEL PAFIFICO 2 $452,730.40 Acciones para ACEROS DEL PAFIFICO":
+        - cell "ACEROS DEL PAFIFICO"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 2 transacciones de ACEROS DEL PAFIFICO":
+          - button "Ver 2 transacciones de ACEROS DEL PAFIFICO": "2"
+        - cell "2"
+        - cell "$452,730.40"
+        - cell "Acciones para ACEROS DEL PAFIFICO":
+          - button "Acciones para ACEROS DEL PAFIFICO":
+      - row "AIMEÉ RAFFOUL RUBÍ — Incompleto — — Ver 1 transacciones de AIMEÉ RAFFOUL RUBÍ 1 $12,528.00 Acciones para AIMEÉ RAFFOUL RUBÍ":
+        - cell "AIMEÉ RAFFOUL RUBÍ"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de AIMEÉ RAFFOUL RUBÍ":
+          - button "Ver 1 transacciones de AIMEÉ RAFFOUL RUBÍ": "1"
+        - cell "1"
+        - cell "$12,528.00"
+        - cell "Acciones para AIMEÉ RAFFOUL RUBÍ":
+          - button "Acciones para AIMEÉ RAFFOUL RUBÍ":
+      - row "Alejandra Medina Toledo — Incompleto — — Ver 60 transacciones de Alejandra Medina Toledo 2 $2,031,923.28 Acciones para Alejandra Medina Toledo":
+        - cell "Alejandra Medina Toledo"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 60 transacciones de Alejandra Medina Toledo":
+          - button "Ver 60 transacciones de Alejandra Medina Toledo": "60"
+        - cell "2"
+        - cell "$2,031,923.28"
+        - cell "Acciones para Alejandra Medina Toledo":
+          - button "Acciones para Alejandra Medina Toledo":
+      - row "ALEJANDRO SILVA GASTELUM — Incompleto — — Ver 2 transacciones de ALEJANDRO SILVA GASTELUM 2 $832,341.85 Acciones para ALEJANDRO SILVA GASTELUM":
+        - cell "ALEJANDRO SILVA GASTELUM"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 2 transacciones de ALEJANDRO SILVA GASTELUM":
+          - button "Ver 2 transacciones de ALEJANDRO SILVA GASTELUM": "2"
+        - cell "2"
+        - cell "$832,341.85"
+        - cell "Acciones para ALEJANDRO SILVA GASTELUM":
+          - button "Acciones para ALEJANDRO SILVA GASTELUM":
+      - row "AMA ITALY IMPORTS SA DE CV — Incompleto — — Ver 1 transacciones de AMA ITALY IMPORTS SA DE CV 1 $90,480.00 Acciones para AMA ITALY IMPORTS SA DE CV":
+        - cell "AMA ITALY IMPORTS SA DE CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de AMA ITALY IMPORTS SA DE CV":
+          - button "Ver 1 transacciones de AMA ITALY IMPORTS SA DE CV": "1"
+        - cell "1"
+        - cell "$90,480.00"
+        - cell "Acciones para AMA ITALY IMPORTS SA DE CV":
+          - button "Acciones para AMA ITALY IMPORTS SA DE CV":
+      - row "AMADO FRANCISCO VAZQUEZ PEREZ — Incompleto — — Ver 8 transacciones de AMADO FRANCISCO VAZQUEZ PEREZ 4 $3,278,045.33 Acciones para AMADO FRANCISCO VAZQUEZ PEREZ":
+        - cell "AMADO FRANCISCO VAZQUEZ PEREZ"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 8 transacciones de AMADO FRANCISCO VAZQUEZ PEREZ":
+          - button "Ver 8 transacciones de AMADO FRANCISCO VAZQUEZ PEREZ": "8"
+        - cell "4"
+        - cell "$3,278,045.33"
+        - cell "Acciones para AMADO FRANCISCO VAZQUEZ PEREZ":
+          - button "Acciones para AMADO FRANCISCO VAZQUEZ PEREZ":
+      - row "AMY JACKELINE FLORES MEJIA — Incompleto — — Ver 2 transacciones de AMY JACKELINE FLORES MEJIA 2 $120,060.99 Acciones para AMY JACKELINE FLORES MEJIA":
+        - cell "AMY JACKELINE FLORES MEJIA"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 2 transacciones de AMY JACKELINE FLORES MEJIA":
+          - button "Ver 2 transacciones de AMY JACKELINE FLORES MEJIA": "2"
+        - cell "2"
+        - cell "$120,060.99"
+        - cell "Acciones para AMY JACKELINE FLORES MEJIA":
+          - button "Acciones para AMY JACKELINE FLORES MEJIA":
+      - row "ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V. — Incompleto — — Ver 1 transacciones de ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V. 1 $93,020.40 Acciones para ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.":
+        - cell "ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V."
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.":
+          - button "Ver 1 transacciones de ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.": "1"
+        - cell "1"
+        - cell "$93,020.40"
+        - cell "Acciones para ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.":
+          - button "Acciones para ANDAMIOS Y EQUIPOS AMARILLOS, S.A. DE C.V.":
+      - row "Anima arrendi SA de CV — Incompleto — — Ver 4 transacciones de Anima arrendi SA de CV 2 $1,393,800.74 Acciones para Anima arrendi SA de CV":
+        - cell "Anima arrendi SA de CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 4 transacciones de Anima arrendi SA de CV":
+          - button "Ver 4 transacciones de Anima arrendi SA de CV": "4"
+        - cell "2"
+        - cell "$1,393,800.74"
+        - cell "Acciones para Anima arrendi SA de CV":
+          - button "Acciones para Anima arrendi SA de CV":
+      - row "ARNOLDO JIMENEZ JIMENEZ — Incompleto — — Ver 1 transacciones de ARNOLDO JIMENEZ JIMENEZ 1 $5,800.00 Acciones para ARNOLDO JIMENEZ JIMENEZ":
+        - cell "ARNOLDO JIMENEZ JIMENEZ"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de ARNOLDO JIMENEZ JIMENEZ":
+          - button "Ver 1 transacciones de ARNOLDO JIMENEZ JIMENEZ": "1"
+        - cell "1"
+        - cell "$5,800.00"
+        - cell "Acciones para ARNOLDO JIMENEZ JIMENEZ":
+          - button "Acciones para ARNOLDO JIMENEZ JIMENEZ":
+      - row "AUTOTRANSPORTES 3 GUERRAS — Incompleto — — Ver 1 transacciones de AUTOTRANSPORTES 3 GUERRAS 1 $35,729.74 Acciones para AUTOTRANSPORTES 3 GUERRAS":
+        - cell "AUTOTRANSPORTES 3 GUERRAS"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de AUTOTRANSPORTES 3 GUERRAS":
+          - button "Ver 1 transacciones de AUTOTRANSPORTES 3 GUERRAS": "1"
+        - cell "1"
+        - cell "$35,729.74"
+        - cell "Acciones para AUTOTRANSPORTES 3 GUERRAS":
+          - button "Acciones para AUTOTRANSPORTES 3 GUERRAS":
+      - row "BENJAMIN CHAVEZ HERNANDEZ — Incompleto — — Ver 1 transacciones de BENJAMIN CHAVEZ HERNANDEZ 1 $19,000.00 Acciones para BENJAMIN CHAVEZ HERNANDEZ":
+        - cell "BENJAMIN CHAVEZ HERNANDEZ"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de BENJAMIN CHAVEZ HERNANDEZ":
+          - button "Ver 1 transacciones de BENJAMIN CHAVEZ HERNANDEZ": "1"
+        - cell "1"
+        - cell "$19,000.00"
+        - cell "Acciones para BENJAMIN CHAVEZ HERNANDEZ":
+          - button "Acciones para BENJAMIN CHAVEZ HERNANDEZ":
+      - row "BERNARDO JAVIER FLORES — Incompleto — — Ver 1 transacciones de BERNARDO JAVIER FLORES 1 $100,000.00 Acciones para BERNARDO JAVIER FLORES":
+        - cell "BERNARDO JAVIER FLORES"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de BERNARDO JAVIER FLORES":
+          - button "Ver 1 transacciones de BERNARDO JAVIER FLORES": "1"
+        - cell "1"
+        - cell "$100,000.00"
+        - cell "Acciones para BERNARDO JAVIER FLORES":
+          - button "Acciones para BERNARDO JAVIER FLORES":
+      - row "BERNARDO JAVIER FLORES FLOMEL — Incompleto — — Ver 1 transacciones de BERNARDO JAVIER FLORES FLOMEL 1 $271,222.67 Acciones para BERNARDO JAVIER FLORES FLOMEL":
+        - cell "BERNARDO JAVIER FLORES FLOMEL"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de BERNARDO JAVIER FLORES FLOMEL":
+          - button "Ver 1 transacciones de BERNARDO JAVIER FLORES FLOMEL": "1"
+        - cell "1"
+        - cell "$271,222.67"
+        - cell "Acciones para BERNARDO JAVIER FLORES FLOMEL":
+          - button "Acciones para BERNARDO JAVIER FLORES FLOMEL":
+      - row "BERNARDO JAVIER FLORES HERNANDEZ — Incompleto — — Ver 2 transacciones de BERNARDO JAVIER FLORES HERNANDEZ 2 $764,000.00 Acciones para BERNARDO JAVIER FLORES HERNANDEZ":
+        - cell "BERNARDO JAVIER FLORES HERNANDEZ"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 2 transacciones de BERNARDO JAVIER FLORES HERNANDEZ":
+          - button "Ver 2 transacciones de BERNARDO JAVIER FLORES HERNANDEZ": "2"
+        - cell "2"
+        - cell "$764,000.00"
+        - cell "Acciones para BERNARDO JAVIER FLORES HERNANDEZ":
+          - button "Acciones para BERNARDO JAVIER FLORES HERNANDEZ":
+      - row "Briodesign SA de CV — Incompleto — — Ver 8 transacciones de Briodesign SA de CV 2 $366,569.82 Acciones para Briodesign SA de CV":
+        - cell "Briodesign SA de CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 8 transacciones de Briodesign SA de CV":
+          - button "Ver 8 transacciones de Briodesign SA de CV": "8"
+        - cell "2"
+        - cell "$366,569.82"
+        - cell "Acciones para Briodesign SA de CV":
+          - button "Acciones para Briodesign SA de CV":
+      - row "Camilo Fabian Meneses — Incompleto — — Ver 18 transacciones de Camilo Fabian Meneses 2 $1,218,120.00 Acciones para Camilo Fabian Meneses":
+        - cell "Camilo Fabian Meneses"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 18 transacciones de Camilo Fabian Meneses":
+          - button "Ver 18 transacciones de Camilo Fabian Meneses": "18"
+        - cell "2"
+        - cell "$1,218,120.00"
+        - cell "Acciones para Camilo Fabian Meneses":
+          - button "Acciones para Camilo Fabian Meneses":
+      - row "CAPELINI SA DE CV — Incompleto — — Ver 1 transacciones de CAPELINI SA DE CV 1 $92,516.19 Acciones para CAPELINI SA DE CV":
+        - cell "CAPELINI SA DE CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de CAPELINI SA DE CV":
+          - button "Ver 1 transacciones de CAPELINI SA DE CV": "1"
+        - cell "1"
+        - cell "$92,516.19"
+        - cell "Acciones para CAPELINI SA DE CV":
+          - button "Acciones para CAPELINI SA DE CV":
+      - row "CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV — Incompleto — — Ver 1 transacciones de CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV 1 $1,250,000.00 Acciones para CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV":
+        - cell "CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV":
+          - button "Ver 1 transacciones de CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV": "1"
+        - cell "1"
+        - cell "$1,250,000.00"
+        - cell "Acciones para CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV":
+          - button "Acciones para CARPINTERIA Y CONSTRUCCION GRUPO 5 SA DE CV":
+      - row "Cementos y aceros urcadena SA de CV — Incompleto — — Ver 1 transacciones de Cementos y aceros urcadena SA de CV 1 $547,837.00 Acciones para Cementos y aceros urcadena SA de CV":
+        - cell "Cementos y aceros urcadena SA de CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 1 transacciones de Cementos y aceros urcadena SA de CV":
+          - button "Ver 1 transacciones de Cementos y aceros urcadena SA de CV": "1"
+        - cell "1"
+        - cell "$547,837.00"
+        - cell "Acciones para Cementos y aceros urcadena SA de CV":
+          - button "Acciones para Cementos y aceros urcadena SA de CV":
+      - row "CEMEX SAB DE CV — Incompleto — — Ver 3 transacciones de CEMEX SAB DE CV 1 $922,571.20 Acciones para CEMEX SAB DE CV":
+        - cell "CEMEX SAB DE CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 3 transacciones de CEMEX SAB DE CV":
+          - button "Ver 3 transacciones de CEMEX SAB DE CV": "3"
+        - cell "1"
+        - cell "$922,571.20"
+        - cell "Acciones para CEMEX SAB DE CV":
+          - button "Acciones para CEMEX SAB DE CV":
+      - row "Cerramientos venster SA de CV — Incompleto — — Ver 2 transacciones de Cerramientos venster SA de CV 2 $1,547,714.14 Acciones para Cerramientos venster SA de CV":
+        - cell "Cerramientos venster SA de CV"
+        - cell "—"
+        - cell "Incompleto":
+          - generic: Incompleto
+        - cell "—"
+        - cell "—"
+        - cell "Ver 2 transacciones de Cerramientos venster SA de CV":
+          - button "Ver 2 transacciones de Cerramientos venster SA de CV": "2"
+        - cell "2"
+        - cell "$1,547,714.14"
+        - cell "Acciones para Cerramientos venster SA de CV":
+          - button "Acciones para Cerramientos venster SA de CV":
+  - button "Cargar más proveedores"
+- region "Notifications alt+T"

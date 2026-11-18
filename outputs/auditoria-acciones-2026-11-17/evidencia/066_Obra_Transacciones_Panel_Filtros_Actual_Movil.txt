@@ -1,0 +1,776 @@
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Transacciones
+  - heading "Lote 77" [level=1]
+  - button "Agregar":
+    - text: Agregar
+  - button "Facturas IA":
+    - text: Facturas IA
+  - button "Historial de cargas":
+    - text: Historial de cargas
+  - button "Sincronizar Docs":
+    - text: Sincronizar Docs
+  - generic: "Total: 121"
+  - generic: "Monto total: $8,567,518.21"
+  - generic: Pendientes
+  - button "47 sin proveedor":
+    - generic: "47"
+    - text: sin proveedor
+  - button "100 sin documentos":
+    - generic: "100"
+    - text: sin documentos
+  - textbox "Buscar por concepto, factura, código, tipo de pago, categoría, banco..."
+  - button "Filtros" [active]:
+    - text: Filtros
+  - button "Columnas":
+    - text: Columnas
+  - text: Monto mínimo
+  - spinbutton
+  - text: Monto máximo
+  - spinbutton
+  - text: Rango de fechas
+  - button "Seleccionar rango":
+    - text: Seleccionar rango
+  - text: Estado
+  - combobox:
+    - generic: Todos
+  - text: Tipo de pago
+  - combobox:
+    - generic: Todos
+  - text: Categoría
+  - combobox:
+    - generic: Todas
+  - text: Moneda
+  - combobox:
+    - generic: Todas
+  - text: Proveedor
+  - combobox:
+    - generic: Todos los proveedores
+  - text: Documentos
+  - combobox:
+    - generic: Todos
+  - generic: "Ordenar por:"
+  - button "Fecha":
+    - text: Fecha
+  - button "Monto"
+  - generic: 121 de 121 transacciones
+  - text: Seleccionar registros visibles
+  - checkbox "Seleccionar transacciones visibles"
+  - text: Proveedor 47
+  - button "47"
+  - table:
+    - rowgroup:
+      - row "Selección Seleccionar transacción VAR-HER-081026.pdf Factura Ver detalle de la factura VAR-HER-081026.pdf Concepto — Proveedor 47 VARIOS Genérico Monto Total $1,454.10 MXN Fecha 08 oct 2026 Status Pagado Acciones Acciones para VAR-HER-081026.pdf":
+        - cell "Selección Seleccionar transacción VAR-HER-081026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción VAR-HER-081026.pdf"
+        - cell "Factura Ver detalle de la factura VAR-HER-081026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura VAR-HER-081026.pdf":
+            - generic: VAR-HER-081026.pdf
+            - generic: 08 oct 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 VARIOS Genérico":
+          - generic: Proveedor 47
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "Monto Total $1,454.10 MXN":
+          - generic: Monto Total
+          - generic: $1,454.10 MXN
+        - cell "Fecha 08 oct 2026":
+          - generic: Fecha
+          - generic: 08 oct 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para VAR-HER-081026.pdf":
+          - generic: Acciones
+          - button "Acciones para VAR-HER-081026.pdf":
+      - row "Selección Seleccionar transacción DIS-LT77-05102026.pdf Factura Ver detalle de la factura DIS-LT77-05102026.pdf Concepto — Proveedor 47 DISPERSIÓN Genérico Monto Total $129,337.30 MXN Fecha 05 oct 2026 Status Pagado Acciones Acciones para DIS-LT77-05102026.pdf":
+        - cell "Selección Seleccionar transacción DIS-LT77-05102026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción DIS-LT77-05102026.pdf"
+        - cell "Factura Ver detalle de la factura DIS-LT77-05102026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura DIS-LT77-05102026.pdf":
+            - generic: DIS-LT77-05102026.pdf
+            - generic: 05 oct 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 DISPERSIÓN Genérico":
+          - generic: Proveedor 47
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Monto Total $129,337.30 MXN":
+          - generic: Monto Total
+          - generic: $129,337.30 MXN
+        - cell "Fecha 05 oct 2026":
+          - generic: Fecha
+          - generic: 05 oct 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para DIS-LT77-05102026.pdf":
+          - generic: Acciones
+          - button "Acciones para DIS-LT77-05102026.pdf":
+      - row "Selección Seleccionar transacción EFE-LT77-05102026.pdf Factura Ver detalle de la factura EFE-LT77-05102026.pdf Concepto — Proveedor 47 EFECTIVO Genérico Monto Total $51,274.58 MXN Fecha 05 oct 2026 Status Pagado Acciones Acciones para EFE-LT77-05102026.pdf":
+        - cell "Selección Seleccionar transacción EFE-LT77-05102026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción EFE-LT77-05102026.pdf"
+        - cell "Factura Ver detalle de la factura EFE-LT77-05102026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura EFE-LT77-05102026.pdf":
+            - generic: EFE-LT77-05102026.pdf
+            - generic: 05 oct 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 EFECTIVO Genérico":
+          - generic: Proveedor 47
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Monto Total $51,274.58 MXN":
+          - generic: Monto Total
+          - generic: $51,274.58 MXN
+        - cell "Fecha 05 oct 2026":
+          - generic: Fecha
+          - generic: 05 oct 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para EFE-LT77-05102026.pdf":
+          - generic: Acciones
+          - button "Acciones para EFE-LT77-05102026.pdf":
+      - row "Selección Seleccionar transacción PPV-MAN-261002.pdf Factura Ver detalle de la factura PPV-MAN-261002.pdf Concepto — Proveedor 47 PABLO PEREZ VARILLA Incompleto Monto Total $174,000.00 MXN Fecha 02 oct 2026 Status Pagado Acciones Acciones para PPV-MAN-261002.pdf":
+        - cell "Selección Seleccionar transacción PPV-MAN-261002.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción PPV-MAN-261002.pdf"
+        - cell "Factura Ver detalle de la factura PPV-MAN-261002.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura PPV-MAN-261002.pdf":
+            - generic: PPV-MAN-261002.pdf
+            - generic: 02 oct 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 PABLO PEREZ VARILLA Incompleto":
+          - generic: Proveedor 47
+          - generic: PABLO PEREZ VARILLA
+          - generic: Incompleto
+        - cell "Monto Total $174,000.00 MXN":
+          - generic: Monto Total
+          - generic: $174,000.00 MXN
+        - cell "Fecha 02 oct 2026":
+          - generic: Fecha
+          - generic: 02 oct 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para PPV-MAN-261002.pdf":
+          - generic: Acciones
+          - button "Acciones para PPV-MAN-261002.pdf":
+      - row "Selección Seleccionar transacción VAR-HER-011026.pdf Factura Ver detalle de la factura VAR-HER-011026.pdf Concepto — Proveedor 47 VARIOS Genérico Monto Total $1,634.50 MXN Fecha 01 oct 2026 Status Pagado Acciones Acciones para VAR-HER-011026.pdf":
+        - cell "Selección Seleccionar transacción VAR-HER-011026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción VAR-HER-011026.pdf"
+        - cell "Factura Ver detalle de la factura VAR-HER-011026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura VAR-HER-011026.pdf":
+            - generic: VAR-HER-011026.pdf
+            - generic: 01 oct 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 VARIOS Genérico":
+          - generic: Proveedor 47
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "Monto Total $1,634.50 MXN":
+          - generic: Monto Total
+          - generic: $1,634.50 MXN
+        - cell "Fecha 01 oct 2026":
+          - generic: Fecha
+          - generic: 01 oct 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para VAR-HER-011026.pdf":
+          - generic: Acciones
+          - button "Acciones para VAR-HER-011026.pdf":
+      - row "Selección Seleccionar transacción DIS-LT77-28092026.pdf Factura Ver detalle de la factura DIS-LT77-28092026.pdf Concepto — Proveedor 47 DISPERSIÓN Genérico Monto Total $130,277.78 MXN Fecha 28 sep 2026 Status Pagado Acciones Acciones para DIS-LT77-28092026.pdf":
+        - cell "Selección Seleccionar transacción DIS-LT77-28092026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción DIS-LT77-28092026.pdf"
+        - cell "Factura Ver detalle de la factura DIS-LT77-28092026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura DIS-LT77-28092026.pdf":
+            - generic: DIS-LT77-28092026.pdf
+            - generic: 28 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 DISPERSIÓN Genérico":
+          - generic: Proveedor 47
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Monto Total $130,277.78 MXN":
+          - generic: Monto Total
+          - generic: $130,277.78 MXN
+        - cell "Fecha 28 sep 2026":
+          - generic: Fecha
+          - generic: 28 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para DIS-LT77-28092026.pdf":
+          - generic: Acciones
+          - button "Acciones para DIS-LT77-28092026.pdf":
+      - row "Selección Seleccionar transacción EFE-LT77-28092026.pdf Factura Ver detalle de la factura EFE-LT77-28092026.pdf Concepto — Proveedor 47 EFECTIVO Genérico Monto Total $51,933.57 MXN Fecha 28 sep 2026 Status Pagado Acciones Acciones para EFE-LT77-28092026.pdf":
+        - cell "Selección Seleccionar transacción EFE-LT77-28092026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción EFE-LT77-28092026.pdf"
+        - cell "Factura Ver detalle de la factura EFE-LT77-28092026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura EFE-LT77-28092026.pdf":
+            - generic: EFE-LT77-28092026.pdf
+            - generic: 28 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 EFECTIVO Genérico":
+          - generic: Proveedor 47
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Monto Total $51,933.57 MXN":
+          - generic: Monto Total
+          - generic: $51,933.57 MXN
+        - cell "Fecha 28 sep 2026":
+          - generic: Fecha
+          - generic: 28 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para EFE-LT77-28092026.pdf":
+          - generic: Acciones
+          - button "Acciones para EFE-LT77-28092026.pdf":
+      - row "Selección Seleccionar transacción FPS--260925.pdf Factura Ver detalle de la factura FPS--260925.pdf Concepto — Proveedor 47 FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV Incompleto Monto Total $27,000.00 MXN Fecha 25 sep 2026 Status Pagado Acciones Acciones para FPS--260925.pdf":
+        - cell "Selección Seleccionar transacción FPS--260925.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción FPS--260925.pdf"
+        - cell "Factura Ver detalle de la factura FPS--260925.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura FPS--260925.pdf":
+            - generic: FPS--260925.pdf
+            - generic: 25 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV Incompleto":
+          - generic: Proveedor 47
+          - generic: FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV
+          - generic: Incompleto
+        - cell "Monto Total $27,000.00 MXN":
+          - generic: Monto Total
+          - generic: $27,000.00 MXN
+        - cell "Fecha 25 sep 2026":
+          - generic: Fecha
+          - generic: 25 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para FPS--260925.pdf":
+          - generic: Acciones
+          - button "Acciones para FPS--260925.pdf":
+      - row "Selección Seleccionar transacción VJU-PRE-260925.pdf Factura Ver detalle de la factura VJU-PRE-260925.pdf Concepto — Proveedor 47 VILLAGOMEZ JURADO S.A. DE C.V. Incompleto Monto Total $134,160.36 MXN Fecha 25 sep 2026 Status Pagado Acciones Acciones para VJU-PRE-260925.pdf":
+        - cell "Selección Seleccionar transacción VJU-PRE-260925.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción VJU-PRE-260925.pdf"
+        - cell "Factura Ver detalle de la factura VJU-PRE-260925.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura VJU-PRE-260925.pdf":
+            - generic: VJU-PRE-260925.pdf
+            - generic: 25 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 VILLAGOMEZ JURADO S.A. DE C.V. Incompleto":
+          - generic: Proveedor 47
+          - generic: VILLAGOMEZ JURADO S.A. DE C.V.
+          - generic: Incompleto
+        - cell "Monto Total $134,160.36 MXN":
+          - generic: Monto Total
+          - generic: $134,160.36 MXN
+        - cell "Fecha 25 sep 2026":
+          - generic: Fecha
+          - generic: 25 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para VJU-PRE-260925.pdf":
+          - generic: Acciones
+          - button "Acciones para VJU-PRE-260925.pdf":
+      - row "Selección Seleccionar transacción BJF--260925.pdf Factura Ver detalle de la factura BJF--260925.pdf Concepto — Proveedor 47 BERNARDO JAVIER FLORES FLOMEL Incompleto Monto Total $271,222.67 MXN Fecha 25 sep 2026 Status Pagado Acciones Acciones para BJF--260925.pdf":
+        - cell "Selección Seleccionar transacción BJF--260925.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción BJF--260925.pdf"
+        - cell "Factura Ver detalle de la factura BJF--260925.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura BJF--260925.pdf":
+            - generic: BJF--260925.pdf
+            - generic: 25 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 BERNARDO JAVIER FLORES FLOMEL Incompleto":
+          - generic: Proveedor 47
+          - generic: BERNARDO JAVIER FLORES FLOMEL
+          - generic: Incompleto
+        - cell "Monto Total $271,222.67 MXN":
+          - generic: Monto Total
+          - generic: $271,222.67 MXN
+        - cell "Fecha 25 sep 2026":
+          - generic: Fecha
+          - generic: 25 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para BJF--260925.pdf":
+          - generic: Acciones
+          - button "Acciones para BJF--260925.pdf":
+      - row "Selección Seleccionar transacción VAR-HER-240926.pdf Factura Ver detalle de la factura VAR-HER-240926.pdf Concepto — Proveedor 47 VARIOS Genérico Monto Total $139.00 MXN Fecha 24 sep 2026 Status Pagado Acciones Acciones para VAR-HER-240926.pdf":
+        - cell "Selección Seleccionar transacción VAR-HER-240926.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción VAR-HER-240926.pdf"
+        - cell "Factura Ver detalle de la factura VAR-HER-240926.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura VAR-HER-240926.pdf":
+            - generic: VAR-HER-240926.pdf
+            - generic: 24 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 VARIOS Genérico":
+          - generic: Proveedor 47
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "Monto Total $139.00 MXN":
+          - generic: Monto Total
+          - generic: $139.00 MXN
+        - cell "Fecha 24 sep 2026":
+          - generic: Fecha
+          - generic: 24 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para VAR-HER-240926.pdf":
+          - generic: Acciones
+          - button "Acciones para VAR-HER-240926.pdf":
+      - row "Selección Seleccionar transacción DIS-LT77-21092026.pdf Factura Ver detalle de la factura DIS-LT77-21092026.pdf Concepto — Proveedor 47 DISPERSIÓN Genérico Monto Total $153,769.24 MXN Fecha 21 sep 2026 Status Pagado Acciones Acciones para DIS-LT77-21092026.pdf":
+        - cell "Selección Seleccionar transacción DIS-LT77-21092026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción DIS-LT77-21092026.pdf"
+        - cell "Factura Ver detalle de la factura DIS-LT77-21092026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura DIS-LT77-21092026.pdf":
+            - generic: DIS-LT77-21092026.pdf
+            - generic: 21 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 DISPERSIÓN Genérico":
+          - generic: Proveedor 47
+          - generic: DISPERSIÓN
+          - generic: Genérico
+        - cell "Monto Total $153,769.24 MXN":
+          - generic: Monto Total
+          - generic: $153,769.24 MXN
+        - cell "Fecha 21 sep 2026":
+          - generic: Fecha
+          - generic: 21 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para DIS-LT77-21092026.pdf":
+          - generic: Acciones
+          - button "Acciones para DIS-LT77-21092026.pdf":
+      - row "Selección Seleccionar transacción EFE-LT77-21092026.pdf Factura Ver detalle de la factura EFE-LT77-21092026.pdf Concepto — Proveedor 47 EFECTIVO Genérico Monto Total $60,134.27 MXN Fecha 21 sep 2026 Status Pagado Acciones Acciones para EFE-LT77-21092026.pdf":
+        - cell "Selección Seleccionar transacción EFE-LT77-21092026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción EFE-LT77-21092026.pdf"
+        - cell "Factura Ver detalle de la factura EFE-LT77-21092026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura EFE-LT77-21092026.pdf":
+            - generic: EFE-LT77-21092026.pdf
+            - generic: 21 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 EFECTIVO Genérico":
+          - generic: Proveedor 47
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Monto Total $60,134.27 MXN":
+          - generic: Monto Total
+          - generic: $60,134.27 MXN
+        - cell "Fecha 21 sep 2026":
+          - generic: Fecha
+          - generic: 21 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para EFE-LT77-21092026.pdf":
+          - generic: Acciones
+          - button "Acciones para EFE-LT77-21092026.pdf":
+      - row "Selección Seleccionar transacción PPV-MAN-260918.pdf Factura Ver detalle de la factura PPV-MAN-260918.pdf Concepto — Proveedor 47 PABLO PEREZ VARILLA Incompleto Monto Total $116,000.00 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para PPV-MAN-260918.pdf":
+        - cell "Selección Seleccionar transacción PPV-MAN-260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción PPV-MAN-260918.pdf"
+        - cell "Factura Ver detalle de la factura PPV-MAN-260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura PPV-MAN-260918.pdf":
+            - generic: PPV-MAN-260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 PABLO PEREZ VARILLA Incompleto":
+          - generic: Proveedor 47
+          - generic: PABLO PEREZ VARILLA
+          - generic: Incompleto
+        - cell "Monto Total $116,000.00 MXN":
+          - generic: Monto Total
+          - generic: $116,000.00 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para PPV-MAN-260918.pdf":
+          - generic: Acciones
+          - button "Acciones para PPV-MAN-260918.pdf":
+      - row "Selección Seleccionar transacción ACA-ACE-260918.pdf Factura Ver detalle de la factura ACA-ACE-260918.pdf Concepto — Proveedor 47 ACEROS CABOS SA DE CV Incompleto Monto Total $53,210.71 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para ACA-ACE-260918.pdf":
+        - cell "Selección Seleccionar transacción ACA-ACE-260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción ACA-ACE-260918.pdf"
+        - cell "Factura Ver detalle de la factura ACA-ACE-260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura ACA-ACE-260918.pdf":
+            - generic: ACA-ACE-260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 ACEROS CABOS SA DE CV Incompleto":
+          - generic: Proveedor 47
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "Monto Total $53,210.71 MXN":
+          - generic: Monto Total
+          - generic: $53,210.71 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para ACA-ACE-260918.pdf":
+          - generic: Acciones
+          - button "Acciones para ACA-ACE-260918.pdf":
+      - row "Selección Seleccionar transacción FE17274-ACA-ACE-260918.pdf Factura Ver detalle de la factura FE17274-ACA-ACE-260918.pdf Concepto — Proveedor 47 ACEROS CABOS SA DE CV Incompleto Monto Total $58,634.64 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para FE17274-ACA-ACE-260918.pdf":
+        - cell "Selección Seleccionar transacción FE17274-ACA-ACE-260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción FE17274-ACA-ACE-260918.pdf"
+        - cell "Factura Ver detalle de la factura FE17274-ACA-ACE-260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura FE17274-ACA-ACE-260918.pdf":
+            - generic: FE17274-ACA-ACE-260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 ACEROS CABOS SA DE CV Incompleto":
+          - generic: Proveedor 47
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "Monto Total $58,634.64 MXN":
+          - generic: Monto Total
+          - generic: $58,634.64 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para FE17274-ACA-ACE-260918.pdf":
+          - generic: Acciones
+          - button "Acciones para FE17274-ACA-ACE-260918.pdf":
+      - row "Selección Seleccionar transacción MRN-CIM-260918.pdf Factura Ver detalle de la factura MRN-CIM-260918.pdf Concepto — Proveedor 47 MARIA REYNA NAVARRETE CORTEZ Incompleto Monto Total $95,718.48 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para MRN-CIM-260918.pdf":
+        - cell "Selección Seleccionar transacción MRN-CIM-260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción MRN-CIM-260918.pdf"
+        - cell "Factura Ver detalle de la factura MRN-CIM-260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura MRN-CIM-260918.pdf":
+            - generic: MRN-CIM-260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 MARIA REYNA NAVARRETE CORTEZ Incompleto":
+          - generic: Proveedor 47
+          - generic: MARIA REYNA NAVARRETE CORTEZ
+          - generic: Incompleto
+        - cell "Monto Total $95,718.48 MXN":
+          - generic: Monto Total
+          - generic: $95,718.48 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para MRN-CIM-260918.pdf":
+          - generic: Acciones
+          - button "Acciones para MRN-CIM-260918.pdf":
+      - row "Selección Seleccionar transacción SAN--260918.pdf Factura Ver detalle de la factura SAN--260918.pdf Concepto — Proveedor 47 SAUL ANDRE Incompleto Monto Total $2,000.00 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para SAN--260918.pdf":
+        - cell "Selección Seleccionar transacción SAN--260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción SAN--260918.pdf"
+        - cell "Factura Ver detalle de la factura SAN--260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura SAN--260918.pdf":
+            - generic: SAN--260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 SAUL ANDRE Incompleto":
+          - generic: Proveedor 47
+          - generic: SAUL ANDRE
+          - generic: Incompleto
+        - cell "Monto Total $2,000.00 MXN":
+          - generic: Monto Total
+          - generic: $2,000.00 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para SAN--260918.pdf":
+          - generic: Acciones
+          - button "Acciones para SAN--260918.pdf":
+      - row "Selección Seleccionar transacción CVM--260918.pdf Factura Ver detalle de la factura CVM--260918.pdf Concepto — Proveedor 47 CYNTHIA VANESSA MACIAS JUAREZ Incompleto Monto Total $1,740.00 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para CVM--260918.pdf":
+        - cell "Selección Seleccionar transacción CVM--260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción CVM--260918.pdf"
+        - cell "Factura Ver detalle de la factura CVM--260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura CVM--260918.pdf":
+            - generic: CVM--260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 CYNTHIA VANESSA MACIAS JUAREZ Incompleto":
+          - generic: Proveedor 47
+          - generic: CYNTHIA VANESSA MACIAS JUAREZ
+          - generic: Incompleto
+        - cell "Monto Total $1,740.00 MXN":
+          - generic: Monto Total
+          - generic: $1,740.00 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para CVM--260918.pdf":
+          - generic: Acciones
+          - button "Acciones para CVM--260918.pdf":
+      - row "Selección Seleccionar transacción EAG-SUB-260918.pdf Factura Ver detalle de la factura EAG-SUB-260918.pdf Concepto — Proveedor 47 EDGAR AGUIÑIGA GARCIA Incompleto Monto Total $3,000.00 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para EAG-SUB-260918.pdf":
+        - cell "Selección Seleccionar transacción EAG-SUB-260918.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción EAG-SUB-260918.pdf"
+        - cell "Factura Ver detalle de la factura EAG-SUB-260918.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura EAG-SUB-260918.pdf":
+            - generic: EAG-SUB-260918.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 EDGAR AGUIÑIGA GARCIA Incompleto":
+          - generic: Proveedor 47
+          - generic: EDGAR AGUIÑIGA GARCIA
+          - generic: Incompleto
+        - cell "Monto Total $3,000.00 MXN":
+          - generic: Monto Total
+          - generic: $3,000.00 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para EAG-SUB-260918.pdf":
+          - generic: Acciones
+          - button "Acciones para EAG-SUB-260918.pdf":
+      - row "Selección Seleccionar transacción VAR-HER-180926.pdf Factura Ver detalle de la factura VAR-HER-180926.pdf Concepto — Proveedor 47 VARIOS Genérico Monto Total $2,133.11 MXN Fecha 18 sep 2026 Status Pagado Acciones Acciones para VAR-HER-180926.pdf":
+        - cell "Selección Seleccionar transacción VAR-HER-180926.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción VAR-HER-180926.pdf"
+        - cell "Factura Ver detalle de la factura VAR-HER-180926.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura VAR-HER-180926.pdf":
+            - generic: VAR-HER-180926.pdf
+            - generic: 18 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 VARIOS Genérico":
+          - generic: Proveedor 47
+          - generic: VARIOS
+          - generic: Genérico
+        - cell "Monto Total $2,133.11 MXN":
+          - generic: Monto Total
+          - generic: $2,133.11 MXN
+        - cell "Fecha 18 sep 2026":
+          - generic: Fecha
+          - generic: 18 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para VAR-HER-180926.pdf":
+          - generic: Acciones
+          - button "Acciones para VAR-HER-180926.pdf":
+      - row "Selección Seleccionar transacción ACA-ACE-260917.pdf Factura Ver detalle de la factura ACA-ACE-260917.pdf Concepto — Proveedor 47 ACEROS CABOS SA DE CV Incompleto Monto Total $11,133.22 MXN Fecha 17 sep 2026 Status Pagado Acciones Acciones para ACA-ACE-260917.pdf":
+        - cell "Selección Seleccionar transacción ACA-ACE-260917.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción ACA-ACE-260917.pdf"
+        - cell "Factura Ver detalle de la factura ACA-ACE-260917.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura ACA-ACE-260917.pdf":
+            - generic: ACA-ACE-260917.pdf
+            - generic: 17 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 ACEROS CABOS SA DE CV Incompleto":
+          - generic: Proveedor 47
+          - generic: ACEROS CABOS SA DE CV
+          - generic: Incompleto
+        - cell "Monto Total $11,133.22 MXN":
+          - generic: Monto Total
+          - generic: $11,133.22 MXN
+        - cell "Fecha 17 sep 2026":
+          - generic: Fecha
+          - generic: 17 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para ACA-ACE-260917.pdf":
+          - generic: Acciones
+          - button "Acciones para ACA-ACE-260917.pdf":
+      - row "Selección Seleccionar transacción EFE-LT77-14092026.pdf Factura Ver detalle de la factura EFE-LT77-14092026.pdf Concepto — Proveedor 47 EFECTIVO Genérico Monto Total $54,106.57 MXN Fecha 14 sep 2026 Status Pagado Acciones Acciones para EFE-LT77-14092026.pdf":
+        - cell "Selección Seleccionar transacción EFE-LT77-14092026.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción EFE-LT77-14092026.pdf"
+        - cell "Factura Ver detalle de la factura EFE-LT77-14092026.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura EFE-LT77-14092026.pdf":
+            - generic: EFE-LT77-14092026.pdf
+            - generic: 14 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 EFECTIVO Genérico":
+          - generic: Proveedor 47
+          - generic: EFECTIVO
+          - generic: Genérico
+        - cell "Monto Total $54,106.57 MXN":
+          - generic: Monto Total
+          - generic: $54,106.57 MXN
+        - cell "Fecha 14 sep 2026":
+          - generic: Fecha
+          - generic: 14 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para EFE-LT77-14092026.pdf":
+          - generic: Acciones
+          - button "Acciones para EFE-LT77-14092026.pdf":
+      - row "Selección Seleccionar transacción MRN-CIM-260914.pdf Factura Ver detalle de la factura MRN-CIM-260914.pdf Concepto — Proveedor 47 MARIA REYNA NAVARRETE CORTEZ Incompleto Monto Total $134,428.47 MXN Fecha 14 sep 2026 Status Pagado Acciones Acciones para MRN-CIM-260914.pdf":
+        - cell "Selección Seleccionar transacción MRN-CIM-260914.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción MRN-CIM-260914.pdf"
+        - cell "Factura Ver detalle de la factura MRN-CIM-260914.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura MRN-CIM-260914.pdf":
+            - generic: MRN-CIM-260914.pdf
+            - generic: 14 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 MARIA REYNA NAVARRETE CORTEZ Incompleto":
+          - generic: Proveedor 47
+          - generic: MARIA REYNA NAVARRETE CORTEZ
+          - generic: Incompleto
+        - cell "Monto Total $134,428.47 MXN":
+          - generic: Monto Total
+          - generic: $134,428.47 MXN
+        - cell "Fecha 14 sep 2026":
+          - generic: Fecha
+          - generic: 14 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para MRN-CIM-260914.pdf":
+          - generic: Acciones
+          - button "Acciones para MRN-CIM-260914.pdf":
+      - row "Selección Seleccionar transacción VJU-CEM-260914.pdf Factura Ver detalle de la factura VJU-CEM-260914.pdf Concepto — Proveedor 47 VILLAGOMEZ JURADO S.A. DE C.V. Incompleto Monto Total $37,671.00 MXN Fecha 14 sep 2026 Status Pagado Acciones Acciones para VJU-CEM-260914.pdf":
+        - cell "Selección Seleccionar transacción VJU-CEM-260914.pdf":
+          - generic: Selección
+          - checkbox "Seleccionar transacción VJU-CEM-260914.pdf"
+        - cell "Factura Ver detalle de la factura VJU-CEM-260914.pdf":
+          - generic: Factura
+          - button "Ver detalle de la factura VJU-CEM-260914.pdf":
+            - generic: VJU-CEM-260914.pdf
+            - generic: 14 sep 2026
+        - cell "Concepto —":
+          - generic: Concepto
+          - generic: —
+        - cell "Proveedor 47 VILLAGOMEZ JURADO S.A. DE C.V. Incompleto":
+          - generic: Proveedor 47
+          - generic: VILLAGOMEZ JURADO S.A. DE C.V.
+          - generic: Incompleto
+        - cell "Monto Total $37,671.00 MXN":
+          - generic: Monto Total
+          - generic: $37,671.00 MXN
+        - cell "Fecha 14 sep 2026":
+          - generic: Fecha
+          - generic: 14 sep 2026
+        - cell "Status Pagado":
+          - generic: Status
+          - generic: Pagado
+        - cell "Acciones Acciones para VJU-CEM-260914.pdf":
+          - generic: Acciones
+          - button "Acciones para VJU-CEM-260914.pdf":
+  - generic: Mostrando 1-25 de 121 transacciones
+  - combobox:
+    - generic: 25 por página
+  - button "Página anterior" [disabled]:
+  - button "1"
+  - button "2"
+  - button "3"
+  - button "4"
+  - button "5"
+  - button "Página siguiente":
+- region "Notifications alt+T"

@@ -1,3 +1,4 @@
+import { useEffect, useRef, type RefObject } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRequisicionHistoryModal } from "../../hooks/requisicion-history-modal";
@@ -512,9 +513,44 @@ function ResubmittedDetails({ entry }: { entry: HistoryEntry }) {
   );
 }
 
-export default function RequisicionHistoryModal() {
+export default function RequisicionHistoryModal({ returnFocusRef }: { returnFocusRef?: RefObject<HTMLButtonElement> }) {
   const { isOpen, proyectoId, requisicionId, mode, close } = useRequisicionHistoryModal();
   const currentUser = useQuery(api.users.getCurrentUser);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // The header menu releases focus before opening this manual overlay.
+  // Scope the keyboard handoff to that global-history entry point.
+  useEffect(() => {
+    if (!isOpen || mode !== "all" || !returnFocusRef) return;
+    const content = contentRef.current;
+    const returnTarget = returnFocusRef.current;
+    closeButtonRef.current?.focus({ preventScroll: true });
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+      } else if (event.key === "Tab" && content) {
+        const controls = Array.from(content.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex="0"]'));
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !content.contains(document.activeElement))) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !content.contains(document.activeElement))) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (returnTarget?.isConnected && (document.activeElement === document.body || content?.contains(document.activeElement))) {
+        returnTarget.focus({ preventScroll: true });
+      }
+    };
+  }, [isOpen, mode, returnFocusRef, close]);
 
   // Fetch history based on mode
   const allHistory = useQuery(
@@ -544,11 +580,11 @@ export default function RequisicionHistoryModal() {
       />
 
       {/* Modal */}
-      <div className="relative bg-card rounded-none shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
+      <div ref={contentRef} role="dialog" aria-modal="true" aria-labelledby="requisicion-history-title" className="relative bg-card rounded-none shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="text-left">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 id="requisicion-history-title" className="text-lg font-semibold text-foreground">
               {mode === "all" ? "Historial de Requisiciones" : "Historial de Cambios"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
@@ -558,8 +594,11 @@ export default function RequisicionHistoryModal() {
             </p>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
+            aria-label="Cerrar historial de requisiciones"
             onClick={close}
-            className="p-2 hover:bg-muted rounded-none transition-colors"
+            className="flex h-11 w-11 shrink-0 items-center justify-center hover:bg-muted rounded-none transition-colors"
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -32,6 +32,7 @@ export default function UploadTransactionsModal() {
     isOpen && isAuthenticated ? {} : "skip"
   );
   const [selectedProyecto, setSelectedProyecto] = useState<Id<"desarrollos"> | "">("");
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const handleClose = () => {
     setSelectedProyecto("");
@@ -48,7 +49,18 @@ export default function UploadTransactionsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent data-square-modal="" className="max-w-lg">
+      <DialogContent data-square-modal="" className="max-w-lg"
+        onOpenAutoFocus={() => {
+          returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          // Continuing hands focus to the project importer instead of the toolbar.
+          if (!useUploadProjectTransactionsModal.getState().isOpen && returnFocusRef.current?.isConnected) {
+            returnFocusRef.current.focus();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">Importar transacciones</DialogTitle>
           <DialogDescription>

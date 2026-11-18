@@ -81,10 +81,23 @@ export function BudgetCreationHistory({ projectId }: { projectId?: Id<"desarroll
     : <p className="text-sm text-muted-foreground">{projectId ? "Archivo original no disponible. Este proyecto no tiene un Excel inicial respaldado." : "Todavía no hay creaciones registradas."}</p>}
     {result && (!result.isDone || cursors.length > 1) && <PageControls cursors={cursors} setCursors={setCursors} result={result} />}</div>;
 }
-export function BudgetOriginalDialog({ projectId }: { projectId?: Id<"desarrollos"> }) {
-  const [open, setOpen] = useState(false);
-  return <Dialog open={open} onOpenChange={setOpen}><Button variant="outline" onClick={() => setOpen(true)} data-viewer-readonly-allow="true"><History className="h-4 w-4" />{projectId ? "Excel de origen" : "Creaciones de proyectos"}</Button>
-    <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle>{projectId ? "Excel del presupuesto inicial" : "Creaciones de proyectos"}</DialogTitle><DialogDescription>Consulta el archivo original, el avance y los registros generados al crear el proyecto.</DialogDescription></DialogHeader>
+type BudgetOriginalDialogProps = {
+  projectId?: Id<"desarrollos">;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+  onCloseAutoFocus?: React.ComponentPropsWithoutRef<typeof DialogContent>["onCloseAutoFocus"];
+};
+
+export function BudgetOriginalDialog({ projectId, open: controlledOpen, onOpenChange, hideTrigger = false, onCloseAutoFocus }: BudgetOriginalDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
+  return <Dialog open={open} onOpenChange={setOpen}>{!hideTrigger && <Button variant="outline" onClick={() => setOpen(true)} data-viewer-readonly-allow="true"><History className="h-4 w-4" />{projectId ? "Excel de origen" : "Creaciones de proyectos"}</Button>}
+    <DialogContent onCloseAutoFocus={onCloseAutoFocus} className="max-h-[90dvh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle>{projectId ? "Excel del presupuesto inicial" : "Creaciones de proyectos"}</DialogTitle><DialogDescription>Consulta el archivo original, el avance y los registros generados al crear el proyecto.</DialogDescription></DialogHeader>
       {open && <BudgetCreationHistory key={projectId || "all"} projectId={projectId} />}</DialogContent></Dialog>;
 }
 export function BudgetRecordSource({ partidaId, transactionId }: { partidaId?: Id<"partidas">; transactionId?: Id<"transacciones"> }) {

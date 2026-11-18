@@ -1,0 +1,127 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Proyecto
+  - heading "Reportes Lote 77" [level=1]
+  - paragraph: Genera y programa reportes semanales de obra con el nuevo formato ejecutivo, cifras verificables y contenido ajustado a los permisos de cada destinatario.
+  - button "Detalles del perfil Completo":
+    - text: "Perfil: Completo"
+  - tablist:
+    - tab "Generar ahora"
+    - tab "Programaciones" [active] [selected]
+    - tab "Historial"
+  - tabpanel "Programaciones":
+    - generic: Nueva programación
+    - paragraph: Configura cuándo se genera el reporte y quién puede recibir la variante correspondiente a sus permisos.
+    - text: Frecuencia
+    - combobox "Frecuencia":
+      - generic: Semanal
+    - text: Hora local
+    - textbox "Hora local": 08:00
+    - text: Día de envío
+    - combobox "Día de envío":
+      - generic: Lunes
+    - text: Zona horaria
+    - combobox "Zona horaria":
+      - generic: Ciudad de México
+      - generic: UTC-06:00 · Zona Centro · CDMX, Guadalajara y centro del país · hora actual 21:30
+    - paragraph: El desfase y la hora mostrados se calculan con las reglas vigentes del navegador para evitar errores por cambios estacionales.
+    - text: Destinatarios permitidos
+    - checkbox "Cristobal Espino 1977eirc@gmail.com · viewer"
+    - generic: Cristobal Espino
+    - generic: 1977eirc@gmail.com · viewer
+    - checkbox "cristobal.espino@aldafa.com.mx cristobal.espino@aldafa.com.mx · viewer"
+    - generic: cristobal.espino@aldafa.com.mx
+    - generic: cristobal.espino@aldafa.com.mx · viewer
+    - checkbox "Felix Enrique Vega Nolasco felixvnolasco@hotmail.com · viewer"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@hotmail.com · viewer
+    - checkbox "Felix Enrique Vega Nolasco felixvnolasco@gmail.com · admin" [checked]:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com · admin
+    - checkbox "Isaac procopio yzakpro471@gmail.com · user"
+    - generic: Isaac procopio
+    - generic: yzakpro471@gmail.com · user
+    - checkbox "Jorge Sánchez Arriaga jorge@ogc.mx · contratista"
+    - generic: Jorge Sánchez Arriaga
+    - generic: jorge@ogc.mx · contratista
+    - checkbox "Jose Ogarrio jose@ogc.mx · admin"
+    - generic: Jose Ogarrio
+    - generic: jose@ogc.mx · admin
+    - checkbox "Jose Ogarrio joseogarrio@gmail.com · admin"
+    - generic: Jose Ogarrio
+    - generic: joseogarrio@gmail.com · admin
+    - checkbox "Proto Lemus proto@ogc.mx · user"
+    - generic: Proto Lemus
+    - generic: proto@ogc.mx · user
+    - checkbox "Rodrigo Ogarrio rodrigo@ogc.mx · admin"
+    - generic: Rodrigo Ogarrio
+    - generic: rodrigo@ogc.mx · admin
+    - checkbox "Saul Aguirre saula@ogc.mx · user"
+    - generic: Saul Aguirre
+    - generic: saula@ogc.mx · user
+    - checkbox "Zurisadai Montiel Perdomo zurisadai@ogc.mx · user"
+    - generic: Zurisadai Montiel Perdomo
+    - generic: zurisadai@ogc.mx · user
+    - button "Guardar programación":
+      - text: Guardar programación
+    - generic: Aún no hay programaciones para este proyecto.
+- region "Notifications alt+T"

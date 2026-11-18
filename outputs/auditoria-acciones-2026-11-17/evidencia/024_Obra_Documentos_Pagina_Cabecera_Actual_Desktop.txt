@@ -1,0 +1,192 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - button "Colapsar Documentos" [expanded]:
+  - list:
+    - button "bitacora_foto 756":
+      - generic: bitacora_foto
+      - generic: "756"
+    - button "Comprobante 1":
+      - generic: Comprobante
+      - generic: "1"
+    - button "Cotización 5":
+      - generic: Cotización
+      - generic: "5"
+    - button "Factura 9":
+      - generic: Factura
+      - generic: "9"
+    - button "Fotografías 0":
+      - generic: Fotografías
+      - generic: "0"
+    - button "Otro 24":
+      - generic: Otro
+      - generic: "24"
+    - button "Colapsar Planos" [expanded]:
+    - button "Planos 2":
+      - generic: Planos
+      - generic: "2"
+    - button "Arquitectónicos 0":
+      - generic: Arquitectónicos
+      - generic: "0"
+    - button "Estructurales 0":
+      - generic: Estructurales
+      - generic: "0"
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Excel del presupuesto inicial" [level=2]
+  - paragraph: Original protegido de la creación del proyecto.
+  - paragraph: Archivo original no disponible. Este proyecto no tiene un Excel inicial respaldado.
+  - heading "Documentos" [level=1]
+  - button "Nueva carpeta":
+    - text: Nueva carpeta
+  - button "Subir documentos":
+    - text: Subir documentos
+  - generic: "Total: 0"
+  - textbox "Buscar por nombre, tipo o descripción"
+  - button:
+  - button:
+  - main:
+    - table:
+      - rowgroup:
+        - row "Nombre Proveedor Tipo Transacción Fecha Acciones":
+          - columnheader "Nombre"
+          - columnheader "Proveedor"
+          - columnheader "Tipo"
+          - columnheader "Transacción"
+          - columnheader "Fecha"
+          - columnheader "Acciones"
+      - rowgroup:
+        - row "bitacora_foto 756 elementos - Carpeta - 30 sep 2026":
+          - cell "bitacora_foto 756 elementos":
+            - button "bitacora_foto 756 elementos":
+              - generic: bitacora_foto
+              - generic: 756 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "30 sep 2026"
+          - cell:
+            - button:
+        - row "Comprobante 1 elementos - Carpeta - 30 sep 2026":
+          - cell "Comprobante 1 elementos":
+            - button "Comprobante 1 elementos":
+              - generic: Comprobante
+              - generic: 1 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "30 sep 2026"
+          - cell:
+            - button:
+        - row "Cotización 5 elementos - Carpeta - 30 sep 2026":
+          - cell "Cotización 5 elementos":
+            - button "Cotización 5 elementos":
+              - generic: Cotización
+              - generic: 5 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "30 sep 2026"
+          - cell:
+            - button:
+        - row "Factura 9 elementos - Carpeta - 30 sep 2026":
+          - cell "Factura 9 elementos":
+            - button "Factura 9 elementos":
+              - generic: Factura
+              - generic: 9 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "30 sep 2026"
+          - cell:
+            - button:
+        - row "Fotografías 0 elementos - Carpeta - 23 jul 2026":
+          - cell "Fotografías 0 elementos":
+            - button "Fotografías 0 elementos":
+              - generic: Fotografías
+              - generic: 0 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "23 jul 2026"
+          - cell:
+            - button:
+        - row "Otro 24 elementos - Carpeta - 30 sep 2026":
+          - cell "Otro 24 elementos":
+            - button "Otro 24 elementos":
+              - generic: Otro
+              - generic: 24 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "30 sep 2026"
+          - cell:
+            - button:
+        - row "Planos 2 elementos - Carpeta - 23 jul 2026":
+          - cell "Planos 2 elementos":
+            - button "Planos 2 elementos":
+              - generic: Planos
+              - generic: 2 elementos
+          - cell "-"
+          - cell "Carpeta"
+          - cell "-"
+          - cell "23 jul 2026"
+          - cell:
+            - button:
+- region "Notifications alt+T"

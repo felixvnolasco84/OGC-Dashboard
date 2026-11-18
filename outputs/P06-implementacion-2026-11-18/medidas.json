@@ -1,0 +1,49 @@
+{
+  "desktop": {
+    "buttons": [
+      {
+        "height": 48,
+        "name": "Agregar",
+        "right": 1352.0000915527344,
+        "width": 147.11459350585938
+      },
+      {
+        "height": 48,
+        "name": "Herramientas de transacciones",
+        "right": 1408,
+        "width": 48
+      }
+    ],
+    "headerRight": 1408,
+    "height": 1000,
+    "scroll": 1440,
+    "width": 1440
+  },
+  "intermediate": {
+    "headerRight": 992,
+    "headerText": "TransaccionesLote 77Total: 121Monto total: $8,567,518.21Agregar",
+    "height": 1000,
+    "scroll": 1024,
+    "width": 1024
+  },
+  "mobile": {
+    "buttons": [
+      {
+        "height": 48,
+        "name": "Agregar",
+        "right": 163.11459350585938,
+        "width": 147.11459350585938
+      },
+      {
+        "height": 48,
+        "name": "Herramientas de transacciones",
+        "right": 219.11459350585935,
+        "width": 48
+      }
+    ],
+    "headerRight": 367.3333435058594,
+    "height": 844,
+    "scroll": 390,
+    "width": 390
+  }
+}

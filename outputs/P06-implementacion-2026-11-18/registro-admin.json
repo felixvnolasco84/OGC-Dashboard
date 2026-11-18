@@ -1,0 +1,128 @@
+{
+  "queries": [
+    {
+      "name": "users:getCurrentUser",
+      "args": {}
+    },
+    {
+      "name": "desarrollos:getById",
+      "args": {
+        "id": "project-a"
+      }
+    },
+    {
+      "name": "transacciones:getTotalsByProyecto",
+      "args": {
+        "proyecto_id": "project-a"
+      }
+    },
+    {
+      "name": "transacciones:listTableByProyecto",
+      "args": {
+        "proyecto_id": "project-a",
+        "page": 1,
+        "pageSize": 25,
+        "sortField": "fecha",
+        "sortDirection": "desc"
+      }
+    },
+    {
+      "name": "proveedores:getByProyectoWithStats",
+      "args": {
+        "proyecto_id": "project-a"
+      }
+    },
+    {
+      "name": "laborImportHistory:listHistory",
+      "args": {
+        "proyecto": "project-a",
+        "paginationOpts": {
+          "cursor": null,
+          "numItems": 25
+        }
+      }
+    },
+    {
+      "name": "laborImportHistory:listHistory",
+      "args": {
+        "proyecto": "project-a",
+        "paginationOpts": {
+          "cursor": "second-page",
+          "numItems": 25
+        }
+      }
+    },
+    {
+      "name": "laborImportHistory:listAttemptItems",
+      "args": {
+        "attempt_id": "attempt-25",
+        "paginationOpts": {
+          "cursor": null,
+          "numItems": 25
+        }
+      }
+    },
+    {
+      "name": "invoiceAnalysis:listHistoricalCandidates",
+      "args": {
+        "project_id": "project-a"
+      }
+    },
+    {
+      "name": "invoiceAnalysis:listReviewQueue",
+      "args": {
+        "project_id": "project-a",
+        "limit": 50
+      }
+    },
+    {
+      "name": "desarrollos:getById",
+      "args": {
+        "id": "project-b"
+      }
+    },
+    {
+      "name": "transacciones:getTotalsByProyecto",
+      "args": {
+        "proyecto_id": "project-b"
+      }
+    },
+    {
+      "name": "transacciones:listTableByProyecto",
+      "args": {
+        "proyecto_id": "project-b",
+        "page": 1,
+        "pageSize": 25,
+        "sortField": "fecha",
+        "sortDirection": "desc"
+      }
+    },
+    {
+      "name": "proveedores:getByProyectoWithStats",
+      "args": {
+        "proyecto_id": "project-b"
+      }
+    },
+    {
+      "name": "invoiceAnalysis:listHistoricalCandidates",
+      "args": {
+        "project_id": "project-b"
+      }
+    },
+    {
+      "name": "invoiceAnalysis:listReviewQueue",
+      "args": {
+        "project_id": "project-b",
+        "limit": 50
+      }
+    }
+  ],
+  "mutations": [
+    {
+      "name": "sync:syncTransactionsWithDocuments",
+      "args": {
+        "proyecto_id": "project-b"
+      }
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentPropsWithoutRef } from "react";
 import { useConvex, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Download, FileSpreadsheet, History, Loader2 } from "lucide-react";
@@ -9,7 +9,7 @@ import { useIncomeImport } from "@/hooks/use-income-import";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
 
 type Attempt = NonNullable<FunctionReturnType<typeof api.incomeImportHistory.getAttempt>>;
@@ -84,16 +84,32 @@ function ResumeAttempt({ attempt, userId }: { attempt: Attempt; userId: string }
   </div>;
 }
 
-export function IncomeImportHistoryDialog({ projectId }: { projectId: Id<"desarrollos"> }) {
+type IncomeImportHistoryDialogProps = {
+  projectId: Id<"desarrollos">;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+  onCloseAutoFocus?: ComponentPropsWithoutRef<typeof DialogContent>["onCloseAutoFocus"];
+};
+
+export function IncomeImportHistoryDialog({ projectId, open: controlledOpen, onOpenChange, showTrigger = true, onCloseAutoFocus }: IncomeImportHistoryDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  return <Dialog open={open} onOpenChange={nextOpen => { setInternalOpen(nextOpen); onOpenChange?.(nextOpen); }}>
+    {showTrigger && <DialogTrigger asChild><Button variant="outline" size="sm"><History className="h-4 w-4" /> Historial de cargas</Button></DialogTrigger>}
+    <DialogContent data-square-modal="" variant="ledger" className="flex flex-col" onCloseAutoFocus={onCloseAutoFocus}><DialogHeader variant="ledger"><DialogTitle>Historial de cargas de ingresos</DialogTitle><DialogDescription>Excel originales e intentos confirmados de este proyecto, del más reciente al más antiguo.</DialogDescription></DialogHeader>
+      {open && <IncomeImportHistory key={projectId} projectId={projectId} />}
+    </DialogContent>
+  </Dialog>;
+}
+
+// Mount a fresh history session on opening or changing project; queries stay deferred.
+function IncomeImportHistory({ projectId }: { projectId: Id<"desarrollos"> }) {
   const user = useQuery(api.users.getCurrentUser);
-  const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [cursors, setCursors] = useState<Array<string | null>>([null]);
-  const result = useQuery(api.incomeImportHistory.listHistory, open ? { proyecto: projectId, paginationOpts: { cursor: cursors[cursors.length - 1], numItems: 25 } } : "skip");
-  return <>
-    <Button variant="outline" size="sm" onClick={() => { setCursors([null]); setExpandedId(null); setOpen(true); }}><History className="h-4 w-4" /> Historial de cargas</Button>
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent data-square-modal="" variant="ledger" className="flex flex-col"><DialogHeader variant="ledger"><DialogTitle>Historial de cargas de ingresos</DialogTitle><DialogDescription>Excel originales e intentos confirmados de este proyecto, del más reciente al más antiguo.</DialogDescription></DialogHeader>
-      <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
+  const result = useQuery(api.incomeImportHistory.listHistory, { proyecto: projectId, paginationOpts: { cursor: cursors[cursors.length - 1], numItems: 25 } });
+  return <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
         {!result ? <p className="py-8 text-sm" role="status">Cargando historial...</p> : result.page.length === 0 ? <p className="py-8 text-sm text-muted-foreground">Todavía no hay cargas en el historial. Los ingresos anteriores no tienen información de archivo de origen.</p> : <div className="space-y-3">{result.page.map(attempt => <article key={attempt._id} className="min-w-0 border border-border bg-card p-4">
           <MetadataCard attempt={attempt} available={attempt.file_available} />
           <Button variant="ghost" size="sm" className="mt-2" aria-expanded={expandedId === attempt._id} onClick={() => setExpandedId(expandedId === attempt._id ? null : attempt._id)}>{expandedId === attempt._id ? "Ocultar registros" : "Ver registros"}</Button>
@@ -101,9 +117,7 @@ export function IncomeImportHistoryDialog({ projectId }: { projectId: Id<"desarr
           {attempt.can_resume && user && <ResumeAttempt attempt={attempt} userId={user._id} />}
         </article>)}</div>}
         <Pages page={cursors.length} loading={!result} done={result?.isDone ?? true} previous={() => { setExpandedId(null); setCursors(cursors.slice(0, -1)); }} next={() => { if (result) { setExpandedId(null); setCursors([...cursors, result.continueCursor]); } }} />
-      </div>
-    </DialogContent></Dialog>
-  </>;
+  </div>;
 }
 
 export function IngresoSourceDialog({ ingresoId }: { ingresoId: Id<"ingresos"> }) {

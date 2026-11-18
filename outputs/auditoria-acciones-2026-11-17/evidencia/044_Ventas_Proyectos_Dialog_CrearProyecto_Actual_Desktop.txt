@@ -1,0 +1,65 @@
+- list:
+  - button:
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - heading [level=1]: Proyectos de Ventas
+  - paragraph: Gestiona y consulta todos tus proyectos de ventas
+  - button:
+    - text: Agregar Proyecto de Ventas
+  - textbox:
+    - /placeholder: Buscar...
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Proyecto
+        - columnheader: Total Ventas
+        - columnheader: Comisión
+        - columnheader: Fecha creación
+        - columnheader: Status
+        - columnheader
+    - rowgroup:
+      - row:
+        - cell: No se encontraron proyectos de ventas
+- region "Notifications alt+T"
+- dialog "Crear Nuevo Proyecto de Ventas":
+  - button "Close" [active]:
+    - generic: Close
+  - heading "Crear Nuevo Proyecto de Ventas" [level=2]:
+    - text: Crear Nuevo Proyecto de Ventas
+  - paragraph: Complete la información básica del proyecto antes de subir el Excel
+  - text: Nombre del Proyecto *
+  - textbox "Nombre del Proyecto *":
+    - /placeholder: "Ej: Proyecto Ventas Q1 2024"
+  - text: Descripción del Proyecto *
+  - textbox "Descripción del Proyecto *":
+    - /placeholder: Describe el proyecto de ventas...
+  - text: Porcentaje de Comisión (%)
+  - spinbutton "Porcentaje de Comisión (%)"
+  - paragraph: Porcentaje de comisión sobre las ventas totales
+  - paragraph: Arrastra y suelta un archivo Excel aquí
+  - paragraph: o
+  - button "Explorar Archivos"
+  - paragraph: "Archivos soportados: .xlsx, .xls (máx. 10MB)"
+  - button "Cancelar"
+  - button "Continuar con Excel" [disabled]

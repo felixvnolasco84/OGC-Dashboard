@@ -1,0 +1,181 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - link "Volver al registro":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - text: Volver al registro
+  - paragraph: Registro de información
+  - heading "Nueva RFI" [level=1]
+  - paragraph: Lote 77 · Completa la pregunta, el flujo y sus referencias.
+  - generic: "1"
+  - heading "Pregunta" [level=2]
+  - paragraph: Define con precisión qué información falta y por qué es necesaria.
+  - generic: Asunto*
+  - textbox "Asunto*":
+    - /placeholder: Ej. Confirmar especificación de impermeabilización
+  - generic: Antecedentes
+  - textbox "Antecedentes":
+    - /placeholder: Contexto del hallazgo, decisiones previas o información disponible
+  - generic: Pregunta*
+  - textbox "Pregunta*":
+    - /placeholder: Formula una pregunta concreta que pueda responderse oficialmente
+  - heading "Flujo" [level=2]
+  - paragraph: Asigna responsabilidad, audiencia y fecha límite.
+  - generic: Responsable de la RFI
+  - combobox "Responsable de la RFI":
+    - generic: Seleccionar responsable
+  - paragraph: "No es un rol adicional: esta responsabilidad puede asignarse a miembros con rol Administrador o Usuario."
+  - generic: Recibida de
+  - combobox "Recibida de":
+    - generic: Sin especificar
+  - generic: Fecha límite
+  - button "Fecha límite": Sin fecha
+  - text: Personas asignadas
+  - paragraph: Marca quién puede responder y cuáles respuestas son obligatorias.
+  - button "- Sin asignar":
+    - generic: "-"
+    - generic: Sin asignar
+  - paragraph: Puedes guardar el borrador sin asignados; deberán definirse antes de abrirlo.
+  - text: Lista de distribución
+  - checkbox "Cristobal Espino 1977eirc@gmail.com"
+  - generic: Cristobal Espino
+  - generic: 1977eirc@gmail.com
+  - checkbox "cristobal.espino cristobal.espino@aldafa.com.mx"
+  - generic: cristobal.espino
+  - generic: cristobal.espino@aldafa.com.mx
+  - checkbox "Felix Enrique Vega Nolasco felixvnolasco@hotmail.com"
+  - generic: Felix Enrique Vega Nolasco
+  - generic: felixvnolasco@hotmail.com
+  - checkbox "Felix Enrique Vega Nolasco felixvnolasco@gmail.com"
+  - generic: Felix Enrique Vega Nolasco
+  - generic: felixvnolasco@gmail.com
+  - checkbox "Isaac procopio yzakpro471@gmail.com"
+  - generic: Isaac procopio
+  - generic: yzakpro471@gmail.com
+  - checkbox "Jorge Sánchez Arriaga jorge@ogc.mx"
+  - generic: Jorge Sánchez Arriaga
+  - generic: jorge@ogc.mx
+  - checkbox "Jose Ogarrio jose@ogc.mx"
+  - generic: Jose Ogarrio
+  - generic: jose@ogc.mx
+  - checkbox "Jose Ogarrio joseogarrio@gmail.com"
+  - generic: Jose Ogarrio
+  - generic: joseogarrio@gmail.com
+  - checkbox "Proto Lemus proto@ogc.mx"
+  - generic: Proto Lemus
+  - generic: proto@ogc.mx
+  - checkbox "Rodrigo Ogarrio rodrigo@ogc.mx"
+  - generic: Rodrigo Ogarrio
+  - generic: rodrigo@ogc.mx
+  - checkbox "Saul Aguirre saula@ogc.mx"
+  - generic: Saul Aguirre
+  - generic: saula@ogc.mx
+  - checkbox "Zurisadai Montiel Perdomo zurisadai@ogc.mx"
+  - generic: Zurisadai Montiel Perdomo
+  - generic: zurisadai@ogc.mx
+  - generic: "3"
+  - heading "Referencias" [level=2]
+  - paragraph: La RFI queda vinculada al proyecto actual; selecciona su partida, familia y subpartida.
+  - generic: Proyecto
+  - textbox "Proyecto": Lote 77
+  - generic: Partida
+  - combobox "Partida":
+    - generic: Sin partida vinculada
+  - generic: Familia
+  - combobox "Familia" [disabled]:
+    - generic: Seleccionar familia
+  - generic: Subpartida
+  - combobox "Subpartida" [disabled]:
+    - generic: Seleccionar subpartida
+  - generic: Plano (opcional)
+  - textbox "Plano (opcional)":
+    - /placeholder: Ej. ARQ-203
+  - generic: "4"
+  - heading "Impacto y evidencia" [level=2]
+  - paragraph: Registra la evaluación inicial; puede permanecer por determinar.
+  - generic: Impacto en costo
+  - combobox "Impacto en costo":
+    - generic: Por determinar
+  - generic: Impacto en programa
+  - combobox "Impacto en programa":
+    - generic: Por determinar
+  - text: Imágenes y adjuntos
+  - paragraph: Puedes agregar una o más imágenes, además de documentos de soporte.
+  - text: Agregar imágenes o archivos
+  - button "Imágenes y adjuntos Agregar imágenes o archivos"
+  - checkbox "RFI privada Solo creador, responsable, asignados, distribución y administradores podrán verla."
+  - text: RFI privada
+  - generic: Solo creador, responsable, asignados, distribución y administradores podrán verla.
+  - paragraph: Nueva RFI · Asunto por completar
+  - paragraph:
+    - text: Al enviar quedará pendiente de revisión de
+    - strong: una persona responsable por seleccionar
+    - text: . Podrá seguir editándose con los permisos actuales y ya no podrá eliminarse como borrador.
+  - paragraph: "Adjuntos: 0 conservados, 0 por subir y 0 por retirar. El guardado se realiza antes de subir los archivos; si una carga falla, podrás completar sólo los adjuntos pendientes."
+  - paragraph: El folio se asignará al crear la RFI.
+  - paragraph: "Nueva RFI · Al enviar: pendiente de revisión de un responsable por seleccionar. Ya no podrá eliminarse como borrador. Adjuntos: 0 por subir y 0 por retirar."
+  - link "Cancelar":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+  - button "Guardar borrador":
+    - text: Guardar borrador
+  - button "Enviar a revisión" [disabled]:
+    - text: Enviar a revisión
+- region "Notifications alt+T"

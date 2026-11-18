@@ -1,0 +1,713 @@
+- list:
+  - button:
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - button: P&L Mensual
+  - button: Work in progress
+  - button: Project profitability
+  - combobox:
+    - generic: Los Cabos
+  - button [expanded]:
+  - button:
+  - button:
+    - text: Cargar movimientos
+  - paragraph: Ingresos OGC YTD
+  - paragraph:
+    - generic: $2.0M
+  - generic: Ene-Nov 2026
+  - paragraph: Estructura YTD
+  - paragraph:
+    - generic: $0
+  - generic: 0.0% de ingresos
+  - paragraph: EBITDA YTD
+  - paragraph:
+    - generic: $2.0M
+  - generic: 100.0% de margen
+  - heading [level=2]: ESTADO DE RESULTADOS
+  - button:
+  - paragraph: Movimientos reales acumulados Ene-Nov 2026
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Concepto
+        - columnheader: Ene 2026
+        - columnheader: Feb 2026
+        - columnheader: Mar 2026
+        - columnheader: Abr 2026
+        - columnheader: May 2026
+        - columnheader: Jun 2026
+        - columnheader: Jul 2026
+        - columnheader: Ago 2026
+        - columnheader: Sep 2026
+        - columnheader: Oct 2026
+        - columnheader: Nov 2026
+    - rowgroup:
+      - row:
+        - cell:
+          - generic: INGRESOS OGC
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+      - row:
+        - cell:
+          - generic: HONORARIOS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: 49,283
+        - cell:
+          - generic: 52,169
+        - cell:
+          - generic: 282,833
+        - cell:
+          - generic: 370,275
+        - cell:
+          - generic: 230,305
+        - cell:
+          - generic: 42,910
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: INDIRECTOS COBRADOS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: 46,564
+        - cell:
+          - generic: 49,290
+        - cell:
+          - generic: 267,228
+        - cell:
+          - generic: 349,846
+        - cell:
+          - generic: 217,599
+        - cell:
+          - generic: 40,543
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: TOTAL INGRESOS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: 95,848
+        - cell:
+          - generic: 101,459
+        - cell:
+          - generic: 550,061
+        - cell:
+          - generic: 720,121
+        - cell:
+          - generic: 447,904
+        - cell:
+          - generic: 83,453
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: COSTO ESTRUCTURA
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+      - row:
+        - cell:
+          - generic: COSTOS REALES DE INDIRECTOS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: NOMINA
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: TRANSPORTE
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: RENTA
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: OTROS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: TOTAL ESTRUCTURA
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: COSTO HISTÓRICO DE INDIRECTOS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: SALDO DE INDIRECTOS
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: 46,564
+        - cell:
+          - generic: 49,290
+        - cell:
+          - generic: 267,228
+        - cell:
+          - generic: 349,846
+        - cell:
+          - generic: 217,599
+        - cell:
+          - generic: 40,543
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: EBITDA
+          - generic: "%"
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: 95,848
+          - generic: 100.00%
+        - cell:
+          - generic: 101,459
+          - generic: 100.00%
+        - cell:
+          - generic: 550,061
+          - generic: 100.00%
+        - cell:
+          - generic: 720,121
+          - generic: 100.00%
+        - cell:
+          - generic: 447,904
+          - generic: 100.00%
+        - cell:
+          - generic: 83,453
+          - generic: 100.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+      - row:
+        - cell:
+          - generic: IMPUESTOS SOBRE RESULTADO
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+      - row:
+        - cell:
+          - generic: ISR CORPORATIVO
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: (3,834)
+        - cell:
+          - generic: (4,058)
+        - cell:
+          - generic: (22,002)
+        - cell:
+          - generic: (28,805)
+        - cell:
+          - generic: (17,916)
+        - cell:
+          - generic: (3,338)
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: PTU
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: (958)
+        - cell:
+          - generic: (1,015)
+        - cell:
+          - generic: (5,501)
+        - cell:
+          - generic: (7,201)
+        - cell:
+          - generic: (4,479)
+        - cell:
+          - generic: (835)
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: UTILIDAD NETA
+          - generic: "%"
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+        - cell:
+          - generic: 91,055
+          - generic: 95.00%
+        - cell:
+          - generic: 96,386
+          - generic: 95.00%
+        - cell:
+          - generic: 522,558
+          - generic: 95.00%
+        - cell:
+          - generic: 684,115
+          - generic: 95.00%
+        - cell:
+          - generic: 425,509
+          - generic: 95.00%
+        - cell:
+          - generic: 79,281
+          - generic: 95.00%
+        - cell:
+          - generic: "0"
+          - generic: 0.00%
+      - row:
+        - cell:
+          - generic: INFORMATIVO
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+      - row:
+        - cell:
+          - generic: CARGA SOCIAL OBRA (SIROC - RECUPERABLE)
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+      - row:
+        - cell:
+          - generic: FLUJO FISCAL (IVA + RETENCIONES)
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+        - cell:
+          - generic: "0"
+  - heading [level=2]: COSTO ESTRUCTURA OGC
+  - paragraph: Acumulado Ene-Nov 2026
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Categoría
+        - columnheader: Monto
+        - columnheader: "% estructura"
+    - rowgroup:
+      - row:
+        - cell: COSTOS REALES DE INDIRECTOS
+        - cell:
+          - generic: $0
+        - cell: 0%
+      - row:
+        - cell: NOMINA
+        - cell:
+          - generic: $0
+        - cell: 0%
+      - row:
+        - cell: CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)
+        - cell:
+          - generic: $0
+        - cell: 0%
+      - row:
+        - cell: TRANSPORTE
+        - cell:
+          - generic: $0
+        - cell: 0%
+      - row:
+        - cell: RENTA
+        - cell:
+          - generic: $0
+        - cell: 0%
+      - row:
+        - cell: OTROS
+        - cell:
+          - generic: $0
+        - cell: 0%
+      - row:
+        - cell: TOTAL ESTRUCTURA
+        - cell:
+          - generic: $0
+        - cell: 0%
+  - heading [level=2]: EBITDA OGC
+  - paragraph: Acumulado Ene-Nov 2026
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader: Concepto
+        - columnheader: Monto
+    - rowgroup:
+      - row:
+        - cell: HONORARIOS OGC
+        - cell:
+          - generic: $1.0M
+      - row:
+        - cell: INDIRECTOS COBRADOS
+        - cell:
+          - generic: $971.1k
+      - row:
+        - cell: INGRESOS OGC
+        - cell:
+          - generic: $2.0M
+      - row:
+        - cell: COSTOS OGC
+        - cell:
+          - generic: $0
+      - row:
+        - cell:
+          - text: SALDO DE INDIRECTOS
+          - generic: Cobrados menos costos reales y costo histórico
+        - cell:
+          - generic: $971.1k
+      - row:
+        - cell:
+          - generic: EBITDA
+          - generic: "%"
+        - cell:
+          - generic: $2.0M
+          - generic: 100.00%
+- region "Notifications alt+T"
+- dialog "Configuracion P&L":
+  - heading "Configuracion P&L" [level=2]
+  - paragraph: Ajusta periodo, conversion de moneda e impuestos aplicados al estado de resultados.
+  - text: Supuestos activos
+  - paragraph: Los cambios se reflejan inmediatamente en las metricas y tablas.
+  - paragraph: Periodo activo
+  - paragraph: Ene-Nov 2026
+  - button "Restablecer" [active]:
+    - text: Restablecer
+  - paragraph: Periodo
+  - paragraph: Define el acumulado YTD y el mes resaltado.
+  - text: Anio
+  - spinbutton: "2026"
+  - text: Corte
+  - combobox:
+    - generic: Nov
+  - generic: $
+  - paragraph: Conversion
+  - paragraph: Tipo de cambio para movimientos no MXN.
+  - text: USD/MXN
+  - spinbutton: "17"
+  - text: EUR/MXN
+  - spinbutton: "18.5"
+  - paragraph: Impuestos
+  - paragraph: Porcentajes editables para resultado e informativos.
+  - text: ISR
+  - spinbutton: "4"
+  - text: PTU
+  - spinbutton: "1"
+  - text: SIROC
+  - spinbutton: "0"
+  - text: IVA/Ret
+  - spinbutton: "0"
+  - button "Listo"
+  - button "Close":
+    - generic: Close

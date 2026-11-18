@@ -1,0 +1,86 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - button "P&L Mensual"
+  - button "Work in progress" [active]
+  - button "Project profitability"
+  - combobox "Filtrar Profit & Loss por ubicación":
+    - generic: Los Cabos
+  - button "Configuracion P&L":
+  - button "Ledger movimientos OGC":
+  - button "Cargar movimientos":
+    - text: Cargar movimientos
+  - paragraph: Backlog total contratado
+  - paragraph:
+    - generic "$49,757,583.19": $49.8M
+  - generic: 1 obras activas
+  - paragraph: Costo real acumulado
+  - paragraph:
+    - generic "$10,566,364.04": $10.6M
+  - generic: 21% ejecutado
+  - paragraph: Ingresos cobrados registrados
+  - paragraph:
+    - generic "$15,808,443.07": $15.8M
+  - generic: Ingresos y OGC a la fecha
+  - paragraph: Backlog pendiente
+  - paragraph:
+    - generic "$33,949,140.12": $33.9M
+  - generic: Por facturar
+  - heading "OBRAS ACTIVAS - ESTADO AL CORTE" [level=2]
+  - paragraph: Costo real - Saldo y runway de Tesorería
+  - paragraph: Saldo = cobrado acumulado - costo real. Runway = saldo disponible al ritmo semanal del promedio histórico de egresos.
+  - table:
+    - rowgroup:
+      - row "Obra Presupuesto Costo real EAC Varianza CPI Cobrado registrado Saldo Runway":
+        - columnheader "Obra"
+        - columnheader "Presupuesto"
+        - columnheader "Costo real"
+        - columnheader "EAC"
+        - columnheader "Varianza"
+        - columnheader "CPI"
+        - columnheader "Cobrado registrado"
+        - columnheader "Saldo"
+        - columnheader "Runway"
+    - rowgroup:
+      - button "Ver desglose de ingresos de Lote 77":
+        - cell "Lote 77":
+          - generic: Lote 77
+        - cell "$49.8M":
+          - generic "$49,757,583.19": $49.8M
+        - cell "$10.6M":
+          - generic "$10,566,364.04": $10.6M
+        - cell "$33.0M":
+          - generic "$32,990,561.29": $33.0M
+        - cell "$16.8M":
+          - generic "$16,767,021.90": $16.8M
+        - cell "1.51x"
+        - cell "$15.8M":
+          - generic "$15,808,443.07": $15.8M
+        - cell "$5.2M":
+          - generic "$5,242,079.03": $5.2M
+        - cell "15.9 sem"
+- region "Notifications alt+T"

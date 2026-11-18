@@ -1,0 +1,394 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Proveedores
+  - heading "Lote 77" [level=1]
+  - link "Gestionar proveedores":
+    - /url: /proveedores
+  - generic: "Total: 24"
+  - textbox "Buscar por razón social, RFC, contacto o banco..."
+  - table:
+    - rowgroup:
+      - row "Razón Social RFC Dirección Nombre Contacto Teléfono Contacto Cuenta CLABE Banco Transacciones Monto Total":
+        - columnheader "Razón Social"
+        - columnheader "RFC"
+        - columnheader "Dirección"
+        - columnheader "Nombre Contacto"
+        - columnheader "Teléfono Contacto"
+        - columnheader "Cuenta"
+        - columnheader "CLABE"
+        - columnheader "Banco"
+        - columnheader "Transacciones"
+        - columnheader "Monto Total"
+    - rowgroup:
+      - row "ACEROS CABOS SA DE CV 10 $807,521.06":
+        - cell "ACEROS CABOS SA DE CV":
+          - generic: ACEROS CABOS SA DE CV
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "10":
+          - generic: "10"
+        - cell "$807,521.06"
+      - row "AMY JACKELINE FLORES MEJIA 1 $85,215.00":
+        - cell "AMY JACKELINE FLORES MEJIA":
+          - generic: AMY JACKELINE FLORES MEJIA
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$85,215.00"
+      - row "BERNARDO JAVIER FLORES FLOMEL 1 $271,222.67":
+        - cell "BERNARDO JAVIER FLORES FLOMEL":
+          - generic: BERNARDO JAVIER FLORES FLOMEL
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$271,222.67"
+      - row "BERNARDO JAVIER FLORES HERNANDEZ 1 $264,000.00":
+        - cell "BERNARDO JAVIER FLORES HERNANDEZ":
+          - generic: BERNARDO JAVIER FLORES HERNANDEZ
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$264,000.00"
+      - row "CEMEX SAB DE CV 3 $922,571.20":
+        - cell "CEMEX SAB DE CV":
+          - generic: CEMEX SAB DE CV
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "3":
+          - generic: "3"
+        - cell "$922,571.20"
+      - row "CESAR ASAF GODINEZ SILVA 1 $55,758.88":
+        - cell "CESAR ASAF GODINEZ SILVA":
+          - generic: CESAR ASAF GODINEZ SILVA
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$55,758.88"
+      - row "CYNTHIA VANESSA MACIAS JUAREZ 2 $2,689.99":
+        - cell "CYNTHIA VANESSA MACIAS JUAREZ":
+          - generic: CYNTHIA VANESSA MACIAS JUAREZ
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "2":
+          - generic: "2"
+        - cell "$2,689.99"
+      - row "DISPERSIÓN 11 $1,213,163.68":
+        - cell "DISPERSIÓN":
+          - generic: DISPERSIÓN
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "11":
+          - generic: "11"
+        - cell "$1,213,163.68"
+      - row "EDGAR AGUIÑIGA GARCIA 2 $6,480.00":
+        - cell "EDGAR AGUIÑIGA GARCIA":
+          - generic: EDGAR AGUIÑIGA GARCIA
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "2":
+          - generic: "2"
+        - cell "$6,480.00"
+      - row "EFECTIVO 10 $495,858.05":
+        - cell "EFECTIVO":
+          - generic: EFECTIVO
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "10":
+          - generic: "10"
+        - cell "$495,858.05"
+      - row "FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV 1 $27,000.00":
+        - cell "FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV":
+          - generic: FERRETERIA Y PLOMERIA SANTANA S DE RL DE CV
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$27,000.00"
+      - row "FERRETERÍA Y PLOMERÍA SANTANA, SA DE CV 2 $78,880.00":
+        - cell "FERRETERÍA Y PLOMERÍA SANTANA, SA DE CV":
+          - generic: FERRETERÍA Y PLOMERÍA SANTANA, SA DE CV
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "2":
+          - generic: "2"
+        - cell "$78,880.00"
+      - row "JESUS LIZARRAGA CALLEROS 2 $17,284.00":
+        - cell "JESUS LIZARRAGA CALLEROS":
+          - generic: JESUS LIZARRAGA CALLEROS
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "2":
+          - generic: "2"
+        - cell "$17,284.00"
+      - row "MARIA REYNA NAVARRETE CORTEZ 3 $367,146.15":
+        - cell "MARIA REYNA NAVARRETE CORTEZ":
+          - generic: MARIA REYNA NAVARRETE CORTEZ
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "3":
+          - generic: "3"
+        - cell "$367,146.15"
+      - row "MAS O MENOS DE B C S SA DE CV 1 $23,036.41":
+        - cell "MAS O MENOS DE B C S SA DE CV":
+          - generic: MAS O MENOS DE B C S SA DE CV
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$23,036.41"
+      - row "MATCO RENTAS 2 $7,401.20":
+        - cell "MATCO RENTAS":
+          - generic: MATCO RENTAS
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "2":
+          - generic: "2"
+        - cell "$7,401.20"
+      - row "MATERIALES DE ALTA CALIDAD MATERIX 1 $10,672.00":
+        - cell "MATERIALES DE ALTA CALIDAD MATERIX":
+          - generic: MATERIALES DE ALTA CALIDAD MATERIX
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$10,672.00"
+      - row "OGC DEVELOPMENTS 1 $276,580.00":
+        - cell "OGC DEVELOPMENTS":
+          - generic: OGC DEVELOPMENTS
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$276,580.00"
+      - row "PABLO PEREZ VARILLA 2 $290,000.00":
+        - cell "PABLO PEREZ VARILLA":
+          - generic: PABLO PEREZ VARILLA
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "2":
+          - generic: "2"
+        - cell "$290,000.00"
+      - row "PABLO VARILLAS 1 $187,920.00":
+        - cell "PABLO VARILLAS":
+          - generic: PABLO VARILLAS
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$187,920.00"
+      - row "SAUL ANDRE 4 $11,100.00":
+        - cell "SAUL ANDRE":
+          - generic: SAUL ANDRE
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "4":
+          - generic: "4"
+        - cell "$11,100.00"
+      - row "SOCAL CONSTRUCTORA Y ARRENDADORA S DE RL DE CV 1 $93,229.25":
+        - cell "SOCAL CONSTRUCTORA Y ARRENDADORA S DE RL DE CV":
+          - generic: SOCAL CONSTRUCTORA Y ARRENDADORA S DE RL DE CV
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "1":
+          - generic: "1"
+        - cell "$93,229.25"
+      - row "VARIOS 7 $13,358.52":
+        - cell "VARIOS":
+          - generic: VARIOS
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "7":
+          - generic: "7"
+        - cell "$13,358.52"
+      - row "VILLAGOMEZ JURADO S.A. DE C.V. 4 $361,492.75":
+        - cell "VILLAGOMEZ JURADO S.A. DE C.V.":
+          - generic: VILLAGOMEZ JURADO S.A. DE C.V.
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell
+        - cell "4":
+          - generic: "4"
+        - cell "$361,492.75"
+- region "Notifications alt+T"

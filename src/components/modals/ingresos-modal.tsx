@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -39,7 +39,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +59,7 @@ import {
   CalendarIcon,
   RefreshCw,
   FileSpreadsheet,
+  History,
 } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import {
@@ -117,6 +120,11 @@ export default function IngresosModal() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [incomeActionsOpen, setIncomeActionsOpen] = useState(false);
+  const [incomeHistoryOpen, setIncomeHistoryOpen] = useState(false);
+  const incomeActionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+  const pendingIncomeAction = useRef<"history" | "bulk" | null>(null);
   const [editingOgcMovement, setEditingOgcMovement] = useState<OgcIncomeMovement | null>(null);
 
   // Document attachment state
@@ -190,6 +198,12 @@ export default function IngresosModal() {
       resetBulkUpload();
     }
   }, [isOpen, resetForm]);
+
+  useEffect(() => {
+    setIncomeActionsOpen(false);
+    setIncomeHistoryOpen(false);
+    pendingIncomeAction.current = null;
+  }, [isOpen, context?.projectId]);
 
   useEffect(() => {
     if (!canManageIngresos) {
@@ -466,6 +480,7 @@ export default function IngresosModal() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
+        ref={dialogContentRef}
         data-square-modal=""
         variant="ledger"
       >
@@ -867,31 +882,47 @@ export default function IngresosModal() {
           )}
 
           {!showForm && !showBulkUpload && context && (
-            <div className="flex flex-wrap items-center justify-end gap-2 border-b border-border px-4 py-2">
-              <IncomeImportHistoryDialog projectId={context.projectId} />
-              {canManageIngresos && <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  resetBulkUpload();
-                  setShowBulkUpload(true);
-                }}
-
-                title="Carga masiva desde Excel"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                Carga masiva
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleAddNew}
-              >
-                <Plus className="h-4 w-4" />
-                Nuevo
-              </Button>
-              </>}
+            <div className="flex items-center justify-end gap-2 border-b border-border px-4 py-2">
+              {canManageIngresos && <Button size="lg" onClick={handleAddNew}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Nuevo ingreso
+              </Button>}
+              <DropdownMenu open={incomeActionsOpen} onOpenChange={setIncomeActionsOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button ref={incomeActionsTriggerRef} variant="outline" size="iconLg" aria-label="Acciones de ingresos">
+                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent data-square-modal="" align="end" className="w-60" onCloseAutoFocus={event => {
+                  const action = pendingIncomeAction.current;
+                  pendingIncomeAction.current = null;
+                  if (!action) return;
+                  // Wait for the menu's focus scope to close before opening another surface.
+                  event.preventDefault();
+                  if (action === "history") setIncomeHistoryOpen(true);
+                  else if (canManageIngresos) {
+                    resetBulkUpload();
+                    setShowBulkUpload(true);
+                    dialogContentRef.current?.focus();
+                  }
+                }}>
+                  <DropdownMenuLabel>Importación</DropdownMenuLabel>
+                  <DropdownMenuGroup aria-label="Importación">
+                    {canManageIngresos && <DropdownMenuItem className="min-h-11 sm:min-h-9" onSelect={() => { pendingIncomeAction.current = "bulk"; setIncomeActionsOpen(false); }}>
+                      <FileSpreadsheet aria-hidden="true" />Carga masiva
+                    </DropdownMenuItem>}
+                    <DropdownMenuItem className="min-h-11 sm:min-h-9" onSelect={() => { pendingIncomeAction.current = "history"; setIncomeActionsOpen(false); }}>
+                      <History aria-hidden="true" />Historial de cargas
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <IncomeImportHistoryDialog key={context.projectId} projectId={context.projectId} open={isOpen && incomeHistoryOpen} onOpenChange={setIncomeHistoryOpen} showTrigger={false} onCloseAutoFocus={event => {
+                if (isOpen && incomeActionsTriggerRef.current) {
+                  event.preventDefault();
+                  incomeActionsTriggerRef.current.focus();
+                }
+              }} />
             </div>
           )}
 

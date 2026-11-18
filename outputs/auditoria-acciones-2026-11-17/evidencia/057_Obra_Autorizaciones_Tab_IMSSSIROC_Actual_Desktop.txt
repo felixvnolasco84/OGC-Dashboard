@@ -1,0 +1,126 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - tablist:
+    - tab "Permisos y legal"
+    - tab "Presupuestos y contratos"
+    - tab "IMSS y SIROC" [active] [selected]
+  - tabpanel "IMSS y SIROC":
+    - paragraph: Avance global IMSS
+    - paragraph: Costo Total Obra IMSS
+    - paragraph: $0.00
+    - paragraph: Base total registrada ante IMSS
+    - paragraph: Contratista General
+    - paragraph: $0.00
+    - paragraph: ~20% del costo de obra ejecutado directamente
+    - paragraph: Subcontratistas
+    - paragraph: $0.00
+    - paragraph: ~80% participación de subcontratistas
+    - generic: 0% liquidado
+    - generic: "Pendiente: $0.00"
+    - generic: Las cuotas IMSS se estiman en función de la base de obra registrada y los salarios reportados. Incluyen aportaciones obrero-patronales, INFONAVIT y SAR, y se determinan mediante el SUA.
+    - heading "Contratista General" [level=3]
+    - generic: Contratista
+    - generic: Contrato
+    - generic: Pagos
+    - generic: No hay contratistas generales registrados
+    - heading "Subcontratistas" [level=3]
+    - generic: "SIROC: Sin número"
+    - paragraph: Subcontratistas
+    - paragraph: $0.00
+    - paragraph: Avance Total
+    - paragraph: $0.00
+    - generic: 0%
+    - generic: Subcontratista
+    - generic: Partida
+    - generic: SIROC
+    - generic: Monto Avance
+    - generic: PABLO PEREZ VARILLAS
+    - generic: ALBAÑILERÍAS
+    - generic: —
+    - generic: 0%
+    - generic: $0.00
+    - button:
+    - generic: LUIS MIGUEL ESCUTIA
+    - generic: GAS
+    - generic: —
+    - generic: 0%
+    - generic: $0.00
+    - button:
+    - generic: SANCHEZ DE HARO
+    - generic: ELECTRICIDAD
+    - generic: —
+    - generic: 0%
+    - generic: $0.00
+    - button:
+    - generic: BERNARDO J. FLORES
+    - generic: PLOMERÍA
+    - generic: —
+    - generic: 0%
+    - generic: $0.00
+    - button:
+    - generic: CESAR ASAF GODINEZ SILVA
+    - generic: HERRERÍA
+    - generic: —
+    - generic: 0%
+    - generic: $0.00
+    - button:
+- region "Notifications alt+T"

@@ -1,0 +1,40 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com" [active]:
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Gestión de Usuarios" [level=1]
+  - paragraph: Administra roles y permisos de acceso a proyectos
+  - link "Agregar Usuario":
+    - /url: /usuarios/nuevo
+    - text: Agregar Usuario
+  - generic: Usuarios (1)
+  - button "Felix Enrique Vega Nolasco felixvnolasco@gmail.com 1 proyecto(s)":
+    - paragraph: Felix Enrique Vega Nolasco
+    - paragraph: felixvnolasco@gmail.com
+    - generic: 1 proyecto(s)
+  - generic: Selecciona un usuario
+  - generic: Selecciona un usuario de la lista para editar sus permisos
+- region "Notifications alt+T"

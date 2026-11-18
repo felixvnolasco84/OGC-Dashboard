@@ -14,6 +14,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -32,6 +33,9 @@ import {
   CreditCard,
   FileText,
   MoreHorizontal,
+  FileSpreadsheet,
+  History,
+  Receipt,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
@@ -45,7 +49,6 @@ import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { DeletePartidaDialog } from "@/components/Presupuesto/DeletePartidaDialog";
 import { cn, formatPercentage } from "@/lib/utils";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
-import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 
 type CurrencyMetricProps = {
@@ -100,6 +103,7 @@ export default function PresupuestoPage() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const isAdmin = currentUser?.role === "admin";
   const canCreateTransactions = Boolean(currentUser && currentUser.role !== "viewer");
+  const canWriteBudget = Boolean(currentUser && currentUser.role !== "viewer" && currentUser.role !== "almacenista");
 
   const [selectedPartidas, setSelectedPartidas] = useState<string[]>([]);
   const [selectedFamilias, setSelectedFamilias] = useState<string[]>([]);
@@ -113,10 +117,19 @@ export default function PresupuestoPage() {
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [budgetOriginalOpen, setBudgetOriginalOpen] = useState(false);
+  const actionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const pendingActionRef = useRef<(() => void) | null>(null);
   const [showPrecioUnitario, setShowPrecioUnitario] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Doc<"partidas"> | null>(null);
+
+  // Run modal actions only after Radix has removed the menu and restored focus.
+  const runAfterActionsClose = (action: () => void) => {
+    pendingActionRef.current = action;
+    setIsActionsOpen(false);
+  };
 
   useEffect(() => { setDeleteTarget(null); }, [proyectoId]);
 
@@ -375,6 +388,7 @@ export default function PresupuestoPage() {
     ? (metrics.gasto_total / metrics.presupuesto_aprobado) * 100
     : 0;
   const totalIngresos = (ingresosTotals?.total_ingresos || 0) + (ogcIngresosTotals?.total_ingresos || 0);
+  const isBudgetIncomplete = proyecto?.initial_budget_status === "incomplete";
 
 
   // Loading state
@@ -398,25 +412,9 @@ export default function PresupuestoPage() {
               <p className="text-base text-muted-foreground mb-1">Presupuesto</p>
               <h1 className="text-2xl text-foreground">{proyecto.nombre}</h1>
             </div>
-            <div className="flex flex-wrap items-start gap-3">
-              <BudgetOriginalDialog projectId={proyecto._id} />
-              {/* <Button
-                onClick={() => selectedDesarrollo && addPartidaModal.onOpen({
-                  proyecto: selectedDesarrollo._id,
-                  projectName: selectedDesarrollo.nombre
-                })}
-                variant={"outline"}
-                size={"lg"}
-                disabled={!selectedDesarrollo}
-                className="flex justify-center items-center gap-2 rounded-none text-muted-foreground py-6 "
-              >
-                Reporte
-                <Download className="h-6 w-6 rounded-full shadow-none" />
-              </Button> */}
-
-
+            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:w-auto">
               {/* Total Ingresos - Based on image reference */}
-              <div className="min-w-0 w-full sm:w-auto"><Card variant="metric">
+              <div className="min-w-0"><Card variant="metric">
                 <CardContent variant="flush">
                   <div className="cursor-pointer" onClick={handleOpenIngresos} aria-label="Ver ingresos del proyecto">
                     <span className="flex flex-col items-start gap-1 text-left">
@@ -445,70 +443,118 @@ export default function PresupuestoPage() {
                 </CardContent>
               </Card></div>
 
-              <AddTransactionMenu
-                visible={canCreateTransactions && proyecto.initial_budget_status !== "incomplete"}
-                onAddPayment={handleOpenAddPayment}
-                onUploadExcel={() => {
-                  uploadProjectTransactionsModal.onOpen(proyecto._id, proyecto.nombre);
-                }}
-                onUploadInvoice={() => setInvoiceOpen(true)}
-              />
-
               <DropdownMenu open={isActionsOpen} onOpenChange={setIsActionsOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="quiet"
+                    ref={actionsTriggerRef}
+                    variant="outline"
                     size="iconLg"
-                    disabled={!proyecto || proyecto.initial_budget_status === "incomplete"}
+                    className="mt-5 shrink-0"
+                    data-viewer-readonly-allow="true"
                   >
-                    <span className="sr-only">Abrir acciones de presupuesto</span>
+                    <span className="sr-only">Acciones de presupuesto</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" sideOffset={6}>
-                  <DropdownMenuGroup>
-                    {isAdmin ? (
-                      <DropdownMenuItem
-                        onSelect={() => {
-                          setIsActionsOpen(false);
-                          navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
-                        }}
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={6}
+                  className="w-64 max-w-[calc(100vw-2rem)] rounded-none [&_[role=menuitem]]:min-h-11 sm:[&_[role=menuitem]]:min-h-9"
+                  onCloseAutoFocus={() => {
+                    const action = pendingActionRef.current;
+                    pendingActionRef.current = null;
+                    if (action) window.setTimeout(action, 0);
+                  }}
+                >
+                  {(canCreateTransactions || canWriteBudget) && <>
+                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Crear y registrar</DropdownMenuLabel>
+                    <DropdownMenuGroup aria-label="Crear y registrar">
+                      {canCreateTransactions && <DropdownMenuItem
+                        disabled={isBudgetIncomplete}
+                        onSelect={() => runAfterActionsClose(handleOpenAddPayment)}
                       >
-                        <FileText className="h-4 w-4" />
-                        Crear reporte financiero
-                      </DropdownMenuItem>
-                    ) : null}
+                        <CreditCard className="h-4 w-4" />
+                        Agregar pago
+                      </DropdownMenuItem>}
+                      {canWriteBudget && <DropdownMenuItem
+                        disabled={isBudgetIncomplete}
+                        onSelect={() => runAfterActionsClose(handleOpenAddPartida)}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Agregar partida
+                      </DropdownMenuItem>}
+                      {canCreateTransactions && <>
+                        <DropdownMenuItem
+                          disabled={isBudgetIncomplete}
+                          onSelect={() => runAfterActionsClose(() => uploadProjectTransactionsModal.onOpen(proyecto._id, proyecto.nombre))}
+                        >
+                          <FileSpreadsheet className="h-4 w-4" />
+                          Subir Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={isBudgetIncomplete}
+                          onSelect={() => runAfterActionsClose(() => setInvoiceOpen(true))}
+                        >
+                          <Receipt className="h-4 w-4" />
+                          Cargar factura
+                        </DropdownMenuItem>
+                      </>}
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                  </>}
+                  <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Consultar</DropdownMenuLabel>
+                  <DropdownMenuGroup aria-label="Consultar">
                     <DropdownMenuItem
-                      onSelect={() => {
-                        setIsActionsOpen(false);
-                        window.setTimeout(handleOpenIngresos, 100);
-                      }}
+                      disabled={isBudgetIncomplete}
+                      onSelect={() => runAfterActionsClose(handleOpenIngresos)}
                     >
                       <CreditCard className="h-4 w-4" />
                       {hasIncomeManagementAccess(currentUser) ? "Gestionar ingresos" : "Ver ingresos"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={() => {
-                        setIsActionsOpen(false);
-                        window.setTimeout(handleOpenAddPartida, 100);
-                      }}
+                      data-viewer-readonly-allow="true"
+                      onSelect={() => runAfterActionsClose(() => setBudgetOriginalOpen(true))}
                     >
-                      <Plus className="h-4 w-4" />
-                      Agregar partida
+                      <History className="h-4 w-4" />
+                      Excel de origen
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem
+                        disabled={isBudgetIncomplete}
+                        onSelect={() => runAfterActionsClose(() => {
+                          navigate(`/proyecto/${proyectoId}/reportes?sections=executive,financial,earned_value,cashflow,variances`);
+                        })}
+                      >
+                        <FileText className="h-4 w-4" />
+                        Crear reporte financiero
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem
-                      onSelect={() => { void handleSync(); }}
-                      disabled={isSyncing}
-                    >
-                      <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
-                      {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
+                  {canWriteBudget && <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Mantenimiento</DropdownMenuLabel>
+                    <DropdownMenuGroup aria-label="Mantenimiento">
+                      <DropdownMenuItem
+                        onSelect={() => runAfterActionsClose(() => { void handleSync(); })}
+                        disabled={isSyncing || isBudgetIncomplete}
+                      >
+                        <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} />
+                        {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>}
                 </DropdownMenuContent>
               </DropdownMenu>
+              <BudgetOriginalDialog
+                projectId={proyecto._id}
+                open={budgetOriginalOpen}
+                onOpenChange={setBudgetOriginalOpen}
+                hideTrigger
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                  actionsTriggerRef.current?.focus();
+                }}
+              />
             </div>
           </div>
         </div>

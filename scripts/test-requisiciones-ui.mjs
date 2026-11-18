@@ -79,6 +79,10 @@ async function menuAction(page, id, label) {
     await card(page, id).getByRole("button", { name: "Acciones de requisición", exact: true }).click();
     await page.getByRole("menuitem", { name: label, exact: true }).click();
 }
+async function headerMenuAction(page, label) {
+    await page.getByRole("button", { name: "Acciones de requisiciones", exact: true }).click();
+    await page.getByRole("menuitem", { name: label, exact: true }).click();
+}
 async function closeDialog(page) {
     // Radix registers dismissal after the portal mounts; visibility can precede that effect.
     await page.locator('[role="dialog"], [role="alertdialog"]').evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -216,7 +220,7 @@ try {
         await menuAction(page, "pending", "Eliminar");
         await snapshot(page, `delete-${width}`);
         await closeDialog(page);
-        await page.getByRole("button", { name: "Notificaciones", exact: true }).click();
+        await headerMenuAction(page, "Notificaciones");
         await snapshot(page, `notifications-${width}`);
         await page.getByRole("dialog").getByRole("button", { name: "Ver requisiciones", exact: true }).scrollIntoViewIfNeeded();
         await snapshot(page, `notifications-preview-${width}`);
@@ -347,8 +351,11 @@ try {
             await card(page).getByRole("button", { name: "Expandir requisición", exact: true }).click();
             assert.equal(await visibleQuantity(page).count(), role === "finance" ? 1 : 0);
         }
-        assert.equal(await page.getByRole("button", { name: "Notificaciones", exact: true }).count(), role === "finance" ? 1 : 0);
-        assert.equal(await page.getByRole("button", { name: "Nueva Requisición", exact: true }).count(), ["user", "contratista"].includes(role) ? 1 : 0);
+        assert.equal(await page.getByRole("button", { name: "Nueva requisición", exact: true }).count(), ["user", "contratista"].includes(role) ? 1 : 0);
+        await page.getByRole("button", { name: "Acciones de requisiciones", exact: true }).click();
+        assert.equal(await page.getByRole("menuitem", { name: "Notificaciones", exact: true }).count(), role === "finance" ? 1 : 0);
+        await expect(page.getByRole("menuitem", { name: "Historial", exact: true })).toBeVisible();
+        await page.keyboard.press("Escape");
         await openContext(page, role === "almacenista" ? "paid" : "pending");
         const menu = contextMenu(page);
         const canManage = ["user", "contratista"].includes(role);
@@ -397,7 +404,7 @@ try {
         await page.getByRole("button", { name: "Asignar este Proveedor", exact: true }).scrollIntoViewIfNeeded();
         await snapshot(page, `short-provider-${width}`);
         await closeDialog(page);
-        await page.getByRole("button", { name: "Notificaciones", exact: true }).click();
+        await headerMenuAction(page, "Notificaciones");
         await page.getByRole("dialog").getByRole("button", { name: "Enviar correo", exact: true }).scrollIntoViewIfNeeded();
         await snapshot(page, `short-notifications-${width}`);
         await closeDialog(page);

@@ -1,0 +1,43 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Proyecciones de gasto" [level=1]
+  - paragraph: Revisa el Excel antes de confirmar. Cada carga conservará su original y su resultado.
+  - generic: Seleccionar proyecto
+  - combobox "Proyecto de proyecciones" [active]:
+    - generic: Lote 77
+  - generic: Cargar Excel
+  - button "Historial de cargas":
+    - text: Historial de cargas
+  - generic: Lote 77
+  - region "Importar proyecciones":
+    - paragraph: Selecciona o arrastra un Excel
+    - paragraph: .xlsx o .xls · Hasta 10 MB · Lote 77
+    - button "Archivo Excel de proyecciones"
+    - button "Elegir Excel"
+    - paragraph: La validación no modifica las cifras ni crea historial. El intento se registra al confirmar.
+- region "Notifications alt+T"

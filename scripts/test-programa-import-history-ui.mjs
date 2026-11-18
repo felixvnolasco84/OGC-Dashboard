@@ -34,7 +34,11 @@ try {
       if (await dialog.count()) assert.equal(await dialog.last().evaluate(el => el.scrollWidth > el.clientWidth), false, `dialog overflow at ${width}`);
     };
     const capture = async name => { await page.waitForTimeout(240); await overflow(); await page.screenshot({ path: `${output}/${name}-${width}.png`, fullPage: false }); };
-    const history = async () => { await page.getByRole("button", { name: "Historial de cargas", exact: true }).focus(); await page.keyboard.press("Enter"); await expect(page.getByRole("heading", { name: "Historial de cargas · Programa de obra" })).toBeVisible(); };
+    const history = async () => {
+      await page.getByRole("button", { name: "Archivo", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Historial de cargas", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Historial de cargas · Programa de obra" })).toBeVisible();
+    };
     const read = () => page.evaluate(() => window.programImportTest);
     const validate = async ext => {
       await page.getByRole("button", { name: "Archivo", exact: true }).click();

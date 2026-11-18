@@ -1,0 +1,45 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Proyectos de Ventas" [level=1]
+  - paragraph: Gestiona y consulta todos tus proyectos de ventas
+  - button "Agregar Proyecto de Ventas":
+    - text: Agregar Proyecto de Ventas
+  - textbox "Buscar..."
+  - table:
+    - rowgroup:
+      - row "Proyecto Total Ventas Comisión Fecha creación Status":
+        - columnheader "Proyecto"
+        - columnheader "Total Ventas"
+        - columnheader "Comisión"
+        - columnheader "Fecha creación"
+        - columnheader "Status"
+        - columnheader
+    - rowgroup:
+      - row "No se encontraron proyectos de ventas":
+        - cell "No se encontraron proyectos de ventas"
+- region "Notifications alt+T"

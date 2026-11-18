@@ -20,9 +20,10 @@ type Props = {
   items: ProgramaItem[];
   onCancel: () => void;
   onExport: (selection: ProgramaObraExportSelection) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
-export default function ProgramaObraExportDialog({ items, onCancel, onExport }: Props) {
+export default function ProgramaObraExportDialog({ items, onCancel, onExport, onCloseAutoFocus }: Props) {
   const expandableItems = items.filter((item) => item.children.length > 0);
   const [breakdownIds, setBreakdownIds] = useState<Set<string>>(
     () => new Set(expandableItems.map((item) => item.id)),
@@ -40,7 +41,7 @@ export default function ProgramaObraExportDialog({ items, onCancel, onExport }: 
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent data-viewer-readonly-allow="true" className="rounded-none">
+      <DialogContent data-viewer-readonly-allow="true" className="rounded-none" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>Exportar programa a PDF</DialogTitle>
           <DialogDescription>

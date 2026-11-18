@@ -1,0 +1,1646 @@
+src/components/assistant/AssistantComposer.tsx
+  L185 Button:  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} 
+  L210 button:  <span className="block truncate text-sm font-medium text-foreground">{suggestion.label}</span> <span className="block truncate text-xs text-muted-foreground">{suggestion.subtitle}</span> 
+  L238 button:  <X className="h-3 w-3" /> 
+
+
+src/components/assistant/ProjectAssistantPanel.tsx
+  L202 button:  {prompt} 
+  L334 Button:  <ArrowLeft className="h-4 w-4" /> 
+  L350 Button:  <History className="h-4 w-4" /> 
+  L354 Button:  <Plus className="h-4 w-4" /> 
+  L358 Button:  <Archive className="h-4 w-4" /> 
+  L368 Button:  <Plus className="h-4 w-4" /> Nuevo chat 
+  L378 button:  <p className="truncate text-sm font-medium text-foreground">{conversation.title}</p> <p className="mt-1 text-xs text-disabled-foreground">{formatConversationDate(conversation.updated_at)}</p> 
+  L412 button:  {prompt} 
+  L439 Button:  <RotateCcw className="h-3.5 w-3.5" /> Reintentar 
+  L464 Button:  <RotateCcw className="h-3.5 w-3.5" /> Reintentar 
+  L342 SheetTitle: {showHistory ? "Historial" : currentConversation?.title || "Asistente de proyectos"}
+
+src/components/Auth/AuthButton.tsx
+  L33 Button: Iniciar Sesión
+  L36 Button: Registrarse
+
+
+src/components/Bitacora/BitacoraCalendarView.tsx
+  L40 Button: Hoy
+  L43 Button: <ChevronLeft />
+  L44 Button: <ChevronRight />
+  L54 Button:  <span>{day}</span> <Plus className="h-3 w-3 text-muted-foreground" /> 
+  L67 Button:  <Eye className="h-3 w-3 shrink-0" /> <span className="truncate">{entry.categoria}</span> 
+
+
+src/components/Bitacora/BitacoraGalleryModal.tsx
+  L54 Button: <X />
+  L130 Button:  <MessageSquareText /> <span className="hidden sm:inline">Comentarios</span> 
+  L137 Button: <X />
+  L150 Button: <ChevronLeft />
+  L151 Button: <ChevronRight />
+  L166 Button:  {source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-on-color/10"><ImageOff className="h-5 w-5" /></span>} 
+  L125 DialogTitle:  {logTitle ? `${logTitle} - Foto` : current?.nombre || "Foto de Bitácora"} 
+
+src/components/Bitacora/BitacoraListView.tsx
+  L124 button:  <MoreVertical className="h-5 w-5 text-muted-foreground" /> 
+  L133 button:  <Eye className="h-4 w-4" /> Ver detalles 
+  L143 button:  <Edit2 className="h-4 w-4" /> Editar 
+  L153 button:  <Trash2 className="h-4 w-4" /> Eliminar 
+
+
+src/components/Bitacora/BitacoraModal.tsx
+  L86 Button:  {photo.downloadRequested || online ? <Download className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />} {photo.downloadRequested ? "En espera" : online ? "Descargar" : "Al reconectar"} 
+  L371 Button: <X />
+  L384 SelectTrigger: <SelectValue placeholder="Selecciona una categoría" />
+  L393 SelectTrigger: <SelectValue placeholder="Selecciona una partida" />
+  L416 Button: <CalendarIcon /> {fecha || "Selecciona una fecha"}
+  L425 SelectTrigger: <SelectValue placeholder="Selecciona un responsable" />
+  L432 SelectTrigger: <SelectValue />
+  L449 Button: {isFullscreen ? <Minimize2 /> : <Maximize2 />}
+  L450 Button: <ChevronLeft />
+  L450 Button: <ChevronRight />
+  L454 Button: {source ? <img src={source} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-muted"><ImageOff className="h-5 w-5" /></span>}
+  L461 Button: <Upload className="h-7 w-7 text-disabled-foreground" /> <span className="block text-sm text-muted-foreground md:text-base">Haz clic para agregar fotos</span> <span className="block text-xs text-muted-foreground md:text-sm">PNG, JPG, JPEG hasta 10MB</span>
+  L468 Button: <Trash2 />
+  L483 Button: <Download />
+  L488 Button: <FileText className="h-6 w-6 text-disabled-foreground" /> <span className="block text-sm text-muted-foreground">Haz clic para agregar documentos</span> <span className="block text-xs text-muted-foreground">PDF, DOC, DOCX, XLS, XLSX hasta 10MB</span>
+  L490 Button: <Trash2 />
+  L498 Button: <Pencil /> Editar
+  L498 Button: Cerrar
+  L498 Button: Cancelar
+  L498 Button: {submitting && <Loader2 className="animate-spin" />} {modal.mode === "create" ? "Crear Entrada" : "Guardar Cambios"}
+  L368 DialogTitle: {modalTitle}
+
+src/components/Bitacora/BitacoraStatus.tsx
+  L55 Button:  <RefreshCw aria-hidden="true" className={r.isBusy ? "motion-safe:animate-spin" : ""} /> <span>{retryLabel}</span> 
+  L100 Button: <Link to="/sign-in">Iniciar sesión</Link>
+  L114 Button: <Link to="/sign-in">Iniciar sesión</Link>
+
+
+src/components/Cards/PaymentCard.tsx
+  L155 Button:  <Edit className="h-4 w-4" /> Editar pago 
+
+
+src/components/Cards/TransactionCard.tsx
+  L110 Button:  <Edit className="h-4 w-4" /> 
+  L212 Button:  <FileText className="w-4 h-4 text-muted-foreground" /> <span className="text-sm text-foreground font-medium"> {doc.nombre} </span> <ExternalLink className="w-3 h-3 text-muted-foreground" /> 
+
+
+src/components/Charts/ChartConfigModal.tsx
+  L297 button: 
+  L377 button:  <span>{tab.label}</span> {count > 0 && ( <span className={cn( "min-w-4 px-1 text-[10px] tabular-nums", isActive ? "text-background/80" : "text-muted-foreground" )} > {count} </span> )} 
+  L421 button:  Limpiar 
+  L446 Button:  Restablecer 
+  L461 Button:  Cancelar 
+  L470 Button:  {isSaving ? ( <> <Loader2 className="h-4 w-4 animate-spin" /> Guardando </> ) : ( "Guardar" )} 
+  L264 DialogTitle: Configurar gráfica
+
+src/components/Charts/FamiliaChart.tsx
+  L228 button:  <Settings className="w-5 h-5 text-muted-foreground" /> 
+
+
+src/components/Charts/SaleChartConfigModal.tsx
+  L224 button:  <div className="flex items-center justify-between"> <span>{partida}</span> {selectedPartidas.includes(partida) && ( <Check className="h-4 w-4 text-blue-600" /> )} </div> 
+  L262 button:  <div className="flex items-center justify-between"> <span>{familia}</span> {selectedFamilias.includes(familia) && ( <Check className="h-4 w-4 text-green-600" /> )} </div> 
+  L300 button:  <div className="flex items-center justify-between"> <span>{subPartida}</span> {selectedSubPartidas.includes(subPartida) && ( <Check className="h-4 w-4 text-purple-600" /> )} </div> 
+  L348 Button:  Restablecer 
+  L351 Button:  Cancelar 
+  L354 Button:  {isSaving ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando... </> ) : ( "Guardar" )} 
+  L162 DialogTitle: Configurar Gráfica
+
+src/components/comments/CommentThread.tsx
+  L359 Button:  Revisar con esta versión 
+  L454 Button:  Cancelar 
+  L462 Button:  {busy ? "Guardando…" : mode === "edit" ? "Guardar comentario" : "Publicar comentario"} 
+  L477 Button:  Agregar comentario 
+  L523 Button:  <Pencil className="h-4 w-4" /> 
+  L534 Button:  <Trash2 className="h-4 w-4" /> 
+  L625 Button:  {busy ? "Eliminando…" : "Eliminar comentario"} 
+  L666 Button:  Descartar borrador 
+  L576 AlertDialogTitle: ¿Eliminar este comentario?
+  L658 AlertDialogTitle: ¿Descartar el borrador?
+
+src/components/documents/DocumentFolderNavigation.tsx
+  L125 Button:  <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> {!collapsed && <span className="truncate">{node.name}</span>} 
+  L155 button:  <Folder className="h-4 w-4 shrink-0 text-muted-foreground" /> {!collapsed && <span className="truncate">{node.name}</span>} 
+  L164 button:  <ChevronDown className="h-3.5 w-3.5 transition-transform [[data-state=open]_&]:rotate-0 [[data-state=closed]_&]:-rotate-90" /> 
+  L211 button: 
+  L224 Button:  <PanelLeft className="h-5 w-5" /> <span className="sr-only">{collapsed ? "Expandir carpetas" : "Colapsar carpetas"}</span> 
+  L242 Button:  <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" /> {!collapsed && ( <> <span className="truncate">{rootLabel}</span> <span className="ml-auto text-xs text-disabled-foreground">{folderItemCount.get("root") || 0}</span> </> )} 
+  L448 Button:  <ArrowLeft className="h-5 w-5" /> Mas ubicaciones 
+  L459 button:  {rootLabel} 
+  L465 button:  {folder.nombre} 
+  L479 button:  Nombre <span className="text-xs uppercase text-disabled-foreground">Asc</span> 
+  L507 button:  <Folder className={cn( "h-5 w-5 shrink-0 fill-gray-800 text-foreground", targetFolderId === folder._id && "fill-blue-600 text-blue-600" )} /> <span className="truncate">{folder.nombre}</span> 
+  L525 Button:  Mover 
+  L535 Button:  <ChevronRight className="h-6 w-6" /> 
+  L577 Button:  Cancelar 
+  L584 Button:  Crear 
+  L597 Button:  <Plus className="h-4 w-4" /> Nueva carpeta 
+  L606 Button:  Cancelar 
+  L609 Button:  Mover 
+  L641 button:  {name} {subtitle && <span className="ml-2 text-sm text-muted-foreground">{subtitle}</span>} 
+  L646 Button:  Mover 
+  L651 Button:  <ChevronRight className="h-6 w-6" /> 
+  L402 DialogTitle: Mover " {itemName} "
+
+src/components/DropdownMenu/DropdownMenuComponenPartida.tsx
+  L173 Button:  <span className="sr-only">Abrir menú</span> <MoreHorizontal className="h-4 w-4" /> 
+  L186 DropdownMenuItem:  <Pencil className="h-4 w-4" /> Editar {labels.title.toLowerCase()} 
+  L191 DropdownMenuItem:  <Trash2 className="h-4 w-4" /> Eliminar {level === 0 ? "partida" : level === 1 ? "familia" : "subpartida"} 
+  L201 DropdownMenuItem: Excel de origen
+  L202 DropdownMenuItem:  <Link to={`/proyecto/${partida.proyecto}/partidas/${partida._id}`}>Detalle de partida</Link> 
+  L205 DropdownMenuItem:  {isLoadingPayments ? ( <Loader2 className="h-4 w-4 animate-spin" /> ) : ( <CreditCard className="h-4 w-4" /> )} {isLoadingPayments ? "Cargando..." : level === 2 ? "Ver pagos" : "Ver transacciones"} 
+  L165 DialogTitle: Excel de origen
+  L223 DialogTitle: {labels.editTitle}
+
+src/components/DropdownMenu/DropdownMenuComponentSalesPartida.tsx
+  L172 Button:  <span className="sr-only">Open menu</span> <MoreHorizontal className="h-4 w-4" /> 
+  L180 DropdownMenuItem:  <Pencil className="h-4 w-4" /> Editar {labels.title.toLowerCase()} 
+  L189 DropdownMenuItem:  <CreditCard className="h-4 w-4" /> {level === 2 ? 'Ver pagos' : `Ver transacciones`} 
+  L198 DropdownMenuItem:  {} {(level === 2 || (level === 1 && !hasSubPartidas)) ? <FileText className="h-4 w-4" /> : <MoreHorizontalIcon className="h-4 w-4" />} {labels.viewDetailsText} 
+  L211 DialogTitle: {labels.editTitle}
+
+src/components/Forms/EditPartidaForm.tsx
+  L48 Button: Reintentar
+  L50 Button: Cancelar
+  L191 Button: {refreshing ? "Actualizando revisión…" : conflict ? "Actualizar revisión" : "Reintentar revisión"}
+  L198 Button: Seguir editando
+  L198 Button: Descartar cambios
+  L199 Button: Cancelar
+  L199 Button: {saving && <Loader2 className="h-4 w-4 animate-spin" />} {saving ? "Guardando…" : "Actualizar"}
+
+
+src/components/Forms/EditSalesPartidaForm.tsx
+  L332 Button:  Cancelar 
+  L339 Button:  Actualizar 
+
+
+src/components/ingresos/IncomeBulkUpload.tsx
+  L57 Button: <ArrowLeft className="h-4 w-4" />
+  L59 Button: Nueva carga
+  L59 Button: Volver a ingresos
+  L60 Button: Recuperar carga anterior
+  L62 Button: <X className="h-4 w-4" />
+  L64 Button: {validating && <Loader2 className="h-4 w-4 animate-spin" />} {validating ? "Validando..." : "Validar archivo"}
+  L69 Button: Cancelar
+  L69 Button: {workflow.busy ? "Guardando respaldo e ingresos..." : `Cargar ${validCount} ingreso(s)`}
+
+
+src/components/ingresos/IncomeImportHistory.tsx
+  L37 Button:  {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Descargar Excel 
+  L58 Button: Anterior
+  L58 Button: Siguiente
+  L82 Button: {workflow.busy ? "Recuperando..." : "Continuar carga"}
+  L82 Button: Descartar intento
+  L94 Button: <History className="h-4 w-4" /> Historial de cargas
+  L99 Button: {expandedId === attempt._id ? "Ocultar registros" : "Ver registros"}
+  L112 Button: <FileSpreadsheet className="h-4 w-4" />
+  L95 DialogTitle: Historial de cargas de ingresos
+  L113 DialogTitle: Archivo Excel de origen
+
+src/components/invoices/InvoiceAnalysisPanel.tsx
+  L227 Button:  {isSubmitting ? <Loader2 className="animate-spin" /> : status ? <RefreshCw /> : <Bot />} {status ? "Analizar de nuevo" : "Analizar factura"} 
+  L321 SelectTrigger: <SelectValue placeholder="Sin clasificar" />
+  L343 Button: <XCircle /> Rechazar
+  L344 Button: {isSubmitting ? <Loader2 className="animate-spin" /> : <ShieldCheck />} Aprobar desglose
+
+
+src/components/invoices/InvoiceBackfillDialog.tsx
+  L108 Button:  Facturas IA {queue?.length ? <Badge className="ml-1 rounded-full px-1.5">{queue.length}</Badge> : <Bot className="h-5 w-5" />} 
+  L125 button:  <span><span className="block font-medium">{invoice.folio || invoice.issuer_name || "Factura sin folio"}</span><span className="text-xs text-muted-foreground">{invoice.status}</span></span> <span className="text-xs text-primary">Abrir revisión</span> 
+  L136 Button: {submitting ? <Loader2 className="animate-spin" /> : <FileClock />} Analizar {selected.size || ""}
+  L153 Button:  {candidatesStatus === "LoadingMore" ? <Loader2 className="animate-spin" /> : null} Cargar más documentos 
+  L115 DialogTitle: Facturas y revisión con IA
+
+src/components/invoices/InvoiceIntakeDialog.tsx
+  L129 Button:  <span className="line-clamp-2">{selected?.label || "Seleccionar partida / familia / subpartida"}</span> <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" /> 
+  L437 Button:  Cargar factura <Upload className="h-5 w-5" /> 
+  L461 SelectTrigger: <SelectValue placeholder="Selecciona el proyecto" />
+  L482 Button:  {isUploading ? <Loader2 className="animate-spin" /> : <Bot />} {isUploading ? "Subiendo…" : "Subir y analizar"} 
+  L498 Button:  <span className="block truncate text-sm font-medium">{row.folio || row.issuer_name || "Factura en análisis"}</span> <span className="mt-1 block text-xs text-muted-foreground">{row.project_name} · {row.status}</span> 
+  L518 Button: Cargar otra factura
+  L521 Button: Volver
+  L531 Button: Abrir existente
+  L556 SelectTrigger: <SelectValue placeholder="Selecciona el proveedor" />
+  L560 Button: <Plus />
+  L564 SelectTrigger: <SelectValue />
+  L566 SelectTrigger: <SelectValue />
+  L567 SelectTrigger: <SelectValue />
+  L602 Button: Volver a cargas
+  L603 Button: <XCircle /> Rechazar
+  L604 Button: {isSubmitting ? <Loader2 className="animate-spin" /> : <CheckCircle2 />} Aprobar e integrar
+  L448 DialogTitle: Cargar y clasificar factura
+
+src/components/modals/add-partida-modal.tsx
+  L770 Button:  <Plus className="h-4 w-4 mr-1" /> Agregar Partida 
+  L780 SelectTrigger:  <SelectValue placeholder="Usar partida existente como padre…" /> 
+  L847 Button:  Cancelar 
+  L855 Button:  {isSubmitting ? "Guardando..." : `Guardar ${itemsToCreate} elemento${ itemsToCreate === 1 ? "" : "s" }`} 
+  L931 Button:  <Chevron className="h-4 w-4" /> 
+  L955 Button:  <Trash2 className="h-4 w-4" /> 
+  L1004 Button:  <Plus className="h-3.5 w-3.5 mr-1" /> Agregar Familia 
+  L1020 SelectTrigger:  <SelectValue placeholder="Usar familia existente…" /> 
+  L1071 Button:  <Chevron className="h-4 w-4" /> 
+  L1097 Button:  <Trash2 className="h-4 w-4" /> 
+  L1137 Button:  <Plus className="h-3.5 w-3.5 mr-1" /> Agregar Sub-partida 
+  L1172 Button:  <Trash2 className="h-4 w-4" /> 
+  L756 SheetTitle: Agregar Elementos al Presupuesto
+
+src/components/modals/add-payment-modal.tsx
+  L339 Button:  <Check className={cn( "h-5 w-5", status === 'Pagado' ? "text-success" : "text-disabled-foreground" )} /> <span className={cn( "text-base", status === 'Pagado' ? "text-foreground font-medium" : "text-muted-foreground" )}>Pagado</span> 
+  L355 Button:  <Circle className={cn( "h-5 w-5", status === 'Por pagar' ? "text-muted-foreground" : "text-disabled-foreground" )} /> <span className={cn( "text-base", status === 'Por pagar' ? "text-foreground font-medium" : "text-muted-foreground" )}>Por pagar</span> 
+  L381 Button:  <Plus className="mr-2 h-4 w-4" /> Nuevo 
+  L388 Button:  <span className="truncate">{providers?.find(provider => provider._id === proveedorId)?.razon_social || "Sin proveedor"}</span> <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" /> 
+  L432 Button:  {partida.isExpanded ? ( <ChevronDown className="h-4 w-4" /> ) : ( <ChevronRight className="h-4 w-4" /> )} 
+  L448 SelectTrigger:  <SelectValue placeholder="Seleccionar partida" /> 
+  L460 Button:  <Trash2 className="h-4 w-4 text-danger" /> 
+  L478 Button:  {familia.isExpanded ? ( <ChevronDown className="h-3 w-3" /> ) : ( <ChevronRight className="h-3 w-3" /> )} 
+  L494 SelectTrigger:  <SelectValue placeholder="Seleccionar familia" /> 
+  L506 Button:  <X className="h-3 w-3 text-danger" /> 
+  L553 SelectTrigger:  <SelectValue placeholder="Sub-partida" /> 
+  L576 Button:  <X className="h-3 w-3 text-disabled-foreground" /> 
+  L587 Button:  <Plus className="h-3 w-3 mr-1" /> Agregar Sub-partida 
+  L602 Button:  <Plus className="h-4 w-4 mr-1" /> Agregar Familia 
+  L616 Button:  <Plus className="h-4 w-4 mr-2" /> Agregar Partida 
+  L636 SelectTrigger: <SelectValue placeholder="Seleccionar categoría" />
+  L652 SelectTrigger:  <SelectValue placeholder="Tipo de pago" /> 
+  L666 SelectTrigger:  <SelectValue placeholder="Moneda" /> 
+  L689 Button:  <span className="flex items-center gap-2"> <CalendarDays className="h-4 w-4 text-muted-foreground" /> {fecha ? new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long", year: "numeric" }) .format(new Date(Number(fecha.slice(0, 4)), Number(fecha.slice(5, 7)) - 1, Number(fecha.slice(8, 10)))) : "Elegir fecha"} </span> <ChevronDown className="h-4 w-4 text-muted-foreground" /> 
+  L768 SelectTrigger:  <SelectValue placeholder="Seleccionar tipo de documento" /> 
+  L800 Button:  Cambiar archivo 
+  L856 Button:  Cancelar 
+  L859 Button:  {isSubmitting || isUploadingDocument ? ( <> <Loader2 className="h-4 w-4 mr-2 animate-spin" /> {isUploadingDocument ? 'Subiendo documento...' : 'Guardando...'} </> ) : ( `Guardar ${totalPayments} pago(s)` )} 
+  L329 SheetTitle: Registrar pagos
+
+src/components/modals/add-proyecto-modal.tsx
+  L246 SelectTrigger:  <SelectValue placeholder="Selecciona una ubicación" /> 
+  L313 Button:  Cambiar Archivo 
+  L321 Button:  Eliminar 
+  L350 Button:  Explorar Archivos 
+  L377 Button:  {creation.attemptId ? "Cerrar y conservar intento" : "Cancelar"} 
+  L380 Button:  {isSubmitting ? 'Guardando y creando…' : 'Crear proyecto y guardar Excel'} 
+  L391 Button:  Finalizar 
+  L195 SheetTitle:  <FolderPlus className="h-5 w-5" /> {showExcelUploader ? "Subir Excel del Proyecto" : "Crear Nuevo Proyecto"} 
+
+src/components/modals/add-sale-payment-modal.tsx
+  L314 button:  <Check className={cn( "h-5 w-5", status === 'Pagado' ? "text-green-600" : "text-disabled-foreground" )} /> <span className={cn( "text-base", status === 'Pagado' ? "text-foreground font-medium" : "text-muted-foreground" )}>Pagado</span> 
+  L333 button:  <Circle className={cn( "h-5 w-5", status === 'Por pagar' ? "text-muted-foreground" : "text-disabled-foreground" )} /> <span className={cn( "text-base", status === 'Por pagar' ? "text-foreground font-medium" : "text-muted-foreground" )}>Por pagar</span> 
+  L385 button:  {partida.isExpanded ? ( <ChevronDown className="h-4 w-4" /> ) : ( <ChevronRight className="h-4 w-4" /> )} 
+  L400 SelectTrigger:  <SelectValue placeholder="Seleccionar partida" /> 
+  L412 Button:  <Trash2 className="h-4 w-4 text-red-600" /> 
+  L431 button:  {familia.isExpanded ? ( <ChevronDown className="h-3 w-3" /> ) : ( <ChevronRight className="h-3 w-3" /> )} 
+  L446 SelectTrigger:  <SelectValue placeholder="Seleccionar familia" /> 
+  L458 Button:  <X className="h-3 w-3 text-red-600" /> 
+  L522 SelectTrigger:  <SelectValue placeholder="Sub-partida" /> 
+  L545 Button:  <X className="h-3 w-3 text-disabled-foreground" /> 
+  L557 Button:  <Plus className="h-3 w-3 mr-1" /> Agregar Sub-partida 
+  L573 Button:  <Plus className="h-4 w-4 mr-1" /> Agregar Familia 
+  L589 Button:  <Plus className="h-4 w-4 mr-2" /> Agregar Partida 
+  L604 SelectTrigger:  <SelectValue placeholder="Categoría (anticipo, material, estimación)" /> 
+  L616 SelectTrigger:  <SelectValue placeholder="Tipo de pago" /> 
+  L627 SelectTrigger:  <SelectValue placeholder="Moneda" /> 
+  L691 SelectTrigger:  <SelectValue placeholder="Seleccionar tipo de documento" /> 
+  L734 Button:  Cambiar archivo 
+  L767 Button:  Cancelar 
+  L770 Button:  {isSubmitting ? 'Guardando...' : `Guardar ${totalPayments} pago(s)`} 
+  L304 SheetTitle: Pagos Múltiples
+
+src/components/modals/add-sales-project-modal.tsx
+  L385 Button:  Cambiar Archivo 
+  L393 Button:  Eliminar 
+  L422 Button:  Explorar Archivos 
+  L445 Button:  Cancelar 
+  L448 Button:  {isSubmitting ? 'Creando...' : 'Continuar con Excel'} 
+  L459 Button:  Finalizar 
+  L303 SheetTitle:  <FolderPlus className="h-5 w-5" /> {showExcelUploader ? "Subir Excel del Proyecto de Ventas" : "Crear Nuevo Proyecto de Ventas"} 
+
+src/components/modals/aggregated-details-modal.tsx
+
+  L93 SheetTitle:  {context?.name ?? "Resumen"} 
+
+src/components/modals/edit-proyecto-modal.tsx
+  L234 SelectTrigger:  <SelectValue placeholder="Selecciona una ubicación" /> 
+  L267 SelectTrigger:  <SelectValue /> 
+  L386 SelectTrigger:  <SelectValue placeholder="Selecciona status" /> 
+  L401 Button: Usar valores actuales en esos campos
+  L405 Button: Revisar actualización
+  L417 button: Ver impacto antes de guardar
+  L424 Button: Reintentar cálculo
+  L428 Button:  Cancelar 
+  L437 Button:  {isSubmitting ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando... </> ) : ( "Guardar Cambios" )} 
+  L182 DialogTitle:  Editar Proyecto 
+
+src/components/modals/edit-sales-project-modal.tsx
+  L159 SelectTrigger:  <SelectValue placeholder="Selecciona un estado" /> 
+  L189 Button:  Cancelar 
+  L192 Button:  {isSubmitting ? 'Guardando...' : 'Guardar Cambios'} 
+  L115 SheetTitle:  <Edit className="h-5 w-5" /> Editar Proyecto de Ventas 
+
+src/components/modals/FamiliaChartConfigModal.tsx
+  L263 Button:  Cancelar 
+  L266 Button:  Guardar Configuración 
+  L68 DialogTitle: Configurar Gráfica
+
+src/components/modals/fee-concept-editor.tsx
+  L74 SelectTrigger: <SelectValue placeholder="Selecciona una partida" />
+
+
+src/components/modals/ingresos-modal.tsx
+  L493 Button:  <X className="h-4 w-4" /> 
+  L528 SelectTrigger:  <SelectValue placeholder="Seleccionar moneda" /> 
+  L545 Button:  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" /> {formData.fecha || "Seleccionar fecha"} 
+  L595 Button:  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" /> <div className="min-w-0"> <p className="truncate text-sm font-medium text-foreground">{doc.nombre}</p> <p className="text-xs text-muted-foreground">{doc.type}</p> </div> <ExternalLink className="h-3.5 w-3.5 shrink-0 text-disabled-foreground" /> 
+  L623 Button:  {isReplacingDocument ? ( <Loader2 className="h-3.5 w-3.5 animate-spin" /> ) : ( <RefreshCw className="h-3.5 w-3.5" /> )} 
+  L705 Button:  <Trash2 className="h-3.5 w-3.5" /> 
+  L751 SelectTrigger:  <SelectValue placeholder="Seleccionar tipo" /> 
+  L778 Button:  Cambiar 
+  L827 Button:  Cancelar 
+  L834 Button:  {isSubmitting || isUploadingDocument ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isUploadingDocument ? "Subiendo documento..." : "Guardando..."} </> ) : isEditingAnyIngreso ? ( "Actualizar" ) : ( "Agregar" )} 
+  L873 Button:  <FileSpreadsheet className="h-4 w-4" /> Carga masiva 
+  L886 Button:  <Plus className="h-4 w-4" /> Nuevo 
+  L960 Button:  <FileText className="h-4 w-4" /> 
+  L990 Button:  <MoreHorizontal className="h-4 w-4" /> 
+  L995 DropdownMenuItem:  <Pencil className="mr-2 h-4 w-4" /> Editar 
+  L1000 DropdownMenuItem:  <ExternalLink className="mr-2 h-4 w-4" /> Ver documento 
+  L1007 DropdownMenuItem:  <Trash2 className="mr-2 h-4 w-4" /> {row.source === "ogc" ? "Anular" : "Eliminar"} 
+  L1032 Button:  <Plus className="h-4 w-4" /> Agregar primer ingreso 
+  L473 DialogTitle: Ingresos
+  L642 AlertDialogTitle: ¿Reemplazar documento?
+  L716 AlertDialogTitle: ¿Eliminar documento?
+
+src/components/modals/ogc-invoice-evidence-dialog.tsx
+  L78 Button:  <FileText className="h-3.5 w-3.5" /> <span className="truncate">{movement.factura_referencia || (canEdit ? "Agregar factura" : "Ver factura")}</span> {movement.factura_comprobante && <span aria-label="Con comprobante">•</span>} 
+  L98 Button: Quitar
+  L101 Button: Conservar archivo actual
+  L123 Button: Cerrar
+  L124 Button: {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : "Guardar factura"}
+  L86 DialogTitle: Factura del ingreso OGC
+
+src/components/modals/ogc-movements-upload-modal.tsx
+  L1272 TabsTrigger: Captura masiva
+  L1273 TabsTrigger: Archivo Excel
+  L1302 Button:  <Plus className="h-4 w-4" /> Agregar fila 
+  L1327 Button:  Cancelar 
+  L1330 Button:  Vista previa 
+  L1333 Button:  {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : partialSave ? "Reintentar pendientes" : "Guardar movimientos"} 
+  L1352 Button:  Cambiar 
+  L1372 Button:  Seleccionar archivo 
+  L1415 Button:  Cancelar 
+  L1418 Button:  Volver 
+  L1426 Button:  {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : partialSave ? "Reintentar pendientes" : `Confirmar carga (${excelPreview.preflight.validRows.length})`} 
+  L1438 Button:  Cancelar 
+  L1441 Button:  {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /> Validando...</> : "Validar archivo"} 
+  L1759 Button: <X className="h-4 w-4" />
+  L1771 Button: Anterior
+  L1772 Button: Siguiente
+  L1893 SelectTrigger:  <SelectValue /> 
+  L1911 SelectTrigger:  <SelectValue /> 
+  L1950 SelectTrigger:  <SelectValue /> 
+  L1985 SelectTrigger:  <SelectValue /> 
+  L2010 SelectTrigger:  <SelectValue /> 
+  L2049 Button: <X className="h-4 w-4" />
+  L2098 SelectTrigger:  <SelectValue /> 
+  L2107 Button:  <Paperclip className="h-4 w-4" /> Agregar 
+  L2145 button:  <X className="h-3.5 w-3.5" /> 
+  L2164 Button:  <Copy className="h-4 w-4" /> 
+  L2174 Button:  <Trash2 className="h-4 w-4" /> 
+  L1264 DialogTitle: Cargar movimientos OGC
+
+src/components/modals/project-fee-impact-review.tsx
+  L91 SelectTrigger: <SelectValue />
+
+
+src/components/modals/project-locations-modal.tsx
+  L116 Button:  {savingKey === "__create__" ? ( <Loader2 className="h-4 w-4 animate-spin" /> ) : ( <Plus className="h-4 w-4" /> )} Crear 
+  L173 Button:  {isSaving ? ( <Loader2 className="h-4 w-4 animate-spin" /> ) : ( <Check className="h-4 w-4" /> )} 
+  L188 Button:  <X className="h-4 w-4" /> 
+  L201 Button:  <Pencil className="h-4 w-4" /> 
+  L97 DialogTitle: Configurar ubicaciones
+
+src/components/modals/RequisicionHistoryModal.tsx
+  L560 button:  <X className="w-5 h-5 text-muted-foreground" /> 
+  L691 button:  Cerrar 
+
+
+src/components/modals/RequisicionModal.tsx
+  L651 Button:  <div className={cn("rounded-none p-0.5 border", tipo === "material" ? "bg-green-500 text-on-color" : "bg-muted h-5 w-5")}> {tipo === "material" && <Check className="h-2 w-2" />} </div> Material 
+  L663 Button:  <div className={cn("rounded-none p-0.5 border", tipo === "equipo" ? "bg-green-500 text-on-color" : "bg-muted h-5 w-5")}> {tipo === "equipo" && <Check className="h-2 w-2" />} </div> Equipo 
+  L688 SelectTrigger:  <SelectValue placeholder="Selecciona estado" /> 
+  L720 SelectTrigger:  <SelectValue placeholder="Selecciona Partida" /> 
+  L754 SelectTrigger:  <SelectValue placeholder="Selecciona Familia" /> 
+  L847 Button:  <Trash2 className="h-3 w-3" /> 
+  L875 Button:  Cambiar 
+  L904 SelectTrigger:  <SelectValue placeholder="Selecciona Sub-partida" /> 
+  L1015 Button:  <Plus className="h-3 w-3 mr-1" /> Agregar Sub-partida 
+  L1042 Button:  <Trash2 className="h-3 w-3 mr-1" /> Eliminar 
+  L1059 Button:  <Plus className="h-4 w-4 mr-1" /> Agregar Familia 
+  L1103 Button:  <CalendarIcon className="mr-2 h-4 w-4" /> {fecha_entrega || "Fecha de entrega"} 
+  L1212 Button:  <Trash2 className="w-4 h-4" /> 
+  L1261 Button:  <Trash2 className="h-4 w-4 text-muted-foreground" /> 
+  L1321 Button:  {isViewMode ? "Cerrar" : "Cancelar"} 
+  L1329 Button:  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />} {mode === "create" ? "Enviar solicitud" : "Guardar cambios"} 
+  L631 SheetTitle:  {mode === "create" && "Nueva Requisición"} {mode === "edit" && "Editar Requisición"} {mode === "view" && "Detalle de Requisición"} 
+  L1290 AlertDialogTitle: ¿Eliminar documento?
+
+src/components/modals/ReviewRequisicionModal.tsx
+  L190 button:  <X className="w-5 h-5 text-muted-foreground" /> 
+  L221 button:  Aprobar todos 
+  L227 button:  Rechazar todos 
+  L259 button:  {decision.status_revision === "aprobado" ? ( <Check className="w-4 h-4" /> ) : ( <X className="w-4 h-4" /> )} 
+  L336 button:  <MessageSquare className="w-3 h-3" /> {decision.nota_item ? "Editar nota" : "Agregar nota"} 
+  L396 button:  Cancelar 
+  L402 button:  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />} {isAllRejected ? "Rechazar Requisición" : isPartial ? "Aprobar Parcialmente" : "Aprobar Requisición"} 
+
+
+src/components/modals/sale-transaction-conceptos-modal.tsx
+
+  L73 DialogTitle: Conceptos de Transacción de Venta
+
+src/components/modals/sale-transaction-details-modal.tsx
+
+  L60 DialogTitle: Detalles de Transacción
+
+src/components/modals/sale-transaction-documentos-modal.tsx
+  L142 Button:  <ExternalLink className="h-4 w-4 mr-2" /> Ver documento 
+  L151 Button:  <Download className="h-4 w-4 mr-2" /> Descargar 
+  L71 DialogTitle: Documentos de Transacción de Venta
+
+src/components/modals/see-sales-transactions-details-modal.tsx
+  L115 Button:  Nuevo Pago <Plus className="h-3 w-3 bg-muted-foreground text-on-color p-0.5 rounded-none" /> 
+  L121 SheetTitle: Detalles de Pagos
+
+src/components/modals/see-transactions-details-modal.tsx
+  L120 Button:  Nuevo Pago <Plus /> 
+  L126 SheetTitle: Detalles de Pagos
+
+src/components/modals/transaction-conceptos-modal.tsx
+
+  L82 DialogTitle: Conceptos
+
+src/components/modals/transaction-details-modal.tsx
+  L270 SelectTrigger:  <SelectValue placeholder="Seleccionar proveedor" /> 
+  L283 Button:  {isSavingProvider ? <Loader2 className="animate-spin" /> : <Save />} Guardar proveedor 
+  L439 Button:  <a href={documentUrl} target="_blank" rel="noopener noreferrer"> <ExternalLink /> Abrir </a> 
+  L445 Button:  <a href={documentUrl} download={doc.nombre} target="_blank" rel="noopener noreferrer" aria-label={`Descargar ${doc.nombre}`} > <Download /> </a> 
+  L176 DialogTitle: Detalle de transacción
+
+src/components/modals/transaction-documentos-modal.tsx
+  L119 Button:  <a href={documentUrl} target="_blank" rel="noopener noreferrer"> <ExternalLink /> Abrir </a> 
+  L125 Button:  <a href={documentUrl} download={doc.nombre} target="_blank" rel="noopener noreferrer" aria-label={`Descargar ${doc.nombre}`} > <Download /> </a> 
+  L61 DialogTitle: Documentos
+
+src/components/modals/upload-documents-modal.tsx
+  L270 SelectTrigger:  <SelectValue placeholder="Selecciona un proyecto" /> 
+  L293 SelectTrigger:  <SelectValue placeholder={ !selectedProjectId ? "Primero selecciona un proyecto" : "Selecciona una transacción" } /> 
+  L331 Button:  Seleccionar Archivos 
+  L379 Button:  <X className="h-4 w-4" /> 
+  L420 SelectTrigger:  <SelectValue /> 
+  L455 Button:  Cancelar 
+  L463 Button:  {isUploading ? ( <> <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo... </> ) : ( `Subir ${pendingCount} archivo(s)` )} 
+  L248 DialogTitle: Subir Documentos
+
+src/components/modals/upload-project-transactions-modal.tsx
+  L419 Button:  Cambiar archivo 
+  L422 Button:  Eliminar 
+  L431 Button:  Explorar archivos 
+  L623 Button: Cancelar
+  L624 Button:  {isValidating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} {isValidating ? "Validando…" : "Validar datos"} 
+  L632 Button: Volver
+  L633 Button:  {isProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} {isProcessing ? "Procesando…" : `Confirmar carga (${validationReport?.transactions.length || 0})`} 
+  L639 Button: Cerrar
+  L386 DialogTitle: Subir pagos y fuerza laboral
+
+src/components/modals/upload-projections-modal.tsx
+
+  L14 DialogTitle: Subir proyecciones de gasto
+
+src/components/modals/upload-proyecto-documents-modal.tsx
+  L335 SelectTrigger:  <SelectValue placeholder="Sin transacción" /> 
+  L391 Button:  Seleccionar Archivos 
+  L439 Button:  <X className="h-4 w-4" /> 
+  L480 SelectTrigger:  <SelectValue /> 
+  L515 Button:  Cancelar 
+  L523 Button:  {isUploading ? ( <> <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo... </> ) : ( `Subir ${pendingCount} archivo(s)` )} 
+  L311 DialogTitle: Subir Documentos
+
+src/components/modals/upload-sales-project-transactions-modal.tsx
+  L642 Button:  Cambiar Archivo 
+  L650 Button:  Eliminar 
+  L679 Button:  Explorar Archivos 
+  L933 Button:  <Download className="h-3 w-3 mr-1" /> CSV 
+  L1023 Button:  Cancelar 
+  L1032 Button:  {isValidating ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Validando... </> ) : ( "Validar Datos" )} 
+  L1051 Button:  Volver 
+  L1064 Button:  {isProcessing ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando... </> ) : ( `Confirmar Carga (${(validationReport?.validTransactions || 0) + (validationReport?.partialTransactions || 0)} transacciones)` )} 
+  L1083 Button:  Cerrar 
+  L603 DialogTitle:  Subir Transacciones de Ventas desde Excel 
+
+src/components/modals/upload-sales-proyecto-documents-modal.tsx
+  L269 SelectTrigger:  <SelectValue placeholder="Selecciona un proyecto" /> 
+  L292 SelectTrigger:  <SelectValue placeholder={ !selectedSalesProyectoId ? "Primero selecciona un proyecto" : "Selecciona una transacción" } /> 
+  L330 Button:  Seleccionar Archivos 
+  L378 Button:  <X className="h-4 w-4" /> 
+  L419 SelectTrigger:  <SelectValue /> 
+  L454 Button:  Cancelar 
+  L462 Button:  {isUploading ? ( <> <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo... </> ) : ( `Subir ${pendingCount} archivo(s)` )} 
+  L247 DialogTitle: Subir Documentos de Ventas
+
+src/components/modals/upload-transactions-modal.tsx
+  L74 SelectTrigger:  <SelectValue placeholder="Selecciona un proyecto" /> 
+  L89 Button:  Cancelar 
+  L92 Button:  Continuar 
+  L53 DialogTitle: Importar transacciones
+
+src/components/modals/weekly-avance-modal.tsx
+  L249 Button:  Cancelar 
+  L257 Button:  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar Avance 
+  L147 DialogTitle:  <TrendingUp className="h-5 w-5 text-blue-600" /> Configurar Avance Real Semanal 
+
+src/components/payments/PaymentEditSheet.tsx
+  L30 Button: Cerrar
+  L98 SelectTrigger: <SelectValue />
+  L114 Button: Descartar cambios de conceptos eliminados
+  L117 Button: Actualizar base y revisión
+  L132 SelectTrigger: <SelectValue />
+  L165 Button: Cancelar
+  L166 Button: Volver a editar
+  L167 Button: {busy ? "Guardando…" : "Confirmar actualización"}
+  L168 Button: Revisar cambios
+  L28 SheetTitle: Editar {props.paymentId ? "concepto de pago" : "transacción"}
+  L109 SheetTitle: {reviewing ? "Revisar cambios" : paymentId ? "Editar concepto de pago" : "Editar transacción"}
+  L171 AlertDialogTitle: ¿Descartar la edición?
+
+src/components/payments/ProviderPaymentAccountPicker.tsx
+  L139 Button:  <span className="truncate">{selected ? `${selected.alias} · ${selected.banco} · ${selected.account_mask || selected.clabe_mask}` : selectedId ? "Cuenta no disponible; elige otra" : "Capturar manualmente o elegir cuenta"}</span> <ChevronDown className="h-4 w-4 shrink-0" /> 
+  L170 Button:  <Plus className="h-4 w-4" /> Guardar en biblioteca 
+  L173 Button:  Administrar biblioteca 
+  L197 Button: Editar
+  L198 Button: Archivar
+  L213 Button: Revisar
+  L220 SelectTrigger: <SelectValue placeholder="Seleccionar proveedor" />
+  L229 Button: Guardar cambios
+  L230 Button: Aprobar cuenta
+  L231 Button: Descartar
+  L186 DialogTitle: Biblioteca de cuentas
+
+src/components/Presupuesto/BudgetOriginal.tsx
+  L16 Button: Anterior
+  L17 Button: Siguiente
+  L64 Button: {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Descargar Excel
+  L66 Button: {creation.busy && <Loader2 className="h-4 w-4 animate-spin" />} {creation.busy ? "Creando…" : "Reanudar creación"}
+  L70 Button: {details ? "Ocultar registros" : "Ver registros de origen"}
+  L72 Button: Pausar al terminar el paso actual
+  L86 Button: <History className="h-4 w-4" /> {projectId ? "Excel de origen" : "Creaciones de proyectos"}
+  L87 DialogTitle: {projectId ? "Excel del presupuesto inicial" : "Creaciones de proyectos"}
+
+src/components/Presupuesto/PartidaDeletionDialog.tsx
+  L76 Button: Volver a verificar
+  L37 AlertDialogTitle:  {impact?.status === "missing" ? "El concepto ya no existe" : impact && !impact.canDelete ? `No se puede eliminar la ${label}` : `¿Eliminar ${label}?`} 
+
+src/components/projections/AdminProjectionUpload.tsx
+  L23 SelectTrigger: <SelectValue placeholder="Selecciona un proyecto" />
+
+
+src/components/projections/ProjectionImportForm.tsx
+  L107 Button: {file ? "Cambiar archivo" : "Elegir Excel"}
+  L110 Button: Validar de nuevo
+  L120 Button: <Upload className="h-4 w-4" /> {retry ? "Reintentar confirmación" : "Confirmar carga"}
+
+
+src/components/projections/ProjectionImportHistory.tsx
+  L32 Button:  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Descargar Excel 
+  L38 Button: <ChevronLeft className="h-4 w-4" /> Anterior
+  L39 Button: Siguiente <ChevronRight className="h-4 w-4" />
+  L71 Button: {expanded ? "Ocultar valores" : "Ver valores importados"}
+  L79 Button: <History className="h-4 w-4" /> Historial de cargas
+  L90 Button: Ver origen {week === undefined ? " vigente" : ""}
+  L80 DialogTitle: Historial de proyecciones de {target.kind === "expense" ? "gasto" : "cobro"}
+  L91 DialogTitle: Excel de origen {week !== undefined ? ` · ${projectionDate(week)}` : ""}
+
+src/components/providers/AssignProviderDialog.tsx
+  L119 Button:  <Plus /> Nuevo 
+  L125 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-border bg-card"> <UserRoundX className="h-4 w-4 text-muted-foreground" /> </span> <span className="min-w-0 flex-1"> <span className="block text-sm font-medium">Sin proveedor</span> <span className="block text-xs text-muted-foreground">Desvincular la transacción</span> </span> {selected === "" && <Check className="h-4 w-4 shrink-0" />} 
+  L156 button:  <span className="min-w-0 flex-1"> <span className="block truncate text-sm font-medium">{provider.razon_social}</span> <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground"> <span>{provider.rfc || "Sin RFC"}</span> <span aria-hidden="true">·</span> <span>{providerStatus}</span> </span> </span> {isSelected && <Check className="h-4 w-4 shrink-0" />} 
+  L178 Button:  Cancelar 
+  L186 Button:  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar 
+  L100 DialogTitle: Asignar proveedor
+
+src/components/providers/ProviderExcelBackfillDialog.tsx
+  L379 SelectTrigger: <SelectValue />
+  L401 Button: Cambiar archivo
+  L407 Button: Explorar archivos
+  L509 Button: Cerrar
+  L512 Button: Elegir otro archivo
+  L513 Button:  Actualizar {readyTransactionCount(preview)} transacciones 
+  L519 Button: Cancelar
+  L520 Button: {isAnalyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Analizar Excel
+  L365 DialogTitle: Actualizar proveedores desde Excel
+
+src/components/providers/ProviderFormDialog.tsx
+  L181 Button:  Cancelar 
+  L184 Button:  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar 
+  L136 DialogTitle: {provider ? "Editar proveedor" : "Nuevo proveedor"}
+
+src/components/providers/ProviderTransactionSyncDialog.tsx
+  L282 SelectTrigger: <SelectValue />
+  L381 Button: Cerrar
+  L384 Button: Cancelar
+  L385 Button:  <RefreshCw className="mr-2 h-4 w-4" /> Reanalizar 
+  L388 Button:  {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Sincronizar {preview?.counts.matched || 0} transacciones 
+  L272 DialogTitle: Sincronizar proveedores
+
+src/components/pwa/PwaUpdatePrompt.tsx
+  L21 Button: <X className="mr-1 h-4 w-4" /> Después
+  L21 Button: <RefreshCw className="mr-1 h-4 w-4" /> Actualizar
+
+
+src/components/Sections/ExcelUploaderSection.tsx
+  L194 Button:  {uploading ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando... </> ) : ( <> <Upload className="mr-2 h-4 w-4" /> Subir Archivo </> )} 
+  L207 Button:  Cancelar 
+  L225 Button:  Explorar Archivos 
+  L349 Button:  Subir Otro Archivo 
+  L353 Button:  Ver Registros Procesados 
+
+
+src/components/Tables/collapsible-table.tsx
+  L78 Button:  {isPartidaExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} 
+  L102 Button:  {isFamiliaExpanded ? ( <ChevronDown className="h-4 w-4" /> ) : ( <ChevronRight className="h-4 w-4" /> )} 
+
+
+src/components/Tables/PresupuestoTable.tsx
+  L384 Button:  {item.expanded ? ( <ChevronDown className="h-4 w-4 text-disabled-foreground" /> ) : ( <ChevronRight className="h-4 w-4 text-disabled-foreground" /> )} 
+  L499 Button:  Cargar más partidas 
+
+
+src/components/Tables/SalesPresupuestoTable.tsx
+  L371 Button:  <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} /> {isSyncing ? "Sincronizando..." : "Sincronizar"} 
+  L489 Button:  <span className="flex items-center gap-2"> {selectedPartidas.length === 0 ? ( "Todas" ) : selectedPartidas.length === 1 ? ( selectedPartidas[0] ) : ( `${selectedPartidas.length} seleccionadas` )} </span> 
+  L548 Button:  Limpiar 
+  L584 Button:  <span className="flex items-center gap-2"> {selectedFamilias.length === 0 ? ( "Todas" ) : selectedFamilias.length === 1 ? ( selectedFamilias[0] ) : ( `${selectedFamilias.length} seleccionadas` )} </span> 
+  L643 Button:  Limpiar 
+  L678 SelectTrigger:  <SelectValue /> 
+  L740 Button:  {item.expanded ? ( <ChevronDown className="h-4 w-4 text-muted-foreground" /> ) : ( <ChevronRight className="h-4 w-4 text-muted-foreground" /> )} 
+
+
+src/components/Tables/TableColumnPicker.tsx
+  L26 Button:  <Columns3 className="mr-1 h-4 w-4" /> Columnas 
+
+
+src/components/transactions/AddTransactionMenu.tsx
+  L34 Button:  Agregar <Plus className="h-5 w-5" /> 
+  L46 DropdownMenuItem:  <CreditCard className="mt-0.5" /> <span className="flex min-w-0 flex-col"> <span>Agregar pago</span> <span className="text-xs font-normal text-muted-foreground"> Registrar una transacción manual </span> </span> 
+  L58 DropdownMenuItem:  <FileSpreadsheet className="mt-0.5" /> <span className="flex min-w-0 flex-col"> <span>Subir Excel</span> <span className="text-xs font-normal text-muted-foreground"> Importar varias transacciones desde un archivo </span> </span> 
+  L70 DropdownMenuItem:  <Receipt className="mt-0.5" /> <span className="flex min-w-0 flex-col"> <span>Cargar factura</span> <span className="text-xs font-normal text-muted-foreground"> Extraer conceptos de un CFDI y clasificarlos </span> </span> 
+
+
+src/components/transactions/LaborImportHistory.tsx
+  L56 Button:  {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Descargar Excel 
+  L106 Button:  <ChevronLeft className="h-4 w-4" /> Anterior 
+  L109 Button:  Siguiente <ChevronRight className="h-4 w-4" /> 
+  L135 button:  {item.factura} 
+  L164 Button:  <History className="h-4 w-4" /> Historial de cargas 
+  L181 Button:  {expandedId === attempt._id ? "Ocultar movimientos" : "Ver movimientos"} 
+  L170 DialogTitle: Historial de cargas
+
+src/components/ui/calendar.tsx
+  L184 Button: 
+
+
+src/components/ui/ContactSection.tsx
+  L252 Button:  Enviar 
+
+
+src/components/ui/MenuMobile.tsx
+  L34 Button:  <MdMenu className="h-6 w-6" /> 
+
+
+src/components/ui/ModalErrorBoundary.tsx
+  L68 button:  <X className="h-5 w-5 text-muted-foreground" /> 
+  L77 button:  Cerrar 
+
+
+src/components/ui/responsive-aside.tsx
+  L16 Button: {title}
+  L19 SheetTitle: {title}
+
+src/components/ui/responsive-fields.tsx
+  L16 button: {expanded ? "Ocultar detalle" : "Ver detalle completo"}
+
+
+src/components/ui/responsive-table.tsx
+  L70 button:  {expanded ? "Ocultar detalle" : "Ver detalle completo"} 
+
+
+src/components/ui/Sidebar.tsx
+  L283 Button:  <PanelLeft /> <span className="sr-only">Toggle Sidebar</span> 
+  L309 button: 
+  L220 SheetTitle: Sidebar
+
+src/components/ui/SidebarComponent.tsx
+  L136 DropdownMenuItem:  <SidebarMenuSubButton asChild isActive={project._id === activeProjectId} size="md" className="h-8 cursor-pointer" > <button type="button" onClick={() => onProjectSelect(project._id)} > <Folder className="h-4 w-4" /> <span>{project.nombre}</span> </button> </SidebarMenuSubButton> 
+  L143 button:  <Folder className="h-4 w-4" /> <span>{project.nombre}</span> 
+  L324 button:  <ChevronRight className={cn( "size-3.5 transition-transform", isExpanded && "rotate-90" )} /> 
+  L342 button:  <Folder className="size-4 shrink-0" /> <span className="truncate">{folder.nombre}</span> <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground"> {getItemCount(folder._id)} </span> 
+  L505 button:  <ChevronRight className={cn( "size-3.5 transition-transform", !collapsedFolderKeys.has("root") && "rotate-90" )} /> 
+  L522 button:  <FolderOpen className="size-4 shrink-0" /> <span className="truncate">Biblioteca</span> <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground"> {navigation.getItemCount("root")} </span> 
+  L559 button:  <ChevronRight className={cn( "size-3.5 transition-transform", isExpanded && "rotate-90" )} /> 
+  L576 button:  <Folder className="size-4 shrink-0" /> <span className="truncate">{node.name}</span> <span className="ml-auto text-[10px] tabular-nums text-disabled-foreground"> {navigation.getItemCount(node.key)} </span> 
+  L786 DropdownMenuItem:  <Home className="w-4 h-4" /> Inicio 
+  L797 DropdownMenuItem:  <Bookmark className="w-4 h-4" /> Ver proyectos 
+  L801 DropdownMenuItem:  <Upload className="w-4 h-4" /> Cargar flujo 
+  L805 DropdownMenuItem:  <Users className="w-4 h-4" /> Gestionar usuarios 
+  L813 DropdownMenuItem:  <LogOut className="w-4 h-4" /> Cerrar Sesión 
+  L1048 button:  <ChevronRight className={cn( "size-3.5 transition-transform", isNavigationExpanded && "rotate-90" )} /> 
+
+
+src/components/UploadWeeklyTotals.tsx
+  L164 Button:  <Upload className="mr-2 h-4 w-4" /> {isUploading ? 'Cargando...' : 'Cargar Datos'} 
+  L172 Button:  <Trash2 className="mr-2 h-4 w-4" /> Eliminar 
+
+
+src/components/WebsiteLayout.tsx
+  L69 Button:  <Sparkles className="h-4 w-4" /> 
+
+
+src/components/Whatsapp/WhatsappContactSettings.tsx
+  L41 Button: {saving ? "Guardando..." : "Guardar WhatsApp"}
+
+
+src/emails/WelcomeAdminEmail.tsx
+  L73 Button:  Entrar a mi cuenta 
+  L85 Button:  Descargar templates 
+
+
+src/emails/WelcomeViewerEmail.tsx
+  L75 Button:  Entrar a mi cuenta 
+
+
+src/main.tsx
+
+
+
+src/pages/AcceptInvitation/AcceptInvitationPage.tsx
+  L282 Button:  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Activar Cuenta 
+
+
+src/pages/Admin/AdminPage.tsx
+  L41 SelectTrigger:  <SelectValue placeholder="Selecciona un proyecto" /> 
+
+
+src/pages/AutorizacionesObra/AutorizacionesObraPage.tsx
+  L40 TabsTrigger:  Permisos y legal 
+  L46 TabsTrigger:  Presupuestos y contratos 
+  L52 TabsTrigger:  IMSS y SIROC 
+
+
+src/pages/AutorizacionesObra/ImssYSirocTab.tsx
+  L206 button:  {uploading ? ( <Loader2 className="w-3.5 h-3.5 animate-spin" /> ) : ( <RefreshCw className="w-3.5 h-3.5" /> )} 
+  L219 button:  <History className="w-3.5 h-3.5" /> 
+  L228 button:  <X className="w-3.5 h-3.5" /> 
+  L269 button:  {uploading ? ( <Loader2 className="w-4 h-4 animate-spin" /> ) : ( placeholder || "Por confirmar" )} 
+  L351 SelectTrigger:  <SelectValue placeholder="Tipo"> {pago.cuota_tipo || "Tipo"} </SelectValue> 
+  L384 button:  <Trash2 className="w-4 h-4" /> 
+  L460 button:  <Plus className="w-4 h-4" /> Agregar Pago de Cuota 
+  L534 button:  <MoreHorizontal className="w-4 h-4" /> 
+  L544 DropdownMenuItem:  <Trash2 className="w-3.5 h-3.5" /> Eliminar pago 
+  L609 button:  <Plus className="w-4 h-4" /> Agregar Pago de Cuota 
+  L682 button:  {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} 
+  L1277 button:  <MoreHorizontal className="w-4 h-4" /> 
+  L1283 DropdownMenuItem:  <a href={cg.contrato_url} target="_blank" rel="noopener noreferrer" > <FileText className="w-3.5 h-3.5" /> Descargar contrato </a> 
+  L1294 DropdownMenuItem:  <Trash2 className="w-3.5 h-3.5" /> Eliminar contratista 
+  L1527 AlertDialogTitle: ¿Eliminar pago?
+  L1566 AlertDialogTitle: ¿Eliminar contratista general?
+
+src/pages/AutorizacionesObra/PermisosYLegalTab.tsx
+  L133 button:  {isActive && ( <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}> <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /> </svg> )} 
+  L176 button:  <span>{current.name}</span> <span className="w-7 h-7 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground"> {current.name.charAt(0).toUpperCase()} </span> 
+  L183 button:  Asignar responsable 
+  L194 DropdownMenuItem:  Quitar responsable 
+  L203 DropdownMenuItem:  <span className="w-6 h-6 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0"> {u.name.charAt(0).toUpperCase()} </span> <span className="truncate">{u.name}</span> 
+  L242 button:  <span className={cn("flex-1", !value && "text-disabled-foreground")}> {value ? formatDateDisplay(value) : "Fecha"} </span> <ChevronDown className="w-4 h-4 text-disabled-foreground ml-2" /> 
+  L309 button:  {uploading ? ( <Loader2 className="w-4 h-4 animate-spin" /> ) : ( <Upload className="w-4 h-4" /> )} Agregar documento 
+  L348 button:  {uploading ? ( <Loader2 className="w-3.5 h-3.5 animate-spin" /> ) : ( <RefreshCw className="w-3.5 h-3.5" /> )} 
+  L361 button:  <History className="w-3.5 h-3.5" /> 
+  L450 button:  {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />} 
+  L547 button:  {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />} 
+  L649 button:  <Plus className="w-3.5 h-3.5" /> 
+  L659 button:  {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />} 
+  L695 button:  <Plus className="w-4 h-4" /> Agregar servicio 
+  L800 button:  {uploading ? ( <Loader2 className="w-3.5 h-3.5 animate-spin" /> ) : ( <RefreshCw className="w-3 h-3" /> )} 
+  L814 button:  {uploading ? ( <Loader2 className="w-3.5 h-3.5 animate-spin" /> ) : ( <Upload className="w-3.5 h-3.5" /> )} Agregar documento 
+  L835 button:  <Trash2 className="w-4 h-4" /> 
+  L889 button:  {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />} 
+
+
+src/pages/AutorizacionesObra/PresupuestosContratosTab.tsx
+  L174 button:  {uploading ? ( <Loader2 className="w-3.5 h-3.5 animate-spin" /> ) : ( <RefreshCw className="w-3.5 h-3.5" /> )} 
+  L187 button:  <History className="w-3.5 h-3.5" /> 
+  L196 button:  <X className="w-3.5 h-3.5" /> 
+  L237 button:  {uploading ? ( <Loader2 className="w-4 h-4 animate-spin" /> ) : ( placeholder || "Por confirmar" )} 
+  L265 button:  <MoreHorizontal className="w-4 h-4" /> 
+  L271 DropdownMenuItem:  <a href={sub.presupuesto_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer" > <Download className="w-3.5 h-3.5" /> Descargar presupuesto </a> 
+  L284 DropdownMenuItem:  <a href={sub.contrato_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 cursor-pointer" > <Download className="w-3.5 h-3.5" /> Descargar contrato </a> 
+  L297 DropdownMenuItem:  <Trash2 className="w-3.5 h-3.5" /> Eliminar subcontratista 
+  L373 SelectTrigger:  <SelectValue placeholder="Partida"> {sub.partida_nombre || "Partida"} </SelectValue> 
+  L731 button:  <Plus className="w-3.5 h-3.5" /> 
+  L741 button:  {expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />} 
+  L818 button:  Confirmar 
+  L825 button:  Cancelar 
+  L843 button:  <Plus className="w-4 h-4" /> Agregar Subcontratista 
+  L893 SelectTrigger:  <SelectValue placeholder="Seleccionar contratista general"> {cgs.find((c) => c._id === modalCgId)?.nombre || "Seleccionar contratista general"} </SelectValue> 
+  L911 button:  <Plus className="w-3.5 h-3.5" /> Crear nuevo contratista general 
+  L933 button:  Seleccionar uno existente 
+  L950 button:  Cancelar 
+  L958 button:  {modalCreating ? ( <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> ) : null} Crear Subcontratista 
+  L860 DialogTitle: Agregar Subcontratista
+
+src/pages/Bitacora/BitacoraPage.tsx
+  L113 Button:  {downloading ? <Loader2 aria-hidden="true" className="motion-safe:animate-spin" /> : file.download_requested ? <CloudDownload /> : online ? <Download /> : <WifiOff />} 
+  L149 Button:  <img src={source} alt={file.descripcion || file.nombre} className="h-full w-full object-cover" /> {!online && <span className="absolute bottom-1 right-1 bg-overlay/80 px-1.5 py-0.5 text-xs text-on-color">Offline</span>} 
+  L177 Button:  {downloading ? <Loader2 aria-hidden="true" className="h-5 w-5 motion-safe:animate-spin" /> : file.download_requested ? <CloudDownload className="h-5 w-5" /> : online ? <Download className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />} <span>{downloading ? "Descargando" : file.download_error ? "Reintentar descarga" : file.download_requested ? "En espera" : online ? "Descargar" : "Al reconectar"}</span> 
+  L303 Button:  <ChevronDown className="h-4 w-4" /> Agrupado 
+  L307 Button:  <CalendarIcon className="h-4 w-4" /> Calendario 
+  L313 Button: <Plus className="h-4 w-4" /> Agregar reporte
+  L338 Button:  <Plus className="h-4 w-4" /> <span className="sr-only">Agregar reporte a {category}</span> 
+  L352 Button:  {isExpanded ? <ChevronDown className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" /> : <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />} <span className="min-w-0 font-normal"> <span className="block text-base text-foreground">{displayDate(entry.fecha)}</span> <div className="flex items-center"> <span className="mt-1 block text-sm text-muted-foreground">{entry.departamento || "Partida sin nombre"}</span> <div className="mt-2 flex flex-wrap items-center gap-2 pl-8"> <
+  L394 Button: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+  L397 DropdownMenuItem: <Eye className="mr-2 h-4 w-4" /> Ver detalles
+  L398 DropdownMenuItem: <Pencil className="mr-2 h-4 w-4" /> Editar
+  L399 DropdownMenuItem: <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+  L433 Button:  + {entry.fotos.length - 3} más 
+  L460 Button: Aceptar servidor
+  L461 Button: {entry.locally_deleted ? "Confirmar eliminación" : "Reaplicar versión local"}
+  L462 Button: Restaurar como nuevo reporte
+  L475 Button:  <ChevronsUpDown className="h-4 w-4" /> {expandedCategories.has(category) ? "Compactar" : `Expandir (${entries.length - 6} más)`} 
+  L485 Button:  {repository.isLoadingMore ? "Cargando…" : "Cargar más reportes"} 
+  L519 Button: Cancelar
+  L520 Button:  {deleting ? "Eliminando…" : "Eliminar"} 
+  L515 AlertDialogTitle: ¿Eliminar este reporte?
+
+src/pages/Bitacora/OfflineBitacoraApp.tsx
+  L56 Button: {reason === "storage" ? "Volver a comprobar" : "Comprobar conexión"}
+
+
+src/pages/Control/ControlPage.tsx
+  L313 Button:  <FileText className="mr-2 h-4 w-4" /> Reporte 
+
+
+src/pages/Control/ControlSalePage.tsx
+  L266 SelectTrigger:  <SelectValue /> 
+  L282 SelectTrigger:  <SelectValue /> 
+
+
+src/pages/Dashboard/Dashboard.tsx
+  L63 button:  {desarrollo.nombre} 
+  L76 SelectTrigger:  <SelectValue placeholder="Select a family" /> 
+
+
+src/pages/Dashboard/DashboardTable.tsx
+  L280 Button:  <ExternalLink className="h-4 w-4" /> 
+  L293 Button:  <Download className="h-4 w-4" /> 
+  L313 Button:  <Trash2 className="h-4 w-4" /> 
+  L356 Button:  Cargar más 
+  L373 TabsTrigger:  Últimos movimientos 
+  L325 AlertDialogTitle: ¿Eliminar transacción?
+
+src/pages/Documentos/DocumentosPage.tsx
+  L409 Button:  Nueva carpeta <Plus className="h-5 w-5" /> 
+  L422 Button:  Subir documentos <Upload className="h-5 w-5" /> 
+  L445 SelectTrigger:  <SelectValue placeholder="Proyecto" /> 
+  L464 SelectTrigger:  <SelectValue placeholder="Tipo" /> 
+  L480 Button:  <List className="h-5 w-5" /> 
+  L495 Button:  <Grid2X2 className="h-5 w-5" /> 
+  L551 Button: <FolderOpen className="mr-2 h-4 w-4" /> Carpetas
+  L555 button:  Biblioteca 
+  L564 button:  {folder.nombre} 
+  L579 Button:  Limpiar filtros <X className="h-4 w-4" /> 
+  L688 Button:  Cancelar 
+  L691 Button:  Crear 
+  L715 Button:  Cancelar 
+  L718 Button:  Guardar 
+  L826 button:  <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-foreground" /> <span className="min-w-0"> <span className="block break-words font-medium text-foreground lg:line-clamp-2">{folder.nombre}</span> <span className="block truncate text-xs text-disabled-foreground"> {folderItemCount.get(folder._id) || 0} elementos </span> </span> 
+  L883 button:  {doc.nombre} 
+  L962 Button:  <ChevronLeft className="h-4 w-4" /> 
+  L978 Button:  {item} 
+  L989 Button:  <ChevronRight className="h-4 w-4" /> 
+  L1026 button:  <div className="mb-6 flex items-center justify-between"> <Folder className="h-8 w-8 fill-gray-700 text-foreground" /> <InlineActions target={{ kind: "folder", item: folder }} onRename={onRename} onMove={onMove} onDelete={onDelete} /> </div> <p className="truncate font-medium text-foreground">{folder.nombre}</p> <p className="mt-1 text-xs text-muted-foreground">{formatDate(folder.updated_at || folder.created_at)}</p> 
+  L1062 button:  {doc.nombre} 
+  L1141 Button:  <Edit3 className="h-4 w-4 text-muted-foreground" /> 
+  L1149 Button:  <FolderInput className="h-4 w-4 text-muted-foreground" /> 
+  L1159 Button:  <MoreVertical className="h-4 w-4 text-muted-foreground" /> 
+  L1165 DropdownMenuItem:  <Edit3 className="h-4 w-4" /> Renombrar 
+  L1169 DropdownMenuItem:  <FolderInput className="h-4 w-4" /> Mover ubicacion 
+  L1174 DropdownMenuItem:  <Trash2 className="h-4 w-4" /> Eliminar 
+  L1208 Button:  Crear carpeta <Plus className="h-4 w-4" /> 
+  L533 SheetTitle: Carpetas
+  L670 DialogTitle: Nueva carpeta
+  L701 DialogTitle: Renombrar
+  L750 AlertDialogTitle:  {deleteTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"} 
+
+src/pages/Documentos/SalesDocumentosPage.tsx
+  L136 Button:  <Upload className="mr-2 h-4 w-4" /> Subir Documentos 
+  L140 Button:  Agregar Documento <Plus className="h-6 w-6 rounded-full shadow-none" /> 
+  L176 SelectTrigger:  <SelectValue placeholder="Todos los proyectos de ventas" /> 
+  L296 AlertDialogTitle: ¿Eliminar documento?
+
+src/pages/PagosTable/PagosTablePage.tsx
+  L192 Button:  <MoreVertical className="h-4 w-4 text-disabled-foreground" /> 
+  L197 DropdownMenuItem: Ver detalles
+  L198 DropdownMenuItem: Ver transacción
+  L199 DropdownMenuItem:  Eliminar 
+
+
+src/pages/PartidaDetails/PartidaDetails.tsx
+  L125 Button:  <X className="h-5 w-5" /> 
+  L172 Button:  Nuevo Pago + 
+  L250 Button:  <EllipsisVerticalIcon className="h-4 w-4" /> 
+  L255 DropdownMenuItem:  <Edit className="h-4 w-4 mr-2" /> Editar 
+  L263 DropdownMenuItem:  <Trash2 className="h-4 w-4 mr-2" /> Eliminar 
+  L409 Button:  <FileText className="h-4 w-4" /> 
+  L417 Button:  <Download className="h-4 w-4" /> 
+  L272 AlertDialogTitle: ¿Estás seguro?
+
+src/pages/Planos/FolderPlanUploadDialog.tsx
+  L439 Button:  Seleccionar carpeta <Upload className="h-4 w-4" /> 
+  L479 SelectTrigger: <SelectValue />
+  L500 Button: Cambiar carpeta
+  L555 Button: <Trash2 className="h-4 w-4" />
+  L618 Button: Cancelar
+  L620 Button:  {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {isUploading ? `Subiendo ${uploadedCount} de ${validFiles.length}` : `Subir ${pendingValidFiles.length} plano${pendingValidFiles.length === 1 ? "" : "s"}`} 
+  L402 DialogTitle: Cargar carpeta de planos
+
+src/pages/Planos/MentionCommentComposer.tsx
+  L226 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border text-xs font-medium" style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface, color: COLORS.textSoft, }} > {userInitials(user)} </span> <span className="min-w-0 flex-1"> <span className="block truncate text-sm font-medium" style={{ color: COLORS.text }} > {displayUserName(user)} </span> <span className="block truncate text-xs" style={{ color: COLORS.muted }}> {user.email} </span> </span> <span clas
+  L288 button:  <X className="h-3 w-3" /> 
+  L310 Button:  {submitting ? ( <Loader2 className="h-4 w-4 animate-spin" /> ) : ( <Send className="h-4 w-4" /> )} Enviar 
+
+
+src/pages/Planos/MentionNotificationCenter.tsx
+  L124 Button:  <Bell className="h-4 w-4" /> {!iconOnly && "Menciones"} {(unreadCount || 0) > 0 && ( <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-sm px-1.5 text-[11px] font-medium text-on-color" style={{ backgroundColor: COLORS.green }} > {(unreadCount || 0) > 9 ? "9+" : unreadCount} </span> )} 
+  L193 button:  <div className="flex items-start gap-3"> <span className="mt-1 h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: notification.is_unread ? COLORS.green : COLORS.borderStrong, }} /> <span className="min-w-0 flex-1"> <span className="block text-sm text-foreground"> <strong>{notification.actor_name}</strong> te mencionó en{" "} <strong>{notification.plano_titulo}</strong> </span> <span className="mt-1 block line-clamp-3 text-sm leading-5 text-muted-foreground"> {notification.comment_excerpt} <
+  L158 SheetTitle: Menciones en planos
+
+src/pages/Planos/PlanosPage.tsx
+  L185 Button:  <Trash2 className="h-4 w-4" /> 
+  L239 SelectTrigger: <SelectValue />
+  L690 Button: Cancelar
+  L695 Button:  {annotationSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar anotación 
+  L707 Button: Cancelar
+  L708 Button: {editing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar cambios
+  L738 button:  <ArrowLeft className="h-4 w-4" /> Biblioteca de planos 
+  L754 Button:  <a href={planDetail.url || "#"} download={planDetail.nombre_archivo} target="_blank" rel="noreferrer"><Download className="h-4 w-4" />Descargar</a> 
+  L759 Button: <Pencil className="h-4 w-4" /> Editar datos
+  L760 Button: <Trash2 className="h-4 w-4" /> Eliminar
+  L774 Button:  <Icon className="h-4 w-4" /> <span className="hidden 2xl:inline">{option.label}</span> 
+  L782 Button: <ZoomOut className="h-4 w-4" />
+  L783 button: {Math.round(zoom * 100)} %
+  L784 Button: <ZoomIn className="h-4 w-4" />
+  L787 Button: <ChevronLeft className="h-4 w-4" />
+  L789 Button: <ChevronRight className="h-4 w-4" />
+  L826 TabsTrigger: <Focus className="h-4 w-4" /> Anotaciones <span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{planDetail.annotations.length}</span>
+  L827 TabsTrigger: <MessageSquare className="h-4 w-4" /> Comentarios <span className="rounded-sm px-2 py-0.5 text-xs" style={{ backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{generalComments.length}</span>
+  L833 button: <ArrowLeft className="h-4 w-4" /> Todas las anotaciones
+  L847 Button:  {selectedAnnotation.status === "Resuelta" ? <Focus className="h-4 w-4" /> : <Check className="h-4 w-4" />} {selectedAnnotation.status === "Resuelta" ? "Reabrir" : "Resolver"} 
+  L851 Button: <Trash2 className="h-4 w-4" /> Eliminar
+  L867 button:  <div className="flex items-start gap-3"> <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border text-xs font-medium" style={{ borderColor: UI_COLORS.itemBorder, color: UI_COLORS.textSoft, backgroundColor: UI_COLORS.itemBg }}>P{annotation.pagina}</span> <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium text-foreground">{annotationName(annotation.tipo)}</p><span className="h-2 w-2 shrink-
+  L910 button:  Planos {project?.nombre} 
+  L923 button:  {currentFolder.nombre} 
+  L938 button:  {segment} 
+  L964 Button: <Plus className="h-5 w-5" /> Cargar plano
+  L965 Button: <FolderUp className="h-5 w-5" /> Cargar carpeta
+  L978 button: <span>{item.label}</span> <span className="flex h-7 min-w-7 items-center justify-center rounded-sm px-2 text-xs" style={{ backgroundColor: UI_COLORS.itemBg }}>{item.value}</span>
+  L983 SelectTrigger: <SelectValue placeholder="Estado" />
+  L990 button:  <div className="flex min-w-0 items-center gap-4"> <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}> <Folder className="h-5 w-5 fill-current" /> </span> <span className="min-w-0"> <span className="block truncate text-sm font-medium text-foreground">{folder.name}</span> <span className="mt-1 block text-xs" style={{ color: UI_COLORS.muted }}>{folder.pla
+  L1007 button:  <div className="flex min-w-0 items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: UI_COLORS.itemBorder, backgroundColor: UI_COLORS.itemBg, color: UI_COLORS.textSoft }}>{plan.type === "application/pdf" ? <FileText className="h-5 w-5" /> : <FileImage className="h-5 w-5" />}</span><span className="min-w-0"><span className="block truncate text-sm font-medium text-foreground">{plan.titulo}</span><span className="mt-1 block t
+  L1017 Button: <Upload className="h-4 w-4" /> Cargar plano
+  L1017 Button: <FolderUp className="h-4 w-4" /> Cargar carpeta
+  L1028 button:  {uploadFile ? <>{uploadFile.type === "application/pdf" ? <FileText className="h-6 w-6" /> : <FileImage className="h-6 w-6" />}<span className="min-w-0 text-left"><span className="block truncate font-medium text-foreground">{uploadFile.name}</span><span className="block text-xs" style={{ color: UI_COLORS.muted }}>{formatBytes(uploadFile.size)} · Clic para reemplazar</span></span></> : <><Upload className="h-6 w-6" /><span>Seleccionar archivo</span></>} 
+  L1034 Button: Cancelar
+  L1034 Button: {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Cargar plano
+  L665 DialogTitle: Nueva anotación
+  L704 DialogTitle: Editar datos del plano
+  L716 AlertDialogTitle: {deleteTarget?.type === "plan" ? "Eliminar plano" : "Eliminar anotación"}
+  L1025 DialogTitle: Cargar plano
+
+src/pages/Presupuesto/PresupuestoPage.tsx
+  L459 Button:  <span className="sr-only">Abrir acciones de presupuesto</span> <MoreHorizontal className="h-4 w-4" /> 
+  L471 DropdownMenuItem:  <FileText className="h-4 w-4" /> Crear reporte financiero 
+  L481 DropdownMenuItem:  <CreditCard className="h-4 w-4" /> {hasIncomeManagementAccess(currentUser) ? "Gestionar ingresos" : "Ver ingresos"} 
+  L490 DropdownMenuItem:  <Plus className="h-4 w-4" /> Agregar partida 
+  L502 DropdownMenuItem:  <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} /> {isSyncing ? "Sincronizando..." : "Sincronizar datos"} 
+  L611 Button:  <span className="flex items-center gap-2"> {selectedPartidas.length === 0 ? ( "Todas" ) : selectedPartidas.length === 1 ? ( selectedPartidas[0] ) : ( `${selectedPartidas.length} seleccionadas` )} {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */} </span> 
+  L670 Button:  Limpiar 
+  L689 Button: <X />
+  L701 Button:  <span className="flex items-center gap-2"> {selectedFamilias.length === 0 ? ( "Todas" ) : selectedFamilias.length === 1 ? ( selectedFamilias[0] ) : ( `${selectedFamilias.length} seleccionadas` )} {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */} </span> 
+  L760 Button:  Limpiar 
+  L779 Button: <X />
+  L790 SelectTrigger:  <SelectValue /> 
+  L804 Button:  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-disabled-foreground" /> {calendarRange?.from ? ( calendarRange.to ? ( <> {calendarRange.from.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })} {" — "} {calendarRange.to.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })} </> ) : ( calendarRange.from.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) ) ) : ( <span>Seleccionar rango</span> )} 
+  L853 Button:  <small>Precio unitario</small> <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} /> 
+
+
+src/pages/ProfitAndLoss/ProfitAndLossPage.tsx
+  L566 Button:  <Info className="size-4" aria-hidden="true" /> 
+  L582 SelectTrigger: <SelectValue placeholder="Seleccionar periodo" />
+  L596 Button: {showComparison ? "Ocultar matriz comparativa" : "Mostrar matriz comparativa"}
+  L955 SelectTrigger:  <SelectValue /> 
+  L1058 Button: Cerrar
+  L1639 Button:  <ScrollText className="h-4 w-4" /> 
+  L1749 SelectTrigger:  <SelectValue /> 
+  L1763 SelectTrigger:  <SelectValue /> 
+  L1789 SelectTrigger:  <SelectValue /> 
+  L1815 SelectTrigger:  <SelectValue /> 
+  L1874 Button:  <Save className="h-4 w-4" /> 
+  L1877 Button:  <X className="h-4 w-4" /> 
+  L1883 Button:  <Pencil className="h-4 w-4" /> 
+  L1887 Button:  <X className="h-4 w-4" /> 
+  L1891 Button:  <Check className="h-4 w-4" /> 
+  L1895 Button:  <Copy className="h-4 w-4" /> 
+  L1898 Button:  <Ban className="h-4 w-4" /> 
+  L1959 Button:  Cancelar 
+  L1962 Button:  Confirmar 
+  L2050 Button:  <Settings2 className="h-4 w-4" /> 
+  L2085 Button:  <RefreshCcw className="h-4 w-4" /> Restablecer 
+  L2115 SelectTrigger:  <SelectValue /> 
+  L2212 Button:  Listo 
+  L2338 button:  {tab.label} 
+  L2355 SelectTrigger:  <SelectValue placeholder="Todas las ubicaciones" /> 
+  L2388 Button:  <Upload className="h-4 w-4" /> Cargar movimientos 
+  L939 DialogTitle: Desglose de cobrado registrado
+  L1653 DialogTitle: LEDGER MOVIMIENTOS OGC
+  L1925 DialogTitle: {actionTitle}
+  L2063 DialogTitle: Configuracion P&L
+
+src/pages/Programa Obra/ProgramaObra.tsx
+  L708 button:  <MoreHorizontal className="h-4 w-4 text-muted-foreground" /> 
+  L713 DropdownMenuItem:  <FileDown className="h-4 w-4" /> Fuentes de Excel 
+  L716 DropdownMenuItem:  <CalendarDays className="h-4 w-4" /> Editar programa 
+  L719 DropdownMenuItem:  <Percent className="h-4 w-4" /> Ponderación <span className="ml-auto text-xs text-muted-foreground">{item.ponderacion != null ? `${item.ponderacion.toFixed(2)}%` : "Sin definir"}</span> 
+  L723 DropdownMenuItem: <Percent className="h-4 w-4" /> Registrar avance
+  L724 DropdownMenuItem:  <History className="h-4 w-4" /> Historial avance 
+  L728 DropdownMenuItem:  <MessageSquare className="h-4 w-4" /> Comentarios 
+  L782 button:  <span className="text-muted-foreground">Retrasadas</span> <strong className={cn("text-sm font-semibold", delayedCount > 0 ? "text-red-700" : "text-foreground")}>{delayedCount}</strong> 
+  L793 button:  <Bell className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" /> <span className="text-muted-foreground">Alertas</span> <strong className={cn("text-sm font-semibold", actionableMilestones.length > 0 ? "text-amber-800" : "text-foreground")}>{actionableMilestones.length}</strong> {upcomingMilestones > 0 && <span className="text-muted-foreground">· {upcomingMilestones} próximas</span>} 
+  L808 Button: <History className="h-4 w-4" /> Historial de cargas
+  L809 Button: Actividades por frente
+  L822 Button:  <Minimize2 className="h-4 w-4" /> Salir de enfoque 
+  L829 Button:  {(exporting || parsing || uploading) && <Loader2 className="h-4 w-4 animate-spin" />} {exporting ? "Exportando..." : parsing ? "Leyendo archivo..." : uploading ? "Cargando..." : "Archivo"} <ChevronDown className="h-4 w-4" /> 
+  L836 DropdownMenuItem:  <FileDown className="h-4 w-4" /> Exportar PDF 
+  L840 DropdownMenuItem:  <Upload className="h-4 w-4" /> Cargar Excel 
+  L878 button:  Cerrar 
+  L951 SelectTrigger:  <SelectValue /> 
+  L963 Button:  Limpiar filtros 
+  L967 Button:  <Crosshair className="mr-1.5 h-3.5 w-3.5" /> Hoy 
+  L972 Button:  Vista <ChevronDown className="h-3.5 w-3.5" /> 
+  L977 DropdownMenuItem:  <ChevronsUpDown className="h-4 w-4" /> Expandir familias 
+  L980 DropdownMenuItem:  <ChevronsDownUp className="h-4 w-4" /> Contraer familias 
+  L985 DropdownMenuItem:  {focusMode ? <Minimize2 className="h-4 w-4" /> : <Focus className="h-4 w-4" />} {focusMode ? "Salir de enfoque" : "Ampliar programa"} 
+  L993 Button:  Leyenda 
+  L1021 Button:  <Upload className="mr-2 h-4 w-4" /> Cargar Excel 
+  L1032 Button:  Restablecer filtros 
+  L1099 button:  {isExpanded ? ( <ChevronDown className="h-3.5 w-3.5 text-disabled-foreground" /> ) : ( <ChevronRight className="h-3.5 w-3.5 text-disabled-foreground" /> )} 
+  L1146 button:  {Math.round(item.avanceReal ?? 0)} % 
+
+
+src/pages/Programa Obra/ProgramaObraAvanceHistorial.tsx
+
+  L57 SheetTitle:  <History className="h-4 w-4" /> Historial de avance 
+
+src/pages/Programa Obra/ProgramaObraComentarios.tsx
+
+  L60 SheetTitle: Comentarios de Programa
+
+src/pages/Programa Obra/ProgramaObraExcelPreview.tsx
+  L343 button:  {isExpanded ? ( <ChevronDown className="h-3.5 w-3.5 text-disabled-foreground" /> ) : ( <ChevronRight className="h-3.5 w-3.5 text-disabled-foreground" /> )} 
+  L441 Button:  Cancelar 
+  L444 Button:  {uploading ? ( <> <Loader2 className="h-4 w-4 animate-spin mr-2" /> Cargando... </> ) : ( "Continuar a revisión" )} 
+  L246 DialogTitle: Vista previa de datos del Excel
+
+src/pages/Programa Obra/ProgramaObraExecution.tsx
+  L72 SelectTrigger:  <SelectValue /> 
+  L243 Button: Historial de cargas
+  L245 Button:  Abrir detalle seleccionado 
+  L254 Button:  {gantt ? "Ver lista" : "Ver Gantt"} 
+  L263 Button:  <Settings2 className="h-4 w-4" /> Configurar 
+  L268 Button:  Volver al programa 
+  L286 Button:  Preparar actividades 
+  L313 button:  {model.activities.filter((a) => a.status === "ready").length} {" "} listas para iniciar 
+  L322 button:  {model.activities.filter((a) => a.blockers.length).length} con pendientes 
+  L375 Button:  Limpiar filtros 
+  L404 button:  <div className="min-w-0 flex-1 basis-56"> <p className="mb-1 text-xs text-muted-foreground"> {a.partida_name} </p> <p className="break-words text-sm font-medium"> {a.name} · {frontName(a.front_id)} </p> <p className="mt-1 text-xs text-muted-foreground"> {userName(a.responsible_id)} ·{" "} {a.current_start ?? "Sin inicio"} →{" "} {a.current_finish ?? "Sin fin"} </p> {a.blockers[0] && ( <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-900"> <AlertTriangle className="h-4 w-4 shrink-0
+  L537 button:  {a.name} · {model.fronts.find((f) => f._id === a.front_id)?.name} 
+  L605 button:  <span className="absolute bottom-0 left-0 h-1 bg-green-700" style={{ width: `${a.progress}%` }} /> {a.progress.toFixed(0)} % 
+  L670 Button:  Preparar actividades 
+  L724 Button:  Guardar configuración 
+  L759 Button:  Agregar frente 
+  L773 Button:  Incorporar familias pendientes 
+  L820 Button: Ver carga y original
+  L919 Button:  Guardar autorizaciones 
+  L1000 button:  Ver pendiente 
+  L1061 Button:  <CheckCircle2 className="h-4 w-4" /> Aceptar y liberar 
+  L1079 Button:  Rechazar 
+  L1166 Button:  Archivar 
+  L1309 button:  {name(d.predecessor_id)} 
+  L1322 Button:  Retirar con el motivo indicado 
+  L1342 button:  {name(d.successor_id)} 
+  L1423 Button:  Agregar dependencia 
+  L1516 Button:  {r.resolved ? "Reabrir requisito" : "Confirmar resolución"} 
+  L1537 Button:  Retirar requisito 
+  L1660 Button:  Agregar requisito 
+  L1798 Button:  Guardar actividad 
+  L1916 Button:  Agregar otro frente 
+  L1936 Button:  Dividir actividad 
+  L2045 Button:  Calcular impacto 
+  L2111 Button:  Aprobar y aplicar nuevas fechas 
+  L2171 button:  {model.activities.find((a) => a._id === e.activity_id)?.name ?? "Actividad archivada"} 
+  L2198 Button:  Autorizar este avance 
+  L2213 Button:  Rechazar 
+  L662 SheetTitle: Configurar el programa
+  L963 SheetTitle:  {activity.name} · {frontName} 
+
+src/pages/Programa Obra/ProgramaObraExportDialog.tsx
+  L56 Button:  Seleccionar todas 
+  L61 Button:  Quitar selección 
+  L96 Button: Cancelar
+  L97 Button:  Exportar PDF 
+  L45 DialogTitle: Exportar programa a PDF
+
+src/pages/Programa Obra/ProgramaObraFamiliaEditor.tsx
+  L262 button:  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-card transition-transform ${ hasExtraTime ? "translate-x-4.5" : "translate-x-0.5" }`} /> 
+  L297 SelectTrigger:  <SelectValue /> 
+  L323 Button:  Cancelar 
+  L326 Button:  {isSaving ? "Guardando..." : "Guardar"} 
+  L215 SheetTitle: {item.partida}
+
+src/pages/Programa Obra/ProgramaObraGanttItem.tsx
+  L89 button:  <Icon className="h-3.5 w-3.5" aria-hidden="true" /> 
+  L467 button:  <span className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-[#B17C7C]" style={{ boxShadow: "0 0 0 1px hsl(var(--on-color))" }} /> 
+  L526 button:  {} <div className="flex space-x-0.5 h-full"> {/* BAR COLOR */} <div className="px-0.5 py-0.5 bg-[#3B82F6] h-full" /> {/* BAR TEXT (SHOW ONLY ON CLICK) */} {expandedComentarios.has(c._id) && ( <div className="flex flex-col"> <div className="bg-[#3B82F6] px-1.5 py-0.5 text-[10px] cursor-default whitespace-nowrap text-on-color flex items-center gap-0.5" style={{ minWidth: `${cWidth}px` }} > <MessageSquare className="inline" size={10} /> <span className="truncate max-w-[120px]">{c.comentario}</span
+
+
+src/pages/Programa Obra/ProgramaObraImportHistory.tsx
+  L24 Button: Anterior
+  L25 Button: Siguiente
+  L44 Button:  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Descargar Excel 
+  L111 Button: {expanded === attempt._id ? "Ocultar detalle" : "Ver detalle de carga"}
+  L116 DialogTitle: Historial de cargas · Programa de obra
+  L131 DialogTitle: Fuentes de Excel · {name}
+
+src/pages/Programa Obra/ProgramaObraImportReview.tsx
+  L29 SelectTrigger: <SelectValue />
+  L47 Button: {recoverPending ? "Cerrar" : "Cancelar"}
+  L47 Button: {busy ? "Guardando y aplicando…" : recoverPending ? "Comprobar resultado" : "Aplicar cambios revisados"}
+  L22 DialogTitle: Revisar cambios del Excel
+
+src/pages/Programa Obra/ProgramaObraMilestones.tsx
+  L74 button:  <div className="flex items-start justify-between gap-3"> <div className="min-w-0"> <p className="truncate text-sm font-medium text-foreground">{milestone.partidaName}</p> <p className="mt-0.5 text-xs text-muted-foreground"> {getMilestoneLabel(milestone.kind)} · {milestone.plannedDate} </p> </div> <Badge variant="outline" className={cn("shrink-0 rounded-none", getMilestoneStatusClasses(milestone.status))}> {getMilestoneStatusLabel(milestone.status)} </Badge> </div> <div className="mt-2 flex item
+  L283 Button:  Ver pago <ExternalLink className="ml-2 h-3.5 w-3.5" /> 
+  L290 Button:  <FileText className="mr-1.5 h-3.5 w-3.5" /> <span className="truncate">{document.name}</span> 
+  L305 Button:  {savingKey === `transaccion-${transaction.id}-confirmed` && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} Confirmar 
+  L314 Button:  <XCircle className="mr-1.5 h-3.5 w-3.5" /> Descartar 
+  L347 Button:  Abrir requisición <ExternalLink className="ml-2 h-3.5 w-3.5" /> 
+  L359 Button:  <FileText className="mr-1.5 h-3.5 w-3.5" /> <span className="truncate">{document.name}</span> 
+  L374 Button:  Confirmar 
+  L382 Button:  <XCircle className="mr-1.5 h-3.5 w-3.5" /> Descartar 
+  L127 SheetTitle:  <CalendarClock className="h-5 w-5" /> Alertas del programa 
+  L202 SheetTitle: {getMilestoneLabel(milestone.kind)} · {milestone.partidaName}
+
+src/pages/Programa Obra/ProgramaObraMobileList.tsx
+  L34 button:  {expanded ? <ChevronDown className="mt-0.5 h-5 w-5 shrink-0" /> : <ChevronRight className="mt-0.5 h-5 w-5 shrink-0" />} <span className="break-words text-sm font-medium leading-5">{item.partida}</span> 
+  L56 button: <span>Avance físico · Editar</span> <strong>{progress.toFixed(1)}%</strong>
+  L62 button: <span className="block font-medium">{getMilestoneLabel(milestone.kind)} · {getMilestoneStatusLabel(milestone.status)}</span> <span>{milestone.plannedDate}</span>
+
+
+src/pages/Programa Obra/ProgramaObraPartidaEditor.tsx
+  L262 Button:  Cancelar 
+  L265 Button:  {isSaving ? "Guardando..." : "Guardar"} 
+  L109 SheetTitle: {item.partida}
+
+src/pages/Programa Obra/ProgramaObraProgressEditor.tsx
+  L25 SelectTrigger: <SelectValue placeholder="Seleccionar frente" />
+  L23 SheetTitle: Registrar avance
+
+src/pages/Programa Obra/ProgramaObraProgressForm.tsx
+  L64 Button: {saving && <Loader2 className="h-4 w-4 animate-spin" />} {requestException ? "Solicitar excepción para este avance" : "Guardar avance"}
+
+
+src/pages/Programa Obra/ProgramaObraWeightEditor.tsx
+  L310 Button:  Reintentar revisión 
+  L335 Button:  Revisar cambios actualizados 
+  L454 Button:  Cancelar 
+  L462 Button:  {busy ? "Guardando…" : "Guardar ponderación"} 
+  L244 SheetTitle:  <Percent className="h-4 w-4" /> Ponderación 
+
+src/pages/ProveedoresTable/ProveedoresTablePage.tsx
+  L173 Button:  <MoreVertical className="h-4 w-4" /> 
+  L178 DropdownMenuItem:  <ReceiptText className="mr-2 h-4 w-4" /> Ver transacciones 
+  L182 DropdownMenuItem:  <Edit2 className="mr-2 h-4 w-4" /> Editar / completar 
+  L187 DropdownMenuItem:  <Merge className="mr-2 h-4 w-4" /> Fusionar 
+  L192 DropdownMenuItem:  <RotateCcw className="mr-2 h-4 w-4" /> Reactivar 
+  L196 DropdownMenuItem:  <Archive className="mr-2 h-4 w-4" /> Archivar 
+  L216 Button:  <FileSpreadsheet className="mr-2 h-4 w-4" /> Actualizar desde Excel 
+  L219 Button:  <RefreshCw className="mr-2 h-4 w-4" /> Sincronizar transacciones 
+  L222 Button:  <Plus className="mr-2 h-4 w-4" /> Nuevo proveedor 
+  L239 SelectTrigger: <SelectValue placeholder="Todos los proyectos" />
+  L246 SelectTrigger: <SelectValue />
+  L264 SelectTrigger:  <SelectValue /> 
+  L307 Button:  {provider.transaccionesCount} 
+  L354 Button:  {header.label} {renderSortIcon(header.sort)} 
+  L383 Button:  {provider.transaccionesCount} 
+  L405 Button:  {isLoadingMore ? "Cargando…" : "Cargar más proveedores"} 
+  L443 SelectTrigger: <SelectValue placeholder="Selecciona el proveedor destino" />
+  L449 Button: Cancelar
+  L450 Button: Fusionar
+  L437 DialogTitle: Fusionar proveedor
+
+src/pages/ProyectoDocumentos/ProyectoDocumentosPage.tsx
+  L491 button:  Documentos 
+  L500 button:  {folder.nombre} 
+  L516 Button:  Nueva carpeta <Plus className="h-5 w-5" /> 
+  L529 Button:  Subir documentos <Upload className="h-5 w-5" /> 
+  L553 Button:  <List className="h-5 w-5" /> 
+  L568 Button:  <Grid2X2 className="h-5 w-5" /> 
+  L684 Button:  Cancelar 
+  L687 Button:  Crear 
+  L711 Button:  Cancelar 
+  L714 Button:  Guardar 
+  L821 button:  <Folder className="h-5 w-5 shrink-0 fill-gray-700 text-foreground" /> <span className="min-w-0"> <span className="block break-words font-medium text-foreground xl:line-clamp-2">{folder.nombre}</span> <span className="block truncate text-xs text-disabled-foreground"> {folderItemCount.get(folder._id) || 0} elementos </span> </span> 
+  L886 button:  {doc.nombre} 
+  L935 Button:  <ExternalLink className="h-4 w-4 text-muted-foreground" /> 
+  L944 Button:  <Download className="h-4 w-4 text-muted-foreground" /> 
+  L996 button:  <div className="mb-6 flex items-center justify-between"> <Folder className="h-8 w-8 fill-gray-700 text-foreground" /> <RowActions target={{ kind: "folder", item: folder }} onRename={onRename} onMove={onMove} onDelete={onDelete} /> </div> <p className="truncate font-medium text-foreground">{folder.nombre}</p> <p className="mt-1 text-xs text-muted-foreground">{formatDate(folder.updated_at || folder.created_at)}</p> 
+  L1031 Button:  <ExternalLink className="h-4 w-4 text-muted-foreground" /> 
+  L1040 Button:  <Download className="h-4 w-4 text-muted-foreground" /> 
+  L1059 button:  {doc.nombre} 
+  L1102 Button:  <MoreVertical className="h-4 w-4 text-muted-foreground" /> 
+  L1107 DropdownMenuItem:  <Edit3 className="h-4 w-4" /> Renombrar 
+  L1111 DropdownMenuItem:  <FolderInput className="h-4 w-4" /> Mover ubicación 
+  L1116 DropdownMenuItem:  <Trash2 className="h-4 w-4" /> Eliminar 
+  L1193 Button:  <ChevronLeft className="h-4 w-4" /> 
+  L1209 Button:  {item} 
+  L1220 Button:  <ChevronRight className="h-4 w-4" /> 
+  L666 DialogTitle: Nueva carpeta
+  L697 DialogTitle: Renombrar
+  L747 AlertDialogTitle:  {deleteTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"} 
+
+src/pages/ProyectoFlujo/ProyectoFlujoPage.tsx
+  L243 SelectTrigger:  <SelectValue placeholder="Todas las partidas" /> 
+
+
+src/pages/ProyectoProveedoresTable/ProyectoProveedoresTablePage.tsx
+  L63 Button:  <Link to="/proveedores">Gestionar proveedores</Link> 
+
+
+src/pages/ProyectoRequisiciones/ProyectoRequisicionesPage.tsx
+  L1143 Button:  <Mail className="h-4 w-4 mr-2" /> Notificaciones 
+  L1156 Button:  <Clock className="h-5 w-5" /> Historial 
+  L1166 Button:  Nueva Requisición <Plus className="h-5 w-5" /> 
+  L1204 Button:  <X className="h-4 w-4 mr-1" /> Limpiar 
+  L1214 Button:  <Filter className="h-4 w-4 mr-1" /> Filtros 
+  L1236 SelectTrigger:  <SelectValue placeholder="Todos" /> 
+  L1254 SelectTrigger:  <SelectValue placeholder="Todos" /> 
+  L1269 Button:  Fecha {sortField === "fecha_solicitud" && ( sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" /> )} 
+  L1280 Button:  Tipo {sortField === "tipo" && ( sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" /> )} 
+  L1303 TabsTrigger:  Por revisar <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.por_revisar}</Badge> 
+  L1310 TabsTrigger:  Aprobadas <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.aprobadas}</Badge> 
+  L1317 TabsTrigger:  Pagadas <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.pagadas}</Badge> 
+  L1324 TabsTrigger:  Recibidas <Badge variant="secondary" className="rounded-full h-5 min-w-5 px-1.5 text-xs font-normal bg-muted">{tabCounts.recibidas}</Badge> 
+  L1389 button:  {categoryLabel} 
+  L1429 button:  <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border bg-card", stage.complete ? "border-[#50AC66] bg-[#50AC66]" : "border-border-strong")}> {pipelineBusy ? <Loader2 className="h-2 w-2 animate-spin" /> : <span className={cn("h-2 w-2 rounded-full", stage.complete ? "bg-[#50AC66]" : "bg-transparent")} />} </span> <span>{stage.label}</span> 
+  L1450 Button:  <MoreVertical className="h-4 w-4 text-muted-foreground" /> 
+  L1459 DropdownMenuItem:  <Icon className={cn("h-4 w-4", action.busy && "animate-spin", action.complete && "text-[#50AC66]")} /> {action.label} {action.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />} 
+  L1474 DropdownMenuSubTrigger:  <group.icon className="h-4 w-4" /> {group.label} 
+  L1487 button:  {isExpanded ? ( <ChevronUp className="h-4 w-4 text-muted-foreground" /> ) : ( <ChevronDown className="h-4 w-4 text-muted-foreground" /> )} 
+  L1567 button:  <X className="h-4 w-4" /> 
+  L1575 Button: Cancelar
+  L1576 Button:  {isUploadingRemission && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar fotos 
+  L1606 Button: Cancelar
+  L1607 Button:  {isRequestingOnsitePayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Enviar solicitud 
+  L1649 Button: Revisar materiales
+  L1651 Button: Cerrar
+  L1712 button:  Quitar documento 
+  L1723 Button:  Cancelar 
+  L1732 Button:  {isSubmittingStatusHistory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar cambio 
+  L1767 SelectTrigger:  <SelectValue /> 
+  L1804 SelectTrigger:  <SelectValue /> 
+  L1885 Button:  Cancelar 
+  L1892 Button:  {isSendingNotification ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <Send className="mr-2 h-4 w-4" /> )} Enviar correo 
+  L1948 Button:  <ExternalLink className="mr-2 h-4 w-4" /> Ver requisiciones 
+  L1999 button:  <ChevronLeft className="h-5 w-5" /> 
+  L2084 Button:  Cancelar 
+  L2087 Button:  {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Guardar Cambios 
+  L2149 Button:  <Edit2 className="h-4 w-4 mr-2" /> Editar 
+  L2156 Button:  Volver 
+  L2159 Button:  {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Asignar este Proveedor 
+  L2185 Button:  <Building2 className="h-4 w-4 mr-2" /> Seleccionar existente 
+  L2195 Button:  <Plus className="h-4 w-4 mr-2" /> Crear nuevo 
+  L2246 button:  <Eye className="h-4 w-4 text-muted-foreground" /> 
+  L2257 button:  <Edit2 className="h-4 w-4 text-muted-foreground" /> 
+  L2277 Button:  Cancelar 
+  L2280 Button:  {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Asignar 
+  L2362 Button:  Cancelar 
+  L2365 Button:  {isSubmittingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Crear y Asignar 
+  L1545 DialogTitle: Agregar nota de remisión
+  L1593 DialogTitle: Solicitar pago en obra
+  L1623 DialogTitle:  {pendingStatusChange?.title || "Actualizar estado"} 
+  L1753 DialogTitle:  <Mail className="h-5 w-5 text-muted-foreground" /> Notificaciones de requisiciones 
+  L1966 AlertDialogTitle: ¿Eliminar requisición?
+  L2007 DialogTitle:  {isEditingProvider ? "Editar Proveedor" : "Detalles del Proveedor"} 
+  L2177 DialogTitle: Asignar Proveedor
+
+src/pages/ProyectoRequisiciones/RequisicionItems.tsx
+  L56 button: <CheckCircle className="h-5 w-5" />
+  L58 button: <XCircle className="h-5 w-5" />
+
+
+src/pages/ProyectosTable/ProyectosTablePage.tsx
+  L123 Button:  Agregar Proyecto <Plus className="h-6 w-6 rounded-full shadow-none" /> 
+  L132 Button:  Subir Transacciones <Upload className="h-6 w-6 rounded-full shadow-none" /> 
+  L161 SelectTrigger:  <SelectValue placeholder="Filtrar por ubicación" /> 
+  L176 Button:  <Settings2 className="h-4 w-4" /> Configurar ubicaciones 
+  L290 Button:  <MoreVertical className="h-4 w-4 text-disabled-foreground" /> 
+  L295 DropdownMenuItem:  Editar 
+  L298 DropdownMenuItem:  <Upload className="h-3 w-3" /> Subir Proyecciones 
+  L302 DropdownMenuItem:  Eliminar 
+  L319 AlertDialogTitle: ¿Estás seguro?
+
+src/pages/ProyectoTransaccionesTable/ProyectoTransaccionesTablePage.tsx
+  L543 Button:  {isSyncing ? "Sincronizando..." : "Sincronizar Docs"} <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} /> 
+  L568 button:  <UserCog className="h-4 w-4" /> <span className="font-medium">{transactionTotals ? withoutProviderCount : "—"}</span> sin proveedor 
+  L579 button:  <Files className="h-4 w-4" /> <span className="font-medium">{transactionTotals ? withoutDocumentsCount : "—"}</span> sin documentos 
+  L605 Button:  <X className="h-4 w-4 mr-1" /> Limpiar 
+  L615 Button:  <Filter className="h-4 w-4 mr-1" /> Filtros 
+  L665 Button:  <CalendarIcon className="mr-2 h-4 w-4" /> {dateRange?.from ? ( dateRange.to ? ( <> {format(dateRange.from, "dd MMM yyyy", { locale: es })} - {format(dateRange.to, "dd MMM yyyy", { locale: es })} </> ) : ( format(dateRange.from, "dd MMM yyyy", { locale: es }) ) ) : dateRange?.to ? ( <>Hasta {format(dateRange.to, "dd MMM yyyy", { locale: es })}</> ) : ( "Seleccionar rango" )} 
+  L703 SelectTrigger:  <SelectValue placeholder="Todos" /> 
+  L718 SelectTrigger:  <SelectValue placeholder="Todos" /> 
+  L735 SelectTrigger:  <SelectValue placeholder="Todas" /> 
+  L751 SelectTrigger:  <SelectValue placeholder="Todas" /> 
+  L768 SelectTrigger:  <SelectValue placeholder="Todos los proveedores" /> 
+  L798 SelectTrigger:  <SelectValue placeholder="Todos" /> 
+  L813 Button:  Fecha {sortField === "fecha" && ( sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" /> )} 
+  L824 Button:  Monto {sortField === "monto_total" && ( sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" /> )} 
+  L861 button:  {selectFilteredPending ? "Seleccionando resultados filtrados..." : `Seleccionar las ${matchedCount} de este filtro`} 
+  L874 Button:  Limpiar 
+  L884 Button:  Asignar proveedor 
+  L919 button:  {withoutProviderCount} 
+  L955 button:  {withoutDocumentsCount} 
+  L999 button:  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-disabled-foreground" /> <span className="min-w-0"> <span className="block truncate text-sm font-medium"> {transaccion.factura} </span> {transaccion.fecha && ( <span className="block truncate text-xs text-disabled-foreground no-underline"> {formatTransactionDate(transaccion.fecha)} </span> )} </span> 
+  L1078 Button:  <MoreVertical className="h-4 w-4 text-muted-foreground" /> 
+  L1088 DropdownMenuItem:  <Eye className="h-4 w-4" /> Ver detalles 
+  L1093 DropdownMenuItem:  <Trash2 className="h-4 w-4" /> Eliminar 
+  L1121 SelectTrigger:  <SelectValue /> 
+  L1135 Button:  <ChevronLeft className="h-4 w-4" /> 
+  L1152 Button:  {item} 
+  L1163 Button:  <ChevronRight className="h-4 w-4" /> 
+  L1192 AlertDialogTitle: ¿Eliminar transacción?
+  L1235 AlertDialogTitle: Hay selecciones ocultas
+
+src/pages/Reportes/ReportesPage.tsx
+  L273 Button:  <span className="flex min-w-0 items-center gap-3"> <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" /> <span className="truncate">{formatReportDate(value)}</span> </span> <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> 
+  L560 button:  <span className="h-3 w-3 rounded-sm bg-[#50AC66]" /> Perfil: {profileDetails.label} <Info className="h-4 w-4" /> 
+  L599 TabsTrigger:  {item.label} 
+  L685 Button:  {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[#50AC66]" /> : <FileText className="mr-2 h-4 w-4 text-[#50AC66]" />} Generar PDF 
+  L696 Button:  <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" /> Programar este reporte 
+  L727 SelectTrigger:  <SelectValue placeholder="Selecciona una frecuencia" /> 
+  L754 SelectTrigger:  <SelectValue placeholder="Selecciona un día" /> 
+  L774 SelectTrigger:  <SelectValue placeholder="Selecciona un día" /> 
+  L794 SelectTrigger:  <SelectValue placeholder="Selecciona una zona horaria" /> 
+  L866 Button:  {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[#50AC66]" /> : <Send className="mr-2 h-4 w-4 text-[#50AC66]" />} Guardar programación 
+  L907 Button:  {subscription.active ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />} {subscription.active ? "Pausar" : "Reactivar"} 
+  L922 Button:  <Trash2 className="h-4 w-4" /> 
+  L978 Button:  <a href={run.artifact.download_url} download={run.artifact.file_name} target="_blank" rel="noopener noreferrer" > <Download className="mr-2 h-4 w-4" /> Descargar PDF </a> 
+  L996 Button:  <RefreshCw className="mr-2 h-4 w-4" /> Reintentar 
+  L1009 Button:  <RefreshCw className="mr-2 h-4 w-4" /> Reintentar sólo IA 
+
+
+src/pages/RFIs/RfiActionReview.tsx
+  L78 Button: Actualizar revisión
+  L83 Button: Cancelar
+  L84 Button: {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />} {busy ? "Aplicando…" : RFI_ACTION_LABELS[action]}
+  L68 DialogTitle: {RFI_ACTION_LABELS[action]}
+
+src/pages/RFIs/RfiAssigneePicker.tsx
+  L83 button:  {selectedUsers.length > 0 ? ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-border bg-disabled text-xs font-medium text-muted-foreground"> {userInitials(selectedUsers[0])} </span> <span className="min-w-0 flex-1 truncate text-sm text-disabled-foreground"> {selectedUsers.map((user) => user.name || user.email).join(", ")} </span> </> ) : ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-disabled text-xs font-medi
+  L120 button:  <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-border bg-card text-[10px] font-medium text-muted-foreground"> {userInitials(user)} </span> <span className="max-w-36 truncate"> {user.name || user.email} </span> <X className="h-3 w-3" /> 
+  L168 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border bg-muted text-xs font-medium text-muted-foreground"> {userInitials(user)} </span> <span className="min-w-0 flex-1"> <span className="block truncate font-medium text-foreground"> {user.name || user.email} </span> <span className="block truncate text-xs text-muted-foreground"> {user.role} </span> </span> {selected && ( <CheckCircle2 className="h-4 w-4 text-muted-foreground" /> )} 
+
+
+src/pages/RFIs/RfiDatePicker.tsx
+  L47 Button:  {value ? formatRfiDate(value) : placeholder} 
+  L78 Button:  Limpiar 
+  L89 Button:  Hoy 
+
+
+src/pages/RFIs/RFIDetailPage.tsx
+  L322 Button:  <Link to={`/proyecto/${projectId}/rfis`}> <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" /> Volver al registro </Link> 
+  L348 Button:  Editar 
+  L358 Button:  <Link to={`/proyecto/${projectId}/rfis/${id}/editar`} aria-disabled={busyAction !== null || review !== null} onClick={(event) => { if (actionLock.current || review) event.preventDefault(); }}> Editar </Link> 
+  L366 Button:  <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Eliminar borrador 
+  L427 TabsTrigger:  General 
+  L430 TabsTrigger:  Respuestas <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-1.5 text-xs text-muted-foreground"> {detail.responses.length} </span> 
+  L436 TabsTrigger:  Historial 
+  L571 Button:  {busyAction === "official" && review?.responseId === response._id ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <CheckCircle2 className="mr-2 h-4 w-4" /> )} Marcar oficial 
+  L630 Button:  {busyAction === "respond" ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <Send className="mr-2 h-4 w-4" /> )} Publicar respuesta 
+  L691 Button:  {busyAction === "delete" && ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> )} Eliminar permanentemente 
+  L745 Button:  {busyAction === name ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <Icon className="mr-2 h-4 w-4" /> )} {label} 
+  L845 button:  <img src={attachment.url || undefined} alt={attachment.nombre} className="h-32 w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" /> {index === 3 && remaining > 0 && ( <span className="absolute inset-0 flex items-center justify-center bg-overlay/60 text-sm font-medium text-on-color"> +{remaining} </span> )} 
+  L893 Button:  <ChevronLeft className="h-6 w-6" aria-hidden="true" /> 
+  L903 Button:  <ChevronRight className="h-6 w-6" aria-hidden="true" /> 
+  L920 button:  <img src={attachment.url || undefined} alt="" className="h-14 w-20 object-cover" /> 
+  L680 AlertDialogTitle: Eliminar {rfi.code}
+  L869 DialogTitle: Galería de imágenes de la RFI
+
+src/pages/RFIs/RFIListPage.tsx
+  L254 Button:  <Plus className="h-5 w-5 text-muted-foreground" /> Nueva RFI 
+  L274 button:  <span>{tab.label}</span> <span className="flex h-7 min-w-7 items-center justify-center rounded-sm bg-card px-2 text-xs text-muted-foreground"> {counts[tab.id]} </span> 
+  L402 Button:  <X className="h-3.5 w-3.5" /> 
+  L413 Button:  {isCreating ? ( <Loader2 className="h-3.5 w-3.5 animate-spin" /> ) : ( <ArrowRight className="h-3.5 w-3.5" /> )} 
+  L466 button:  <div className={RFI_MAIN_CELL}> <span className={RFI_MOBILE_LABEL}>RFI</span> <p className="truncate text-sm text-muted-foreground"> {rfi.code} </p> <p className="mt-1 truncate text-base font-medium text-foreground"> {rfi.subject} </p> <p className="mt-1 truncate text-xs uppercase text-muted-foreground"> {reference || project.nombre} </p> </div> <div className={RFI_FIELD_CELL}> <span className={RFI_MOBILE_LABEL}>Solicita</span> <p className="truncate text-base text-muted-foreground"> {creatorNa
+  L557 button:  <Plus className="h-3.5 w-3.5" /> Agregar RFI 
+  L583 SheetTitle:  {sheetMode === "detail" ? "Detalle de RFI" : "Editar RFI"} 
+
+src/pages/RFIs/RFINewPage.tsx
+  L472 Button:  <Link to={`/proyecto/${projectId}/rfis`} onClick={(event) => { if (saveLock.current) event.preventDefault(); }} aria-disabled={submitting !== null}> <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" /> Volver al registro </Link> 
+  L826 Button:  Deshacer eliminaciones 
+  L909 Button: He revisado los cambios actuales
+  L917 Button: {submitting !== null ? "Completando adjuntos…" : "Reintentar adjuntos pendientes"}
+  L917 Button: Continuar al detalle sin estos archivos
+  L925 Button:  Cancelar 
+  L935 Button:  <Link to={`/proyecto/${projectId}/rfis`} aria-disabled={submitting !== null} onClick={(event) => { if (saveLock.current) event.preventDefault(); }}>Cancelar</Link> 
+  L939 Button:  {submitting === "draft" ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <Save className="mr-2 h-4 w-4" /> )} {editId ? "Guardar cambios" : "Guardar borrador"} 
+  L954 Button:  {submitting === "review" ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <Send className="mr-2 h-4 w-4" /> )} {editId ? "Guardar y enviar a revisión" : "Enviar a revisión"} 
+  L1068 Button:  <X className="h-4 w-4" aria-hidden="true" /> 
+  L1116 Button:  <X className="h-4 w-4" aria-hidden="true" /> 
+  L1158 SelectTrigger:  <SelectValue placeholder={placeholder} /> 
+
+
+src/pages/SalesProjectManagement/SalesProjectManagementPage.tsx
+  L193 Button:  <Plus className="h-4 w-4 mr-2" /> Nuevo Proyecto 
+  L208 button:  <div className="flex items-start gap-3"> <div className="mt-0.5"> <Building2 className="h-4 w-4 text-muted-foreground" /> </div> <div className="flex-1 min-w-0"> <p className="text-sm font-medium text-foreground truncate"> {project.nombre} </p> <p className="text-xs text-muted-foreground mt-1"> {project.status || "Activo"} </p> {project.comision_porcentaje !== undefined && ( <p className="text-xs text-blue-600 mt-1"> Comisión: {project.comision_porcentaje}% </p> )} </div> </div> 
+  L243 Button: Volver a proyectos
+  L255 Button:  <Pencil className="h-4 w-4 mr-2" /> Editar 
+  L259 Button:  <Trash2 className="h-4 w-4 mr-2" /> Eliminar 
+  L335 SelectTrigger:  <SelectValue /> 
+  L386 Button:  Cancelar 
+  L389 Button:  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {isCreating ? "Crear Proyecto" : "Guardar Cambios"} 
+  L413 Button:  Cancelar 
+  L416 Button:  {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Eliminar 
+  L406 DialogTitle: ¿Eliminar proyecto?
+
+src/pages/SalesProyectoDocumentos/SalesProyectoDocumentosPage.tsx
+  L144 Button:  <Upload className="mr-2 h-4 w-4" /> Subir Documentos 
+  L241 Button:  <ExternalLink className="h-4 w-4" /> 
+  L251 Button:  <Download className="h-4 w-4" /> 
+  L261 Button:  <Trash2 className="h-4 w-4" /> 
+  L285 AlertDialogTitle: ¿Eliminar documento?
+
+src/pages/SalesProyectoFlujo/SalesProyectoFlujoPage.tsx
+  L242 SelectTrigger:  <SelectValue placeholder="Todas las partidas" /> 
+
+
+src/pages/SalesProyectosTable/SalesProyectosTablePage.tsx
+  L92 Button:  Agregar Proyecto de Ventas <Plus className="h-6 w-6 rounded-full shadow-none" /> 
+  L192 Button:  <MoreVertical className="h-4 w-4 text-disabled-foreground" /> 
+  L197 DropdownMenuItem:  Editar 
+  L200 DropdownMenuItem:  Eliminar 
+  L217 AlertDialogTitle: ¿Estás seguro?
+
+src/pages/SalesProyectoTransacciones/SalesProyectoTransaccionesPage.tsx
+  L207 Button:  Subir Transacciones <Upload className="h-6 w-6 rounded-full shadow-none" /> 
+  L216 Button:  {isSyncing ? "Sincronizando..." : "Sincronizar Docs"} <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} /> 
+  L395 Button:  <MoreVertical className="h-4 w-4 text-disabled-foreground" /> 
+  L401 DropdownMenuItem:  Ver detalles 
+  L404 DropdownMenuItem:  Ver conceptos 
+  L407 DropdownMenuItem:  Ver documentos 
+  L410 DropdownMenuItem:  Eliminar 
+  L428 AlertDialogTitle: ¿Eliminar transacción?
+
+src/pages/SalesUserManagement/SalesUserManagementPage.tsx
+  L119 button:  <div className="flex items-center justify-between"> <div className="flex-1 min-w-0"> <p className="text-sm font-medium text-foreground truncate"> {user.name} </p> <p className="text-xs text-muted-foreground truncate"> {user.email} </p> </div> <div className="ml-2">{getRoleIcon(user.role)}</div> </div> <div className="mt-1"> <span className="text-xs text-muted-foreground"> {(user.allowed_sales_projects?.length || 0) === 0 ? "Sin acceso a ventas" : `${user.allowed_sales_projects?.length || 0} pro
+  L154 Button: Volver a usuarios
+  L171 SelectTrigger:  <SelectValue /> 
+  L235 Button:  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar Cambios 
+
+
+src/pages/Tareas/TareasPage.tsx
+  L564 Button:  {displayValue} 
+  L593 Button:  Limpiar 
+  L604 Button:  Hoy 
+  L673 Button:  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel.color }} /> <span className="truncate">{activeLabel.label}</span> 
+  L694 button:  <span className="block h-3 w-3 rounded-full" style={{ backgroundColor: label.color }} /> 
+  L706 Button:  <Trash2 className="h-3.5 w-3.5" /> 
+  L718 button: 
+  L735 Button:  <Plus className="h-3.5 w-3.5" /> Nueva etiqueta 
+  L741 Button:  Aplicar 
+  L752 button:  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: label.color }} /> <span>{label.label}</span> 
+  L768 Button:  <Pencil className="h-3.5 w-3.5" /> Editar etiquetas 
+  L842 Button:  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: activeLabel?.color || TASK_UI_COLORS.pending }} /> <span className="truncate">{activeLabel?.label || clearLabel}</span> 
+  L867 button:  <span className="block h-3 w-3 rounded-full" style={{ backgroundColor: label.color }} /> 
+  L882 Button:  <Trash2 className="h-3.5 w-3.5" /> 
+  L894 button: 
+  L911 Button:  <Plus className="h-3.5 w-3.5" /> Nueva prioridad 
+  L917 Button:  Aplicar 
+  L928 button:  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: label.color }} /> <span>{label.label}</span> 
+  L944 button:  <Ban className="h-4 w-4 shrink-0" /> <span>Limpiar</span> 
+  L955 Button:  <Pencil className="h-3.5 w-3.5" /> Editar etiquetas 
+  L999 Button:  <span className="truncate">{displayValue}</span> 
+  L1025 button:  <span className="truncate">{option.label}</span> {value === option.value && <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />} 
+  L1093 button:  {assignedUsers.length ? ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-muted-foreground"> {userInitials(assignedUsers[0])} </span> <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground"> {assignedUsers.map((user) => user.name || user.email).join(", ")} </span> </> ) : ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs
+  L1124 button:  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-muted-foreground"> {userInitials(user)} </span> <span className="max-w-36 truncate">{user.name || user.email}</span> <X className="h-3 w-3" /> 
+  L1167 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"> {userInitials(user)} </span> <span className="min-w-0 flex-1"> <span className="block truncate font-medium text-foreground">{user.name || user.email}</span> <span className="block truncate text-xs text-muted-foreground">{user.role}</span> </span> {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />} 
+  L1239 button:  {selectedPartidas.length ? ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"> {selectedPartidas.length} </span> <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground"> {selectedPartidas.map(partidaDisplayName).join(", ")} </span> </> ) : ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-m
+  L1270 button:  <span className="max-w-44 truncate">{partidaDisplayName(partida)}</span> <X className="h-3 w-3" /> 
+  L1310 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"> {partida.nivel} </span> <span className="min-w-0 flex-1"> <span className="block truncate font-medium text-foreground">{partidaDisplayName(partida)}</span> <span className="block truncate text-xs text-muted-foreground">{partidaContext(partida)}</span> </span> {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />} 
+  L1385 button:  {assignedUsers.length ? ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-disabled text-xs font-medium text-muted-foreground"> {userInitials(assignedUsers[0])} </span> <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground"> {assignedUsers.map((user) => user.name || user.email).join(", ")} </span> </> ) : ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs
+  L1416 button:  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-[10px] font-medium text-muted-foreground"> {userInitials(user)} </span> <span className="max-w-36 truncate">{user.name || user.email}</span> <X className="h-3 w-3" /> 
+  L1458 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"> {userInitials(user)} </span> <span className="min-w-0 flex-1"> <span className="block truncate font-medium text-foreground">{user.name || user.email}</span> <span className="block truncate text-xs text-muted-foreground">{user.role}</span> </span> {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />} 
+  L1530 button:  {selectedPartidas.length ? ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"> {selectedPartidas.length} </span> <span className="min-w-0 flex-1 truncate text-sm leading-4 text-disabled-foreground"> {selectedPartidas.map(partidaDisplayName).join(", ")} </span> </> ) : ( <> <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-disabled text-xs font-medium text-m
+  L1561 button:  <span className="max-w-44 truncate">{partidaDisplayName(partida)}</span> <X className="h-3 w-3" /> 
+  L1600 button:  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"> {partida.nivel} </span> <span className="min-w-0 flex-1"> <span className="block truncate font-medium text-foreground">{partidaDisplayName(partida)}</span> <span className="block truncate text-xs text-muted-foreground">{partidaContext(partida)}</span> </span> {selected && <CheckCircle2 className="h-4 w-4 text-muted-foreground" />} 
+  L2679 button:  <GripVertical className="h-3.5 w-3.5" /> 
+  L2788 Button:  <MoreHorizontal className="h-3.5 w-3.5" /> 
+  L2841 button:  <GripVertical className="h-3.5 w-3.5" /> 
+  L2857 button:  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isTaskCollapsed && "-rotate-90")} /> 
+  L2866 button:  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", addingSubtaskFor !== task._id && "-rotate-90")} /> 
+  L2992 Button:  <MoreHorizontal className="h-3.5 w-3.5" /> 
+  L3136 SelectTrigger:  <SelectValue /> 
+  L3154 button:  <Plus className="h-3.5 w-3.5" /> Agregar subelemento 
+  L3206 Button:  <span className="h-3 w-3 rounded-full bg-[#50AC66]" /> Notificaciones {unreadNotificationCount > 0 && ( <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#50AC66] px-1.5 text-[11px] font-medium text-on-color"> {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount} </span> )} 
+  L3220 Button:  <Plus className="h-5 w-5 text-muted-foreground" /> Nueva tarea 
+  L3241 button:  <span>{item.label}</span> <span className="flex h-[24px] min-w-[24px] items-center justify-center rounded-full bg-disabled px-2 text-[15px] text-foreground"> {item.value} </span> 
+  L3270 SelectTrigger:  <SelectValue placeholder="Estado" /> 
+  L3284 SelectTrigger:  <SelectValue placeholder="Asignado" /> 
+  L3297 Button:  <Filter className="h-4 w-4" /> Más filtros {additionalFilterCount > 0 && ( <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-inverse px-1.5 text-xs text-on-color"> {additionalFilterCount} </span> )} 
+  L3327 button:  <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isCollapsed && "-rotate-90")} /> <span className="min-w-0 flex-1 truncate font-medium text-muted-foreground">{group.projectName}</span> <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" /> <span className="ml-auto shrink-0 rounded-sm bg-muted px-3 py-2 text-xs text-disabled-foreground sm:px-4 min-[1440px]:px-6"> {group.tasks.reduce((count, task) => count + 1 + (projectedChildrenByGroup.get(`${group
+  L3359 button:  <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isStatusCollapsed && "-rotate-90")} /> <StatusSectionIcon status={section.label.label} color={section.label.color} /> <span>{section.label.label}</span> <span className="text-xs text-disabled-foreground">{section.tasks.length}</span> 
+  L3508 button:  <Plus className="h-3.5 w-3.5" /> Agregar tarea 
+  L3656 Button:  Marcar leídas 
+  L3675 TabsTrigger: Todas
+  L3676 TabsTrigger: Comentarios
+  L3677 TabsTrigger: Menciones
+  L3678 TabsTrigger: Asignaciones
+  L3692 button:  <span className={cn( "flex h-5 w-9 items-center rounded-full border border-border-strong p-0.5 transition", onlyUnreadNotifications ? "bg-blue-600" : "bg-disabled" )} > <span className={cn( "h-4 w-4 rounded-full bg-card shadow-sm transition", onlyUnreadNotifications && "translate-x-4" )} /> </span> Solo no leídas 
+  L3745 button:  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"> {item.notification_type === "assignment" ? ( <ListChecks className="h-4 w-4" /> ) : item.notification_type === "mention" || item.notification_type === "comment" ? ( <MessageSquare className="h-4 w-4" /> ) : ( <Clock3 className="h-4 w-4" /> )} </div> <div className="min-w-0 flex-1"> <div className="flex items-start justify-between gap-3"> <p className="text-sm leading-5 break-word
+  L3820 Button:  <Pencil className="h-4 w-4" /> Editar 
+  L3826 Button:  <Trash2 className="h-4 w-4" /> Eliminar 
+  L3875 TabsTrigger:  <MessageSquare className="h-4 w-4" /> Comentarios 
+  L3879 TabsTrigger:  <History className="h-4 w-4" /> Historial 
+  L3895 Button:  {commentSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Enviar 
+  L3914 Button:  <Trash2 className="h-4 w-4" /> 
+  L3980 SelectTrigger:  <SelectValue placeholder="Prioridad" /> 
+  L3997 SelectTrigger:  <SelectValue placeholder="Especialidad" /> 
+  L4014 SelectTrigger:  <SelectValue placeholder="Vista" /> 
+  L4028 SelectTrigger:  <SelectValue placeholder="Partida" /> 
+  L4046 SelectTrigger:  <SelectValue placeholder="Proyecto" /> 
+  L4064 Button:  Limpiar filtros 
+  L4078 Button:  Aplicar 
+  L4106 SelectTrigger: <SelectValue />
+  L4131 SelectTrigger:  <SelectValue placeholder="Selecciona el proyecto" /> 
+  L4175 SelectTrigger:  <SelectValue /> 
+  L4193 SelectTrigger:  <SelectValue /> 
+  L4224 SelectTrigger:  <SelectValue /> 
+  L4304 Button:  Cancelar 
+  L4307 Button:  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar 
+  L3655 SheetTitle: Notificaciones
+  L3813 SheetTitle: {selectedTask.titulo}
+  L3970 DialogTitle: Más filtros
+  L4088 DialogTitle: {editingTask ? `Editar ${form.tipo}` : `Nueva ${form.tipo}`}
+  L4318 AlertDialogTitle: {taskToDelete?.parent_task ? "Eliminar subtarea" : "Eliminar tarea"}
+
+src/pages/TransaccionesTable/SalesTransaccionesTablePage.tsx
+  L199 SelectTrigger:  <SelectValue placeholder="Todos los proyectos" /> 
+  L359 Button:  <MoreVertical className="h-4 w-4 text-disabled-foreground" /> 
+  L364 DropdownMenuItem:  Ver detalles 
+  L373 DropdownMenuItem:  Eliminar 
+  L391 Button: Anterior
+  L393 Button: Siguiente
+  L401 AlertDialogTitle: ¿Eliminar transacción?
+
+src/pages/TransaccionesTable/TransaccionesTablePage.tsx
+  L351 SelectTrigger:  <SelectValue placeholder="Todos los proyectos" /> 
+  L372 SelectTrigger:  <SelectValue placeholder="Todos los proveedores" /> 
+  L399 Button:  Limpiar 
+  L402 Button:  Asignar proveedor 
+  L525 button:  <FileText className="h-4 w-4 shrink-0 text-disabled-foreground" /> <span className="truncate text-sm font-medium"> {transaccion.factura} </span> 
+  L619 Button:  <MoreVertical className="h-4 w-4" /> 
+  L629 DropdownMenuItem:  <Eye /> Ver detalles 
+  L634 DropdownMenuItem:  <Trash2 /> Eliminar 
+  L649 Button:  {isLoadingMore && <Loader2 className="animate-spin" />} {isLoadingMore ? "Cargando..." : "Cargar más transacciones"} 
+  L761 SelectTrigger:  <SelectValue placeholder="Selecciona un proyecto" /> 
+  L774 Button:  Cancelar 
+  L782 Button:  Continuar 
+  L681 AlertDialogTitle: ¿Eliminar transacción?
+  L750 DialogTitle: Agregar pago
+
+src/pages/UserManagement/NewUserPage.tsx
+  L100 Button:  <Link to="/usuarios"> <ArrowLeft className="h-4 w-4" /> Usuarios </Link> 
+  L150 SelectTrigger:  <SelectValue /> 
+  L211 Button:  {isSubmitting ? ( <Loader2 className="h-4 w-4 animate-spin" /> ) : ( <MailPlus className="h-4 w-4" /> )} Enviar Invitación 
+
+
+src/pages/UserManagement/UserManagementPage.tsx
+  L157 Button:  <Link to="/usuarios/nuevo"> <UserPlus className="h-4 w-4" /> Agregar Usuario </Link> 
+  L174 button:  <div className="flex items-center justify-between"> <div className="flex-1 min-w-0"> <p className="text-sm font-medium text-foreground truncate"> {user.name} </p> <p className="text-xs text-muted-foreground truncate"> {user.email} </p> </div> <div className="ml-2">{getRoleIcon(user.role)}</div> </div> <div className="mt-1"> <span className="text-xs text-muted-foreground"> {user.allowed_desarrollos.length === 0 ? "Sin acceso" : `${user.allowed_desarrollos.length} proyecto(s)`} </span> </div> 
+  L217 Button:  {isDeleting ? ( <Loader2 className="h-4 w-4 animate-spin" /> ) : ( <Trash2 className="h-4 w-4" /> )} Quitar usuario 
+  L272 SelectTrigger:  <SelectValue /> 
+  L369 Button:  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Guardar Cambios 
+  L234 AlertDialogTitle: Quitar usuario

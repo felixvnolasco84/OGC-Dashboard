@@ -27,7 +27,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -631,8 +633,22 @@ export default function ProgramaObra() {
   } = useProgramaObraExcelImport(proyectoId as Id<"desarrollos"> | undefined);
   const [importHistoryOpen, setImportHistoryOpen] = useState(false);
   const [sourceItem, setSourceItem] = useState<ProgramaItem | null>(null);
-  useEffect(() => { setImportHistoryOpen(false); setSourceItem(null); }, [proyectoId]);
+  const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const fileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const fileMenuDialogRef = useRef<"history" | "export" | null>(null);
+  const returnFileMenuFocus = useCallback((event: Event) => {
+    event.preventDefault();
+    fileMenuTriggerRef.current?.focus();
+  }, []);
+  useEffect(() => {
+    fileMenuDialogRef.current = null;
+    setFileMenuOpen(false);
+    setImportHistoryOpen(false);
+    setSourceItem(null);
+  }, [proyectoId]);
   const canImportExcel = !!execution?.capabilities.write && (!execution.config || execution.capabilities.plan);
+  const fileActionsBusy = exporting || parsing || uploading;
+  const fileActionStatus = exporting ? "Exportando..." : parsing ? "Leyendo archivo..." : uploading ? "Cargando..." : "";
   // PDF Export handler
   const handleExportPdf = useCallback(async (selection: ProgramaObraExportSelection) => {
     if (exportInProgressRef.current || !proyecto || programaDataWithComentarios.length === 0) return;
@@ -805,8 +821,7 @@ export default function ProgramaObra() {
             </div>
           )}
           <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" data-viewer-readonly-allow="true" onClick={() => setImportHistoryOpen(true)}><History className="h-4 w-4" /> Historial de cargas</Button>
-            <Button size="sm" variant="outline" data-viewer-readonly-allow="true" disabled={!execution} onClick={() => openExecution()}>Actividades por frente</Button>
+            <Button size="sm" variant="outline" className="h-11 min-[850px]:h-8" data-viewer-readonly-allow="true" disabled={!execution} onClick={() => openExecution()}>Actividades por frente</Button>
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -819,30 +834,48 @@ export default function ProgramaObra() {
               }}
             />
             {focusMode && (
-              <Button variant="outline" size="sm" className="rounded-none gap-2" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
+              <Button variant="outline" size="sm" className="h-11 rounded-none gap-2 min-[850px]:h-8" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
                 <Minimize2 className="h-4 w-4" /> Salir de enfoque
               </Button>
             )}
-            {programaDataWithComentarios.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-none gap-2" data-viewer-readonly-allow="true" disabled={exporting || parsing || uploading}>
-                    {(exporting || parsing || uploading) && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {exporting ? "Exportando..." : parsing ? "Leyendo archivo..." : uploading ? "Cargando..." : "Archivo"}
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onSelect={() => setExportDialogOpen(true)} disabled={exporting || parsing || uploading} data-viewer-readonly-allow="true">
-                    <FileDown className="h-4 w-4" /> Exportar PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} disabled={exporting || parsing || uploading || !canImportExcel}>
+            <DropdownMenu open={fileMenuOpen} onOpenChange={setFileMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button ref={fileMenuTriggerRef} variant="outline" size="sm" className="h-11 rounded-none gap-2 min-[850px]:h-8" data-viewer-readonly-allow="true">
+                  {fileActionsBusy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                  Archivo
+                  {fileActionStatus && <span role="status" className="text-xs text-muted-foreground">· {fileActionStatus}</span>}
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-2rem)] rounded-none" onCloseAutoFocus={(event) => {
+                const dialog = fileMenuDialogRef.current;
+                fileMenuDialogRef.current = null;
+                if (!dialog) return;
+                // Finish closing the menu before a dialog takes focus. Its close
+                // then returns to Archivo, rather than an unmounted menu item.
+                event.preventDefault();
+                fileMenuTriggerRef.current?.focus();
+                if (dialog === "history") setImportHistoryOpen(true);
+                else setExportDialogOpen(true);
+              }}>
+                <DropdownMenuGroup aria-label="Importar">
+                  <DropdownMenuLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Importar</DropdownMenuLabel>
+                  <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => fileInputRef.current?.click()} disabled={fileActionsBusy || !canImportExcel}>
                     <Upload className="h-4 w-4" /> Cargar Excel
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                  <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => { fileMenuDialogRef.current = "history"; }} data-viewer-readonly-allow="true">
+                    <History className="h-4 w-4" /> Historial de cargas
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup aria-label="Exportar">
+                  <DropdownMenuLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Exportar</DropdownMenuLabel>
+                  <DropdownMenuItem className="min-h-11 min-[850px]:min-h-8" onSelect={() => { fileMenuDialogRef.current = "export"; }} disabled={fileActionsBusy || programaDataWithComentarios.length === 0} data-viewer-readonly-allow="true">
+                    <FileDown className="h-4 w-4" /> Exportar PDF
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -1290,6 +1323,7 @@ export default function ProgramaObra() {
           items={programaDataWithComentarios}
           onCancel={() => setExportDialogOpen(false)}
           onExport={handleExportPdf}
+          onCloseAutoFocus={returnFileMenuFocus}
         />
       )}
 
@@ -1358,7 +1392,7 @@ export default function ProgramaObra() {
       )}
 
       {/* Excel Preview Dialog */}
-      {importHistoryOpen && proyectoId && <ProgramaObraImportHistory key={proyectoId} proyecto={proyectoId as Id<"desarrollos">} onClose={() => setImportHistoryOpen(false)} />}
+      {importHistoryOpen && proyectoId && <ProgramaObraImportHistory key={proyectoId} proyecto={proyectoId as Id<"desarrollos">} onClose={() => setImportHistoryOpen(false)} onCloseAutoFocus={returnFileMenuFocus} />}
       {sourceItem && proyectoId && <ProgramaObraSourcesDialog key={sourceItem.id} proyecto={proyectoId as Id<"desarrollos">} name={sourceItem.partida}
         target={sourceItem.level === 0 ? { kind: "schedule", id: sourceItem.schedule!._id } : { kind: "detail", id: sourceItem.detalleSchedule!._id }} onClose={() => setSourceItem(null)} />}
       {importRows && proyectoId && execution && <ProgramaObraImportReview key={proyectoId} proyecto={proyectoId as Id<"desarrollos">} rows={importRows} schedules={schedules ?? []} details={detalles ?? []} onCancel={handlePreviewCancel} onApply={handleImportApply} busy={uploading} recoverPending={uncertain} />}

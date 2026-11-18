@@ -1,0 +1,130 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes" [active]:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Proyecto
+  - heading "Reportes Lote 77" [level=1]
+  - paragraph: Genera y programa reportes semanales de obra con el nuevo formato ejecutivo, cifras verificables y contenido ajustado a los permisos de cada destinatario.
+  - button "Detalles del perfil Completo":
+    - text: "Perfil: Completo"
+  - tablist:
+    - tab "Generar ahora" [selected]
+    - tab "Programaciones"
+    - tab "Historial"
+  - tabpanel "Generar ahora":
+    - generic: Periodo y contenido
+    - paragraph: Define el rango del análisis y selecciona los apartados del PDF. Cada opción resume debajo las métricas y hallazgos que incorporará.
+    - text: Desde
+    - button "Desde":
+      - generic: 01 de noviembre de 2026
+    - text: Hasta
+    - button "Hasta":
+      - generic: 17 de noviembre de 2026
+    - checkbox "Resumen ejecutivo KPIs principales, alertas prioritarias, tendencias e iniciativas recomendadas." [checked]:
+    - generic: Resumen ejecutivo
+    - generic: KPIs principales, alertas prioritarias, tendencias e iniciativas recomendadas.
+    - checkbox "Control de obra Continúa el resumen con gasto real y proyectado, las dos gráficas configuradas, variaciones e IMSS/SIROC, sin repetir KPIs." [checked]:
+    - generic: Control de obra
+    - generic: Continúa el resumen con gasto real y proyectado, las dos gráficas configuradas, variaciones e IMSS/SIROC, sin repetir KPIs.
+    - checkbox "Valor ganado Avance físico y planeado, PV, EV, AC, CPI, SPI, EAC, ETC y variación al cierre." [checked]:
+    - generic: Valor ganado
+    - generic: Avance físico y planeado, PV, EV, AC, CPI, SPI, EAC, ETC y variación al cierre.
+    - checkbox "Flujo y proyección Curva de gasto real contra proyección semanal y desviación acumulada." [checked]:
+    - generic: Flujo y proyección
+    - generic: Curva de gasto real contra proyección semanal y desviación acumulada.
+    - checkbox "Variaciones Partidas con mayor desviación y concentración del gasto del proyecto." [checked]:
+    - generic: Variaciones
+    - generic: Partidas con mayor desviación y concentración del gasto del proyecto.
+    - checkbox "Requisiciones Revisión, pago, entrega, vencimientos y montos comprometidos de requisiciones." [checked]:
+    - generic: Requisiciones
+    - generic: Revisión, pago, entrega, vencimientos y montos comprometidos de requisiciones.
+    - checkbox "Programa de obra Gantt operativo del mes anterior, el mes actual y el mes siguiente, respetando el orden y la jerarquía cargados desde Excel." [checked]:
+    - generic: Programa de obra
+    - generic: Gantt operativo del mes anterior, el mes actual y el mes siguiente, respetando el orden y la jerarquía cargados desde Excel.
+    - checkbox "Bitácora Resumen sanitizado de registros e incidencias de Bitácora dentro del periodo." [checked]:
+    - generic: Bitácora
+    - generic: Resumen sanitizado de registros e incidencias de Bitácora dentro del periodo.
+    - checkbox "Calidad de datos Fechas, ponderaciones, presupuestos, monedas y proyecciones que requieren atención." [checked]:
+    - generic: Calidad de datos
+    - generic: Fechas, ponderaciones, presupuestos, monedas y proyecciones que requieren atención.
+    - generic: Vista previa de KPIs
+    - paragraph: Gasto del periodo
+    - paragraph: $0
+    - paragraph: Total ingresos
+    - paragraph: $15,808,443
+    - paragraph: Flujo neto
+    - paragraph: $0
+    - paragraph: CPI
+    - paragraph: "1.48"
+    - paragraph: SPI
+    - paragraph: "0.94"
+    - paragraph: Avance físico
+    - paragraph: 31.4%
+    - paragraph: Actividades atrasadas
+    - paragraph: "24"
+    - paragraph: Entregas vencidas
+    - paragraph: "2"
+    - paragraph: Calidad de datos
+    - paragraph: 85/100
+    - button "Generar PDF":
+      - text: Generar PDF
+    - button "Programar este reporte":
+      - text: Programar este reporte
+- region "Notifications alt+T"

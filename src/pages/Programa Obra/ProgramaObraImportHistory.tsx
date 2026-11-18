@@ -101,7 +101,7 @@ function AttemptDetails({ id }: { id: Id<"programa_obra_import_attempts"> }) {
   </div>;
 }
 
-export function ProgramaObraImportHistory({ proyecto, onClose, initialAttemptId }: { proyecto: Id<"desarrollos">; onClose: () => void; initialAttemptId?: Id<"programa_obra_import_attempts"> }) {
+export function ProgramaObraImportHistory({ proyecto, onClose, initialAttemptId, onCloseAutoFocus }: { proyecto: Id<"desarrollos">; onClose: () => void; initialAttemptId?: Id<"programa_obra_import_attempts">; onCloseAutoFocus?: (event: Event) => void }) {
   const [cursors, setCursors] = useState<Array<string | null>>([null]);
   const [expanded, setExpanded] = useState<Id<"programa_obra_import_attempts"> | null>(initialAttemptId ?? null);
   const result = useQuery(api.programaObraImportHistory.listHistory, { proyecto, paginationOpts: { cursor: cursors.at(-1)!, numItems: 25 } });
@@ -113,7 +113,7 @@ export function ProgramaObraImportHistory({ proyecto, onClose, initialAttemptId 
     </AttemptCard>)}
     <Pager cursors={cursors} setCursors={value => { setExpanded(null); setCursors(value); }} result={result} />
   </>;
-  return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent variant="ledger" className="flex flex-col"><DialogHeader variant="ledger"><DialogTitle>Historial de cargas · Programa de obra</DialogTitle><DialogDescription>Originales e intentos confirmados del proyecto, del más reciente al más antiguo.</DialogDescription></DialogHeader><div className="min-h-0 space-y-3 overflow-y-auto p-4 sm:p-6">{content}</div></DialogContent></Dialog>;
+  return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent variant="ledger" className="flex flex-col" onCloseAutoFocus={onCloseAutoFocus}><DialogHeader variant="ledger"><DialogTitle>Historial de cargas · Programa de obra</DialogTitle><DialogDescription>Originales e intentos confirmados del proyecto, del más reciente al más antiguo.</DialogDescription></DialogHeader><div className="min-h-0 space-y-3 overflow-y-auto p-4 sm:p-6">{content}</div></DialogContent></Dialog>;
 }
 
 export function ProgramaObraImportSources({ proyecto, target, title = "Archivos Excel de origen" }: { proyecto: Id<"desarrollos">; target: ProgramImportTarget; title?: string }) {

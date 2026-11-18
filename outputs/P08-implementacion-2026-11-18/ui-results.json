@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "data": "Ficticios; sin archivos seleccionados ni escrituras",
+  "results": [
+    {
+      "width": 1440,
+      "focusSidebar": {
+        "before": "abierto",
+        "during": "abierto",
+        "after": "abierto"
+      }
+    },
+    {
+      "width": 1440,
+      "passed": true,
+      "cases": "keyboard/focus, dialogs, empty, capabilities, busy, project switch, focus mode, file chooser without file"
+    },
+    {
+      "width": 1024,
+      "focusSidebar": {
+        "before": "abierto",
+        "during": "abierto",
+        "after": "abierto"
+      }
+    },
+    {
+      "width": 1024,
+      "passed": true,
+      "cases": "keyboard/focus, dialogs, empty, capabilities, busy, project switch, focus mode, file chooser without file"
+    },
+    {
+      "width": 390,
+      "passed": true,
+      "cases": "keyboard/focus, dialogs, empty, capabilities, busy, project switch, focus mode, file chooser without file"
+    }
+  ]
+}

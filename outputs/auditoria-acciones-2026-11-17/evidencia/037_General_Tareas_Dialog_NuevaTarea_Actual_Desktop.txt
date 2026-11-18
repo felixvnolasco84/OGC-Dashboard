@@ -1,0 +1,84 @@
+- list:
+  - button:
+- list:
+  - link:
+    - /url: /pnl
+    - generic: P&L
+  - link:
+    - /url: /proveedores
+    - generic: Proveedores
+  - link:
+    - /url: /documentos
+    - generic: Documentos
+  - link:
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button:
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - button:
+  - button:
+  - paragraph: General
+  - heading [level=1]: Tareas
+  - button: Notificaciones
+  - button:
+    - text: Nueva tarea
+  - button:
+    - generic: Total
+    - generic: "0"
+  - button:
+    - generic: Abiertas
+    - generic: "0"
+  - button:
+    - generic: Vencidas
+    - generic: "0"
+  - button:
+    - generic: Completas
+    - generic: "0"
+  - textbox:
+    - /placeholder: Buscar por título, descripción o asignado
+  - combobox:
+    - generic: Todos los estados
+  - combobox:
+    - generic: Todos los usuarios
+  - button:
+    - text: Más filtros
+  - generic: No hay tareas con los filtros actuales.
+- region "Notifications alt+T"
+- dialog "Nueva tarea":
+  - heading "Nueva tarea" [level=2]
+  - paragraph: Define el alcance, responsables y fechas para dar seguimiento desde la vista global.
+  - text: Tipo
+  - combobox [active]:
+    - generic: Tarea independiente
+  - text: Alcance
+  - combobox:
+    - generic: General
+  - text: Titulo
+  - textbox "Titulo":
+    - /placeholder: Ej. Revisar estimacion de instalaciones
+  - text: Descripción
+  - textbox "Descripción":
+    - /placeholder: Notas, contexto o resultado esperado
+  - text: Prioridad
+  - combobox:
+    - generic: Media
+  - text: Especialidad
+  - combobox:
+    - generic: General
+  - text: Fecha límite
+  - textbox "Fecha límite"
+  - text: Responsables (opcional)
+  - checkbox "Felix Enrique Vega Nolasco felixvnolasco@gmail.com admin"
+  - generic: Felix Enrique Vega Nolasco
+  - generic: felixvnolasco@gmail.com
+  - generic: admin
+  - button "Cancelar"
+  - button "Guardar"
+  - button "Close":
+    - generic: Close

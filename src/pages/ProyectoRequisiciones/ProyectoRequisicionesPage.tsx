@@ -6,7 +6,7 @@ import { hasProviderManagementAccess } from "../../../convex/providerRules";
 import { getRequisicionStateChange, isRequisicionApproved } from "../../../convex/requisicionStateRules";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
+import { Search, MoreVertical, MoreHorizontal, Plus, ArrowUp, ArrowDown, X, Filter, Building2, Loader2, Eye, Edit2, ChevronLeft, Clock, ChevronDown, ChevronUp, CheckCircle, CreditCard, PackageCheck, Mail, Send, ExternalLink, Paperclip, Trash2, UserPlus, Truck, Receipt, MessageSquare, FileUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -94,6 +95,9 @@ export default function ProyectoRequisicionesPage() {
     } | null>(null);
     const closeContextMenu = useCallback(() => setContextMenu(null), []);
     const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+    const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+    const headerMenuTriggerRef = useRef<HTMLButtonElement>(null);
+    const pendingHeaderAction = useRef<{ action: "history" | "notifications"; context: string } | null>(null);
     const [notificationType, setNotificationType] = useState<RequisicionNotificationType>("created");
     const [selectedNotificationReqId, setSelectedNotificationReqId] = useState<string>("latest");
     const [notificationMessage, setNotificationMessage] = useState("");
@@ -193,12 +197,18 @@ export default function ProyectoRequisicionesPage() {
 
     // Get current user info for permission check
     const currentUser = useQuery(api.users.getCurrentUser);
+    const headerContext = `${proyectoId}:${currentUser?._id}:${currentUser?.role}`;
+    useEffect(() => {
+        pendingHeaderAction.current = null;
+        setHeaderMenuOpen(false);
+    }, [headerContext]);
     const canManageProviders = hasProviderManagementAccess(currentUser);
     useEffect(() => {
         if (currentUser?.role === "almacenista") setActiveTab("pagadas");
     }, [currentUser?.role]);
     const updateProveedor = useMutation(api.proveedores.update);
     const unreadRequisiciones = useQuery(api.requisicion_history.getUnreadRequisiciones, proyectoId ? { proyecto: proyectoId as Id<"desarrollos"> } : "skip");
+    const unreadNotificationCount = Object.values(unreadRequisiciones ?? {}).reduce((total, count) => total + count, 0);
     const sendEmailNotification = useAction(api.requisiciones.sendEmailNotification);
 
     const requisicionModal = useRequisicionModal();
@@ -1139,39 +1149,62 @@ export default function ProyectoRequisicionesPage() {
                             <h1 className="text-2xl text-foreground [overflow-wrap:anywhere]">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex min-w-0 flex-col gap-4 2xl:items-end">
-                        <div className="flex flex-wrap gap-2 [&>button]:min-h-11 [&>button]:flex-auto sm:[&>button]:flex-none">
-                            {(currentUser?.role === "admin" || currentUser?.role === "finance") && <Button onClick={() => setEmailDialogOpen(true)} variant="outline" className="min-h-11 font-normal">
-                                <Mail className="h-4 w-4 mr-2" /> Notificaciones
-                            </Button>}
-                            {/*<Button
-                                onClick={() => setEmailDialogOpen(true)}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
-                            >
-                                <Mail className="h-5 w-5" />
-                                Notificar
-                            </Button>*/}
-                            {/* History Button */}
-                            <Button
-                                onClick={() => historyModal.openAllHistory(proyectoId as Id<"desarrollos">)}
-                                variant="outline"
-                                className="min-h-11 font-normal"
-                            >
-                                <Clock className="h-5 w-5" />
-                                Historial
-                            </Button>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
                             {/* Nueva Requisición - admin, user, or contratista (contratista can create their own) */}
                             {(currentUser?.role === "admin" || currentUser?.role === "user" || currentUser?.role === "contratista") && (
                                 <Button
+                                    type="button"
                                     onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
-                                    variant="outline"
-                                    className="min-h-11 font-normal"
+                                    className="h-11 px-4"
                                 >
-                                    Nueva Requisición
-                                    <Plus className="h-5 w-5" />
+                                    <Plus className="h-4 w-4" aria-hidden="true" />
+                                    Nueva requisición
                                 </Button>
                             )}
+                            <div className="flex min-w-0 items-center gap-2">
+                                <DropdownMenu open={headerMenuOpen} onOpenChange={setHeaderMenuOpen}>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button ref={headerMenuTriggerRef} type="button" variant="outline" size="icon"
+                                            className="h-11 w-11 shrink-0" aria-label="Acciones de requisiciones"
+                                            aria-describedby={unreadNotificationCount > 0 ? "requisiciones-unread-count" : undefined}>
+                                            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 max-w-[calc(100vw-2rem)] rounded-none"
+                                        onCloseAutoFocus={() => {
+                                            const pending = pendingHeaderAction.current;
+                                            pendingHeaderAction.current = null;
+                                            if (!pending || pending.context !== headerContext || !headerMenuTriggerRef.current?.isConnected) return;
+                                            // Open only after the menu releases its focus scope and overlay.
+                                            if (pending.action === "history") historyModal.openAllHistory(proyectoId as Id<"desarrollos">);
+                                            else if (currentUser?.role === "admin" || currentUser?.role === "finance") setEmailDialogOpen(true);
+                                        }}>
+                                        <DropdownMenuGroup aria-label="Seguimiento">
+                                            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Seguimiento</DropdownMenuLabel>
+                                            <DropdownMenuItem className="min-h-11 rounded-none" onSelect={() => {
+                                                pendingHeaderAction.current = { action: "history", context: headerContext };
+                                                setHeaderMenuOpen(false);
+                                            }}>
+                                                <Clock aria-hidden="true" />Historial
+                                            </DropdownMenuItem>
+                                            {(currentUser?.role === "admin" || currentUser?.role === "finance") && (
+                                                <DropdownMenuItem className="min-h-11 rounded-none" onSelect={() => {
+                                                    pendingHeaderAction.current = { action: "notifications", context: headerContext };
+                                                    setHeaderMenuOpen(false);
+                                                }}>
+                                                    <Mail aria-hidden="true" />Notificaciones
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                {unreadNotificationCount > 0 && (
+                                    <Badge id="requisiciones-unread-count" variant="secondary" className="shrink-0" role="status">
+                                        <span aria-hidden="true">{unreadNotificationCount.toLocaleString("es-MX")}</span>
+                                        <span className="sr-only">{unreadNotificationCount} {unreadNotificationCount === 1 ? "notificación de requisiciones sin leer" : "notificaciones de requisiciones sin leer"}</span>
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
                         <dl className="flex min-w-0 flex-wrap gap-x-6 gap-y-2 text-sm">
                             <div className="flex items-baseline gap-2">
@@ -1746,7 +1779,11 @@ export default function ProyectoRequisicionesPage() {
 
             {/* Email Notification Dialog */}
             <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                <DialogContent className={cn(responsiveDialogClassName, "max-w-5xl rounded-none p-0 sm:p-0 overflow-hidden")}>
+                <DialogContent className={cn(responsiveDialogClassName, "max-w-5xl rounded-none p-0 sm:p-0 overflow-hidden")}
+                    onCloseAutoFocus={(event) => {
+                        event.preventDefault();
+                        headerMenuTriggerRef.current?.focus({ preventScroll: true });
+                    }}>
                     <div className="grid max-h-[calc(100dvh-2rem)] grid-cols-1 overflow-y-auto lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
                         <div className="space-y-5 border-b border-border p-4 sm:space-y-6 sm:p-6 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
                             <DialogHeader className="min-w-0 pr-10 text-left">
@@ -2391,7 +2428,7 @@ export default function ProyectoRequisicionesPage() {
             <RequisicionModal />
 
             {/* Requisicion History Modal */}
-            <RequisicionHistoryModal />
+            <RequisicionHistoryModal returnFocusRef={headerMenuTriggerRef} />
 
         </div>
     );

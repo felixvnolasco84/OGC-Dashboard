@@ -1,0 +1,469 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa" [active]:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Programa de Obra
+  - heading "Lote 77" [level=1]
+  - generic "Resumen del programa":
+    - generic: Avance físico
+    - strong: 31.4%
+    - button "Filtrar 31 partidas y familias con retraso":
+      - generic: Retrasadas
+      - strong: "31"
+    - 'button "Ver alertas: 7 pendientes, 0 hitos próximos"':
+      - generic: Alertas
+      - strong: "7"
+  - button "Historial de cargas":
+    - text: Historial de cargas
+  - button "Actividades por frente"
+  - button "Archivo":
+    - text: Archivo
+  - textbox "Buscar partida o familia":
+    - /placeholder: Buscar partida o familia...
+  - combobox "Filtrar programa por estado":
+    - generic: Todos los estados
+  - button "Hoy":
+    - text: Hoy
+  - button "Vista":
+    - text: Vista
+  - button "Guía de colores del programa": Leyenda
+  - generic: Partida · Familia
+  - generic: Presupuesto
+  - button "Expandir PRELIMINARES":
+  - generic "PRELIMINARES"
+  - button "Opciones de PRELIMINARES":
+  - generic: $1,385,927
+  - button "Expandir MUROS DE CONT":
+  - generic "MUROS DE CONT"
+  - button "Opciones de MUROS DE CONT":
+  - generic: $2,590,497
+  - button "Expandir CIMENTACIÓN":
+  - generic "CIMENTACIÓN"
+  - button "Opciones de CIMENTACIÓN":
+  - generic: $3,074,691
+  - button "Expandir FIRME DE CIMENTACIÓN":
+  - generic "FIRME DE CIMENTACIÓN"
+  - button "Opciones de FIRME DE CIMENTACIÓN":
+  - generic: $438,687
+  - button "Expandir CISTERNA":
+  - generic "CISTERNA"
+  - button "Opciones de CISTERNA":
+  - generic: $290,780
+  - button "Expandir MUROS_PB":
+  - generic "MUROS_PB"
+  - button "Opciones de MUROS_PB":
+  - generic: $1,488,522
+  - button "Expandir LOSA_PN":
+  - generic "LOSA_PN"
+  - button "Opciones de LOSA_PN":
+  - generic: $2,082,996
+  - button "Expandir ESCALERA INTERNA":
+  - generic "ESCALERA INTERNA"
+  - button "Opciones de ESCALERA INTERNA":
+  - generic: $52,978
+  - button "Expandir ESCALERA EXTERNA 01":
+  - generic "ESCALERA EXTERNA 01"
+  - button "Opciones de ESCALERA EXTERNA 01":
+  - generic: $240,679
+  - button "Expandir MUROS_PN":
+  - generic "MUROS_PN"
+  - button "Opciones de MUROS_PN":
+  - generic: $877,009
+  - button "Expandir LOSA_2N":
+  - generic "LOSA_2N"
+  - button "Opciones de LOSA_2N":
+  - generic: $1,155,048
+  - button "Expandir ESCALERA EXTERNA 02":
+  - generic "ESCALERA EXTERNA 02"
+  - button "Opciones de ESCALERA EXTERNA 02":
+  - generic: $84,436
+  - button "Expandir MUROS PRETILES":
+  - generic "MUROS PRETILES"
+  - button "Opciones de MUROS PRETILES":
+  - generic: $249,394
+  - button "Expandir ALBERCA":
+  - generic "ALBERCA"
+  - button "Opciones de ALBERCA":
+  - generic: $503,711
+  - button "Expandir FIRME DE ANDADO":
+  - generic "FIRME DE ANDADO"
+  - button "Opciones de FIRME DE ANDADO":
+  - generic: $237,843
+  - button "Expandir ALBAÑILERÍAS":
+  - generic "ALBAÑILERÍAS"
+  - button "Opciones de ALBAÑILERÍAS":
+  - generic: $3,365,451
+  - button "Expandir PLOMERÍA":
+  - generic "PLOMERÍA"
+  - button "Opciones de PLOMERÍA":
+  - generic: $1,277,000
+  - button "Expandir ELECTRICIDAD":
+  - generic "ELECTRICIDAD"
+  - button "Opciones de ELECTRICIDAD":
+  - generic: $1,219,157
+  - button "Expandir GAS":
+  - generic "GAS"
+  - button "Opciones de GAS":
+  - generic: $399,040
+  - button "Expandir LUMINARIAS":
+  - generic "LUMINARIAS"
+  - button "Opciones de LUMINARIAS":
+  - generic: $749,972
+  - button "Expandir IMPERMEABILIZACIÓN":
+  - generic "IMPERMEABILIZACIÓN"
+  - button "Opciones de IMPERMEABILIZACIÓN":
+  - generic: $474,146
+  - button "Expandir AIRE_ACONDICIONADO":
+  - generic "AIRE_ACONDICIONADO"
+  - button "Opciones de AIRE_ACONDICIONADO":
+  - generic: $1,857,000
+  - button "Expandir YESO_PINTURA":
+  - generic "YESO_PINTURA"
+  - button "Opciones de YESO_PINTURA":
+  - generic: $1,332,597
+  - button "Expandir HERRERÍA":
+  - generic "HERRERÍA"
+  - button "Opciones de HERRERÍA":
+  - generic: $745,257
+  - button "Expandir PINTURA_HERRERÍA":
+  - generic "PINTURA_HERRERÍA"
+  - button "Opciones de PINTURA_HERRERÍA":
+  - generic: $330,000
+  - button "Expandir MÁRMOL":
+  - generic "MÁRMOL"
+  - button "Opciones de MÁRMOL":
+  - generic: $4,572,260
+  - button "Expandir RECUBRIMIENTOS":
+  - generic "RECUBRIMIENTOS"
+  - button "Opciones de RECUBRIMIENTOS":
+  - generic: $494,417
+  - button "Expandir CANCELERÍA":
+  - generic "CANCELERÍA"
+  - button "Opciones de CANCELERÍA":
+  - generic: $2,387,416
+  - button "Expandir CARPINTERÍA":
+  - generic "CARPINTERÍA"
+  - button "Opciones de CARPINTERÍA":
+  - generic: $2,579,379
+  - button "Expandir HERRAJES":
+  - generic "HERRAJES"
+  - button "Opciones de HERRAJES":
+  - generic: $58,200
+  - button "Expandir MOBILIARIO_EQUIPO":
+  - generic "MOBILIARIO_EQUIPO"
+  - button "Opciones de MOBILIARIO_EQUIPO":
+  - generic: $219,500
+  - button "Expandir MUEBLES_BAÑO":
+  - generic "MUEBLES_BAÑO"
+  - button "Opciones de MUEBLES_BAÑO":
+  - generic: $353,800
+  - button "Expandir COCINA":
+  - generic "COCINA"
+  - button "Opciones de COCINA":
+  - generic: $902,953
+  - button "Expandir INSTALACIONES_ESPECIALES":
+  - generic "INSTALACIONES_ESPECIALES"
+  - button "Opciones de INSTALACIONES_ESPECIALES":
+  - generic: $130,460
+  - button "Expandir JARDÍN":
+  - generic "JARDÍN"
+  - button "Opciones de JARDÍN":
+  - generic: $189,036
+  - button "Expandir VARIOS SH":
+  - generic "VARIOS SH"
+  - button "Opciones de VARIOS SH":
+  - generic: $1,516,536
+  - generic: "2026"
+  - generic: "2027"
+  - generic: Febrero
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: Marzo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Abril
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Mayo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Junio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Julio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Agosto
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Septiembre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Octubre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Noviembre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Diciembre
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Enero
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Febrero
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: Marzo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Abril
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Mayo
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Junio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - generic: Julio
+  - generic: S1
+  - generic: S2
+  - generic: S3
+  - generic: S4
+  - generic: S5
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: PRELIMINARES
+    - generic: 75%
+    - generic: 86%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MUROS DE CONT
+    - generic: 84%
+    - generic: 47%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: CIMENTACIÓN
+    - generic: 89%
+    - generic: 48%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: FIRME DE CIMENTACIÓN
+    - generic: 85%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: CISTERNA
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MUROS_PB
+    - generic: 83%
+    - generic: 60%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: LOSA_PN
+    - generic: 83%
+    - generic: 84%
+  - 'generic "Inicio real: 22/09/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: ESCALERA INTERNA
+    - generic: 100%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: ESCALERA EXTERNA 01
+  - 'generic "Inicio real: 01/08/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MUROS_PN
+    - generic: 92%
+    - generic: 83%
+  - 'generic "Inicio real: 08/10/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: LOSA_2N
+    - generic: 100%
+  - 'generic "Inicio real: 04/11/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: ESCALERA EXTERNA 02
+    - generic: 100%
+  - 'generic "Inicio real: 27/10/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MUROS PRETILES
+    - generic: 70%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: ALBERCA
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: FIRME DE ANDADO
+  - 'generic "Inicio real: 09/02/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: ALBAÑILERÍAS
+    - generic: 1%
+    - generic: 8%
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: PLOMERÍA
+    - generic: 26%
+    - generic: 49%
+    - 'button "Anticipo de PLOMERÍA: Vencido, 11/06/2026"':
+    - 'button "Finiquito de PLOMERÍA: Programado, 21/06/2027"':
+  - 'generic "Inicio real: 03/08/2026 · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: ELECTRICIDAD
+    - generic: 26%
+    - generic: 31%
+    - 'button "Inicio real: 03/08/2026"'
+    - 'button "Anticipo de ELECTRICIDAD: Vencido, 11/06/2026"':
+    - 'button "Finiquito de ELECTRICIDAD: Programado, 21/06/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: GAS
+    - generic: 16%
+    - 'button "Anticipo de GAS: Vencido, 11/06/2026"':
+    - 'button "Finiquito de GAS: Programado, 17/01/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: LUMINARIAS
+    - 'button "Anticipo de LUMINARIAS: Programado, 18/04/2027"':
+    - 'button "Suministro de LUMINARIAS: Programado, 28/05/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: IMPERMEABILIZACIÓN
+    - 'button "Anticipo de IMPERMEABILIZACIÓN: Programado, 19/02/2027"':
+    - 'button "Finiquito de IMPERMEABILIZACIÓN: Programado, 30/05/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: AIRE_ACONDICIONADO
+    - 'button "Anticipo de AIRE_ACONDICIONADO: Vencido, 28/08/2026"':
+    - 'button "Suministro de AIRE_ACONDICIONADO: Programado, 22/01/2027"':
+    - 'button "Finiquito de AIRE_ACONDICIONADO: Programado, 25/05/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: YESO_PINTURA
+    - 'button "Anticipo de YESO_PINTURA: Programado, 08/01/2027"':
+    - 'button "Finiquito de YESO_PINTURA: Programado, 07/06/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: HERRERÍA
+    - generic: 7%
+    - 'button "Anticipo de HERRERÍA: Vencido, 29/10/2026"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: PINTURA_HERRERÍA
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MÁRMOL
+    - 'button "Anticipo de MÁRMOL: Programado, 29/11/2026"':
+    - 'button "Suministro de MÁRMOL: Programado, 12/02/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: RECUBRIMIENTOS
+    - 'button "Anticipo de RECUBRIMIENTOS: Programado, 25/02/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: CANCELERÍA
+    - 'button "Anticipo de CANCELERÍA: Programado, 09/01/2027"':
+    - 'button "Suministro de CANCELERÍA: Programado, 28/04/2027"':
+    - 'button "Finiquito de CANCELERÍA: Programado, 28/04/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: CARPINTERÍA
+    - 'button "Anticipo de CARPINTERÍA: Programado, 22/02/2027"':
+    - 'button "Suministro de CARPINTERÍA: Programado, 16/05/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: HERRAJES
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MOBILIARIO_EQUIPO
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: MUEBLES_BAÑO
+    - 'button "Anticipo de MUEBLES_BAÑO: Programado, 24/12/2026"':
+    - 'button "Suministro de MUEBLES_BAÑO: Programado, 07/02/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: COCINA
+    - 'button "Anticipo de COCINA: Vencido, 21/09/2026"':
+    - 'button "Suministro de COCINA: Programado, 04/05/2027"':
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: INSTALACIONES_ESPECIALES
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: JARDÍN
+  - 'generic "Inicio real: Sin fecha · Terminación real: Sin fecha · Avance al día: Sin fecha"':
+    - generic: VARIOS SH
+    - 'button "Anticipo de VARIOS SH: Vencido, 27/08/2026"':
+    - 'button "Suministro de VARIOS SH: Programado, 25/12/2026"':
+- region "Notifications alt+T"

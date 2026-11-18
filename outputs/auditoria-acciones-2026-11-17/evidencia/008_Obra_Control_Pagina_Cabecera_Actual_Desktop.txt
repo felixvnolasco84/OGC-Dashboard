@@ -1,0 +1,182 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control" [active]:
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Proyecto
+  - heading "Lote 77" [level=1]
+  - button "Reporte":
+    - text: Reporte
+  - paragraph: Presupuesto aprobado
+  - generic: $49,757,583
+  - generic: ".19"
+  - paragraph: Gasto total
+  - generic: $10,566,364
+  - generic: ".04"
+  - generic: Avance 21%
+  - paragraph: Por gastar
+  - generic: $39,191,219
+  - generic: ".15"
+  - generic: Pendiente 79%
+  - paragraph: Avance físico real
+  - paragraph: 32%
+  - paragraph: Valor ganado (EV)
+  - paragraph:
+    - generic "$15,936,580.55": $15.9M
+  - paragraph: Costo real acum. (AC)
+  - paragraph:
+    - generic "$10,566,364.04": $10.6M
+  - paragraph: CPI
+  - paragraph: "1.51"
+  - paragraph: EAC (Costo al cierre)
+  - paragraph:
+    - generic "$32,990,561.29": $33M
+  - paragraph: Gasto
+  - paragraph: $10,566,364
+  - paragraph: Por ejercer
+  - paragraph: $39,191,219
+  - paragraph: Indirectos automáticos
+  - paragraph: $971,070
+  - paragraph: Honorarios
+  - paragraph: $1,027,775
+  - generic: Gasto Proyectado
+  - generic: Gasto Real
+  - heading "Gasto Mano de Obra" [level=3]
+  - button "Configurar gráfica":
+  - generic: Total
+  - generic: $8.6M
+  - heading "Indirectos" [level=3]
+  - button "Configurar gráfica":
+  - generic: Total
+  - generic: $8.6M
+  - heading "TOP 5 PARTIDAS CON MAYOR VARIANZA" [level=2]
+  - table:
+    - rowgroup:
+      - row "Partida Presupuesto Pagado Varianza Avance":
+        - columnheader "Partida"
+        - columnheader "Presupuesto"
+        - columnheader "Pagado"
+        - columnheader "Varianza"
+        - columnheader "Avance"
+    - rowgroup:
+      - row "MÁRMOL $4,572,260 MXN $0 MXN -$4,572,260 0%":
+        - cell "MÁRMOL":
+          - generic "MÁRMOL"
+        - cell "$4,572,260 MXN"
+        - cell "$0 MXN"
+        - cell "-$4,572,260"
+        - cell "0%"
+      - row "HONORARIOS $5,076,589 MXN $1,027,775 MXN -$4,048,814 20%":
+        - cell "HONORARIOS":
+          - generic "HONORARIOS"
+        - cell "$5,076,589 MXN"
+        - cell "$1,027,775 MXN"
+        - cell "-$4,048,814"
+        - cell "20%"
+      - row "ALBAÑILERÍAS $3,365,451 MXN $252,620 MXN -$3,112,830 8%":
+        - cell "ALBAÑILERÍAS":
+          - generic "ALBAÑILERÍAS"
+        - cell "$3,365,451 MXN"
+        - cell "$252,620 MXN"
+        - cell "-$3,112,830"
+        - cell "8%"
+      - row "VIATICOS $3,613,120 MXN $799,775 MXN -$2,813,345 22%":
+        - cell "VIATICOS":
+          - generic "VIATICOS"
+        - cell "$3,613,120 MXN"
+        - cell "$799,775 MXN"
+        - cell "-$2,813,345"
+        - cell "22%"
+      - row "CARPINTERÍA $2,579,379 MXN $0 MXN -$2,579,379 0%":
+        - cell "CARPINTERÍA":
+          - generic "CARPINTERÍA"
+        - cell "$2,579,379 MXN"
+        - cell "$0 MXN"
+        - cell "-$2,579,379"
+        - cell "0%"
+  - tablist:
+    - tab "Permisos y legal" [selected]
+    - tab "Presupuestos y contratos"
+    - tab "IMSS y SIROC"
+  - tabpanel "Permisos y legal":
+    - paragraph: Autorizaciones municipales, estatales y obligaciones legales de la obra
+    - button "Activo — clic para desactivar":
+    - heading "Licencia de construcción vigente" [level=3]
+    - button "Asignar responsable"
+    - button:
+    - button "Inactivo — clic para activar"
+    - heading "Poliza de seguro de obra activa" [level=3]
+    - button "Asignar responsable"
+    - button:
+    - button "Inactivo — clic para activar"
+    - heading "Trámites de conexión CFE y agua potable" [level=3]
+    - button "Asignar responsable"
+    - button:
+    - button:
+    - button "Inactivo — clic para activar"
+    - heading "Plan de seguridad e higiene en obra" [level=3]
+    - button "Asignar responsable"
+    - button:
+- region "Notifications alt+T"
+- generic: "1970"
+- generic: $0
+- generic: "1970"
+- generic: $0
+- generic: "1970"
+- generic: $0

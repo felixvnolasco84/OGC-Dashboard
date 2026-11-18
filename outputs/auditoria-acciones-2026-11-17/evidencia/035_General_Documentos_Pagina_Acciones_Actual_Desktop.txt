@@ -1,0 +1,235 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos" [active]:
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Gestion documental
+  - heading "Documentos" [level=1]
+  - button "Nueva carpeta":
+    - text: Nueva carpeta
+  - button "Subir documentos":
+    - text: Subir documentos
+  - textbox "Buscar por nombre, tipo o descripcion"
+  - combobox:
+    - generic: Todos los proyectos
+  - combobox:
+    - generic: Todos los tipos
+  - button:
+  - button:
+  - complementary:
+    - button "Colapsar carpetas"
+    - button "Colapsar carpetas":
+      - generic: Colapsar carpetas
+    - button "Biblioteca 12":
+      - generic: Biblioteca
+      - generic: "12"
+    - button "Crest - CDS":
+      - generic: Crest - CDS
+    - button:
+    - button "Larena - Acceso":
+      - generic: Larena - Acceso
+    - button:
+    - button "Larena - General":
+      - generic: Larena - General
+    - button:
+    - button "Larena - Torre G":
+      - generic: Larena - Torre G
+    - button:
+    - paragraph: Archivos
+    - paragraph: "0"
+    - paragraph: Carpetas
+    - paragraph: "129"
+    - paragraph: Almacenamiento
+    - paragraph: "--"
+  - main:
+    - button "Biblioteca"
+    - heading "Biblioteca de documentos" [level=2]
+    - table:
+      - rowgroup:
+        - row "Nombre Proyecto Tipo Modificado Tamano":
+          - columnheader "Nombre"
+          - columnheader "Proyecto"
+          - columnheader "Tipo"
+          - columnheader "Modificado"
+          - columnheader "Tamano"
+          - columnheader
+      - rowgroup:
+        - row "Crest - CDS 4 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Crest - CDS 4 elementos":
+            - button "Crest - CDS 4 elementos":
+              - generic: Crest - CDS
+              - generic: 4 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - Acceso 1 elementos Biblioteca Carpeta 30 sep 2026 --":
+          - cell "Larena - Acceso 1 elementos":
+            - button "Larena - Acceso 1 elementos":
+              - generic: Larena - Acceso
+              - generic: 1 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "30 sep 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - General 1 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Larena - General 1 elementos":
+            - button "Larena - General 1 elementos":
+              - generic: Larena - General
+              - generic: 1 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - Torre G 5 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Larena - Torre G 5 elementos":
+            - button "Larena - Torre G 5 elementos":
+              - generic: Larena - Torre G
+              - generic: 5 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - Torre H 3 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Larena - Torre H 3 elementos":
+            - button "Larena - Torre H 3 elementos":
+              - generic: Larena - Torre H
+              - generic: 3 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - Torre I 5 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Larena - Torre I 5 elementos":
+            - button "Larena - Torre I 5 elementos":
+              - generic: Larena - Torre I
+              - generic: 5 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - Torre J 3 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Larena - Torre J 3 elementos":
+            - button "Larena - Torre J 3 elementos":
+              - generic: Larena - Torre J
+              - generic: 3 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Larena - Urbanización 01 3 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Larena - Urbanización 01 3 elementos":
+            - button "Larena - Urbanización 01 3 elementos":
+              - generic: Larena - Urbanización 01
+              - generic: 3 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Lote 77 7 elementos Biblioteca Carpeta 30 sep 2026 --":
+          - cell "Lote 77 7 elementos":
+            - button "Lote 77 7 elementos":
+              - generic: Lote 77
+              - generic: 7 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "30 sep 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Proyecto sin nombre 3 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Proyecto sin nombre 3 elementos":
+            - button "Proyecto sin nombre 3 elementos":
+              - generic: Proyecto sin nombre
+              - generic: 3 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "Sunrise 6 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "Sunrise 6 elementos":
+            - button "Sunrise 6 elementos":
+              - generic: Sunrise
+              - generic: 6 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+        - row "VILLA4 (test) 5 elementos Biblioteca Carpeta 28 may 2026 --":
+          - cell "VILLA4 (test) 5 elementos":
+            - button "VILLA4 (test) 5 elementos":
+              - generic: VILLA4 (test)
+              - generic: 5 elementos
+          - cell "Biblioteca"
+          - cell "Carpeta"
+          - cell "28 may 2026"
+          - cell "--"
+          - cell:
+            - button:
+            - button:
+            - button:
+- region "Notifications alt+T"

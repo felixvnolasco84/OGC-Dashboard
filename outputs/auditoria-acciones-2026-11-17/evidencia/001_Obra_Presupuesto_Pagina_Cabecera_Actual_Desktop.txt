@@ -1,0 +1,715 @@
+- img "Logo"
+- list:
+  - button "Lote 77 Proyecto":
+    - generic: Lote 77
+    - generic: Proyecto
+- list:
+  - link "Presupuesto":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/presupuesto
+    - generic: Presupuesto
+  - link "Control":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/control
+    - generic: Control
+  - link "Reportes":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/reportes
+    - generic: Reportes
+  - link "Programa":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/programa
+    - generic: Programa
+  - link "Bitácora":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/bitacora
+    - generic: Bitácora
+  - link "Requisiciones 25 cambios sin leer":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/requisiciones
+    - text: Requisiciones
+    - generic "25 cambios sin leer"
+  - link "RFIs":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/rfis
+    - generic: RFIs
+  - link "Planos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/planos
+    - generic: Planos
+  - link "Documentos":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/documentos
+    - generic: Documentos
+  - link "Transacciones":
+    - /url: /proyecto/jh7298n8vwk2fz4f20d27q153s89ap52/transacciones
+    - generic: Transacciones
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - paragraph: Presupuesto
+  - heading "Lote 77" [level=1]
+  - button "Excel de origen":
+    - text: Excel de origen
+  - generic "Ver ingresos del proyecto":
+    - generic: Total Ingresos
+    - generic: $15,808,443
+    - generic: ".07"
+    - text: Neto
+    - generic: $5,242,079
+    - generic: ".03"
+  - button "Agregar":
+    - text: Agregar
+  - button "Abrir acciones de presupuesto":
+    - generic: Abrir acciones de presupuesto
+  - paragraph: Presupuesto Original
+  - generic: $49,744,133
+  - generic: ".31"
+  - paragraph: Presupuesto aprobado
+  - generic: $49,757,583
+  - generic: ".19"
+  - generic: Aumento 0.03%
+  - paragraph: Gasto Total
+  - generic: $10,566,364
+  - generic: ".04"
+  - generic: Avance 21.24%
+  - paragraph: Por ejercer
+  - generic: $39,191,219
+  - generic: ".15"
+  - generic: Avance 21.24%
+  - generic: Partida
+  - button "Todas":
+    - generic: Todas
+  - generic: Familia
+  - button "Todas":
+    - generic: Todas
+  - generic: Fecha
+  - combobox:
+    - generic: Hoy (total)
+  - button "Precio unitario":
+    - generic: Precio unitario
+  - table:
+    - rowgroup:
+      - row "Partida - Familia - Subpartida Presupuesto original Presupuesto aprobado Pagado Avance":
+        - columnheader "Partida - Familia - Subpartida"
+        - columnheader "Presupuesto original"
+        - columnheader "Presupuesto aprobado"
+        - columnheader "Pagado"
+        - columnheader "Avance"
+        - columnheader
+    - rowgroup:
+      - 'row "Expandir PRELIMINARES PRELIMINARES $1,372,477.05 $1,385,926.93 Incremento: +$13,449.88 $1,190,091.22 Por gastar - $195,835.71 85.87% Abrir menú"':
+        - cell "Expandir PRELIMINARES PRELIMINARES":
+          - button "Expandir PRELIMINARES":
+          - generic: PRELIMINARES
+        - cell "$1,372,477.05"
+        - 'cell "$1,385,926.93 Incremento: +$13,449.88"':
+          - generic: $1,385,926.93
+          - generic: "Incremento: +$13,449.88"
+        - cell "$1,190,091.22 Por gastar - $195,835.71":
+          - generic: $1,190,091.22
+          - generic: Por gastar - $195,835.71
+        - cell "85.87%":
+          - generic: 85.87%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MUROS DE CONT MUROS DE CONT $2,590,497.16 $2,590,497.16 $1,204,711.18 Por gastar - $1,385,785.99 46.51% Abrir menú":
+        - cell "Expandir MUROS DE CONT MUROS DE CONT":
+          - button "Expandir MUROS DE CONT":
+          - generic: MUROS DE CONT
+        - cell "$2,590,497.16"
+        - cell "$2,590,497.16":
+          - generic: $2,590,497.16
+        - cell "$1,204,711.18 Por gastar - $1,385,785.99":
+          - generic: $1,204,711.18
+          - generic: Por gastar - $1,385,785.99
+        - cell "46.51%":
+          - generic: 46.51%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir CIMENTACIÓN CIMENTACIÓN $3,074,691.29 $3,074,691.29 $1,483,940.60 Por gastar - $1,590,750.69 48.26% Abrir menú":
+        - cell "Expandir CIMENTACIÓN CIMENTACIÓN":
+          - button "Expandir CIMENTACIÓN":
+          - generic: CIMENTACIÓN
+        - cell "$3,074,691.29"
+        - cell "$3,074,691.29":
+          - generic: $3,074,691.29
+        - cell "$1,483,940.60 Por gastar - $1,590,750.69":
+          - generic: $1,483,940.60
+          - generic: Por gastar - $1,590,750.69
+        - cell "48.26%":
+          - generic: 48.26%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir FIRME DE CIMENTACIÓN FIRME DE CIMENTACIÓN $438,686.52 $438,686.52 $596.54 Por gastar - $438,089.98 0.14% Abrir menú":
+        - cell "Expandir FIRME DE CIMENTACIÓN FIRME DE CIMENTACIÓN":
+          - button "Expandir FIRME DE CIMENTACIÓN":
+          - generic: FIRME DE CIMENTACIÓN
+        - cell "$438,686.52"
+        - cell "$438,686.52":
+          - generic: $438,686.52
+        - cell "$596.54 Por gastar - $438,089.98":
+          - generic: $596.54
+          - generic: Por gastar - $438,089.98
+        - cell "0.14%":
+          - generic: 0.14%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MUROS_PB MUROS_PB $1,488,522.36 $1,488,522.36 $896,288.85 Por gastar - $592,233.51 60.21% Abrir menú":
+        - cell "Expandir MUROS_PB MUROS_PB":
+          - button "Expandir MUROS_PB":
+          - generic: MUROS_PB
+        - cell "$1,488,522.36"
+        - cell "$1,488,522.36":
+          - generic: $1,488,522.36
+        - cell "$896,288.85 Por gastar - $592,233.51":
+          - generic: $896,288.85
+          - generic: Por gastar - $592,233.51
+        - cell "60.21%":
+          - generic: 60.21%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir LOSA_PN LOSA_PN $2,082,996.39 $2,082,996.39 $1,753,921.64 Por gastar - $329,074.75 84.20% Abrir menú":
+        - cell "Expandir LOSA_PN LOSA_PN":
+          - button "Expandir LOSA_PN":
+          - generic: LOSA_PN
+        - cell "$2,082,996.39"
+        - cell "$2,082,996.39":
+          - generic: $2,082,996.39
+        - cell "$1,753,921.64 Por gastar - $329,074.75":
+          - generic: $1,753,921.64
+          - generic: Por gastar - $329,074.75
+        - cell "84.20%":
+          - generic: 84.20%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MUROS_PN MUROS_PN $877,009.47 $877,009.47 $729,366.23 Por gastar - $147,643.24 83.17% Abrir menú":
+        - cell "Expandir MUROS_PN MUROS_PN":
+          - button "Expandir MUROS_PN":
+          - generic: MUROS_PN
+        - cell "$877,009.47"
+        - cell "$877,009.47":
+          - generic: $877,009.47
+        - cell "$729,366.23 Por gastar - $147,643.24":
+          - generic: $729,366.23
+          - generic: Por gastar - $147,643.24
+        - cell "83.17%":
+          - generic: 83.17%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir LOSA_2N LOSA_2N $1,155,048.28 $1,155,048.28 $0.00 Por gastar - $1,155,048.28 0.00% Abrir menú":
+        - cell "Expandir LOSA_2N LOSA_2N":
+          - button "Expandir LOSA_2N":
+          - generic: LOSA_2N
+        - cell "$1,155,048.28"
+        - cell "$1,155,048.28":
+          - generic: $1,155,048.28
+        - cell "$0.00 Por gastar - $1,155,048.28":
+          - generic: $0.00
+          - generic: Por gastar - $1,155,048.28
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MUROS PRETILES MUROS PRETILES $249,394.47 $249,394.47 $0.00 Por gastar - $249,394.47 0.00% Abrir menú":
+        - cell "Expandir MUROS PRETILES MUROS PRETILES":
+          - button "Expandir MUROS PRETILES":
+          - generic: MUROS PRETILES
+        - cell "$249,394.47"
+        - cell "$249,394.47":
+          - generic: $249,394.47
+        - cell "$0.00 Por gastar - $249,394.47":
+          - generic: $0.00
+          - generic: Por gastar - $249,394.47
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir ALBERCA ALBERCA $503,711.15 $503,711.15 $0.00 Por gastar - $503,711.15 0.00% Abrir menú":
+        - cell "Expandir ALBERCA ALBERCA":
+          - button "Expandir ALBERCA":
+          - generic: ALBERCA
+        - cell "$503,711.15"
+        - cell "$503,711.15":
+          - generic: $503,711.15
+        - cell "$0.00 Por gastar - $503,711.15":
+          - generic: $0.00
+          - generic: Por gastar - $503,711.15
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir CISTERNA CISTERNA $290,779.73 $290,779.73 $0.00 Por gastar - $290,779.73 0.00% Abrir menú":
+        - cell "Expandir CISTERNA CISTERNA":
+          - button "Expandir CISTERNA":
+          - generic: CISTERNA
+        - cell "$290,779.73"
+        - cell "$290,779.73":
+          - generic: $290,779.73
+        - cell "$0.00 Por gastar - $290,779.73":
+          - generic: $0.00
+          - generic: Por gastar - $290,779.73
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir ESCALERA INTERNA ESCALERA INTERNA $52,978.00 $52,978.00 $0.00 Por gastar - $52,978.00 0.00% Abrir menú":
+        - cell "Expandir ESCALERA INTERNA ESCALERA INTERNA":
+          - button "Expandir ESCALERA INTERNA":
+          - generic: ESCALERA INTERNA
+        - cell "$52,978.00"
+        - cell "$52,978.00":
+          - generic: $52,978.00
+        - cell "$0.00 Por gastar - $52,978.00":
+          - generic: $0.00
+          - generic: Por gastar - $52,978.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir ESCALERA EXTERNA 01 ESCALERA EXTERNA 01 $240,679.45 $240,679.45 $0.00 Por gastar - $240,679.45 0.00% Abrir menú":
+        - cell "Expandir ESCALERA EXTERNA 01 ESCALERA EXTERNA 01":
+          - button "Expandir ESCALERA EXTERNA 01":
+          - generic: ESCALERA EXTERNA 01
+        - cell "$240,679.45"
+        - cell "$240,679.45":
+          - generic: $240,679.45
+        - cell "$0.00 Por gastar - $240,679.45":
+          - generic: $0.00
+          - generic: Por gastar - $240,679.45
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir ESCALERA EXTERNA 02 ESCALERA EXTERNA 02 $84,435.87 $84,435.87 $0.00 Por gastar - $84,435.87 0.00% Abrir menú":
+        - cell "Expandir ESCALERA EXTERNA 02 ESCALERA EXTERNA 02":
+          - button "Expandir ESCALERA EXTERNA 02":
+          - generic: ESCALERA EXTERNA 02
+        - cell "$84,435.87"
+        - cell "$84,435.87":
+          - generic: $84,435.87
+        - cell "$0.00 Por gastar - $84,435.87":
+          - generic: $0.00
+          - generic: Por gastar - $84,435.87
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir FIRME DE ANDADO FIRME DE ANDADO $237,843.10 $237,843.10 $0.00 Por gastar - $237,843.10 0.00% Abrir menú":
+        - cell "Expandir FIRME DE ANDADO FIRME DE ANDADO":
+          - button "Expandir FIRME DE ANDADO":
+          - generic: FIRME DE ANDADO
+        - cell "$237,843.10"
+        - cell "$237,843.10":
+          - generic: $237,843.10
+        - cell "$0.00 Por gastar - $237,843.10":
+          - generic: $0.00
+          - generic: Por gastar - $237,843.10
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir ALBAÑILERÍAS ALBAÑILERÍAS $3,365,450.87 $3,365,450.87 $252,620.40 Por gastar - $3,112,830.47 7.51% Abrir menú":
+        - cell "Expandir ALBAÑILERÍAS ALBAÑILERÍAS":
+          - button "Expandir ALBAÑILERÍAS":
+          - generic: ALBAÑILERÍAS
+        - cell "$3,365,450.87"
+        - cell "$3,365,450.87":
+          - generic: $3,365,450.87
+        - cell "$252,620.40 Por gastar - $3,112,830.47":
+          - generic: $252,620.40
+          - generic: Por gastar - $3,112,830.47
+        - cell "7.51%":
+          - generic: 7.51%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir PLOMERÍA PLOMERÍA $1,277,000.00 $1,277,000.00 $628,222.67 Por gastar - $648,777.33 49.20% Abrir menú":
+        - cell "Expandir PLOMERÍA PLOMERÍA":
+          - button "Expandir PLOMERÍA":
+          - generic: PLOMERÍA
+        - cell "$1,277,000.00"
+        - cell "$1,277,000.00":
+          - generic: $1,277,000.00
+        - cell "$628,222.67 Por gastar - $648,777.33":
+          - generic: $628,222.67
+          - generic: Por gastar - $648,777.33
+        - cell "49.20%":
+          - generic: 49.20%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir ELECTRICIDAD ELECTRICIDAD $1,219,156.93 $1,219,156.93 $372,000.00 Por gastar - $847,156.93 30.51% Abrir menú":
+        - cell "Expandir ELECTRICIDAD ELECTRICIDAD":
+          - button "Expandir ELECTRICIDAD":
+          - generic: ELECTRICIDAD
+        - cell "$1,219,156.93"
+        - cell "$1,219,156.93":
+          - generic: $1,219,156.93
+        - cell "$372,000.00 Por gastar - $847,156.93":
+          - generic: $372,000.00
+          - generic: Por gastar - $847,156.93
+        - cell "30.51%":
+          - generic: 30.51%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir LUMINARIAS LUMINARIAS $749,972.16 $749,972.16 $0.00 Por gastar - $749,972.16 0.00% Abrir menú":
+        - cell "Expandir LUMINARIAS LUMINARIAS":
+          - button "Expandir LUMINARIAS":
+          - generic: LUMINARIAS
+        - cell "$749,972.16"
+        - cell "$749,972.16":
+          - generic: $749,972.16
+        - cell "$0.00 Por gastar - $749,972.16":
+          - generic: $0.00
+          - generic: Por gastar - $749,972.16
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir IMPERMEABILIZACIÓN IMPERMEABILIZACIÓN $474,145.71 $474,145.71 $0.00 Por gastar - $474,145.71 0.00% Abrir menú":
+        - cell "Expandir IMPERMEABILIZACIÓN IMPERMEABILIZACIÓN":
+          - button "Expandir IMPERMEABILIZACIÓN":
+          - generic: IMPERMEABILIZACIÓN
+        - cell "$474,145.71"
+        - cell "$474,145.71":
+          - generic: $474,145.71
+        - cell "$0.00 Por gastar - $474,145.71":
+          - generic: $0.00
+          - generic: Por gastar - $474,145.71
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir AIRE_ACONDICIONADO AIRE_ACONDICIONADO $1,857,000.00 $1,857,000.00 $0.00 Por gastar - $1,857,000.00 0.00% Abrir menú":
+        - cell "Expandir AIRE_ACONDICIONADO AIRE_ACONDICIONADO":
+          - button "Expandir AIRE_ACONDICIONADO":
+          - generic: AIRE_ACONDICIONADO
+        - cell "$1,857,000.00"
+        - cell "$1,857,000.00":
+          - generic: $1,857,000.00
+        - cell "$0.00 Por gastar - $1,857,000.00":
+          - generic: $0.00
+          - generic: Por gastar - $1,857,000.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir HERRERÍA HERRERÍA $745,257.27 $745,257.27 $55,758.88 Por gastar - $689,498.39 7.48% Abrir menú":
+        - cell "Expandir HERRERÍA HERRERÍA":
+          - button "Expandir HERRERÍA":
+          - generic: HERRERÍA
+        - cell "$745,257.27"
+        - cell "$745,257.27":
+          - generic: $745,257.27
+        - cell "$55,758.88 Por gastar - $689,498.39":
+          - generic: $55,758.88
+          - generic: Por gastar - $689,498.39
+        - cell "7.48%":
+          - generic: 7.48%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir PINTURA_HERRERÍA PINTURA_HERRERÍA $330,000.00 $330,000.00 $0.00 Por gastar - $330,000.00 0.00% Abrir menú":
+        - cell "Expandir PINTURA_HERRERÍA PINTURA_HERRERÍA":
+          - button "Expandir PINTURA_HERRERÍA":
+          - generic: PINTURA_HERRERÍA
+        - cell "$330,000.00"
+        - cell "$330,000.00":
+          - generic: $330,000.00
+        - cell "$0.00 Por gastar - $330,000.00":
+          - generic: $0.00
+          - generic: Por gastar - $330,000.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MÁRMOL MÁRMOL $4,572,260.00 $4,572,260.00 $0.00 Por gastar - $4,572,260.00 0.00% Abrir menú":
+        - cell "Expandir MÁRMOL MÁRMOL":
+          - button "Expandir MÁRMOL":
+          - generic: MÁRMOL
+        - cell "$4,572,260.00"
+        - cell "$4,572,260.00":
+          - generic: $4,572,260.00
+        - cell "$0.00 Por gastar - $4,572,260.00":
+          - generic: $0.00
+          - generic: Por gastar - $4,572,260.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir RECUBRIMIENTOS RECUBRIMIENTOS $494,416.60 $494,416.60 $0.00 Por gastar - $494,416.60 0.00% Abrir menú":
+        - cell "Expandir RECUBRIMIENTOS RECUBRIMIENTOS":
+          - button "Expandir RECUBRIMIENTOS":
+          - generic: RECUBRIMIENTOS
+        - cell "$494,416.60"
+        - cell "$494,416.60":
+          - generic: $494,416.60
+        - cell "$0.00 Por gastar - $494,416.60":
+          - generic: $0.00
+          - generic: Por gastar - $494,416.60
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir YESO_PINTURA YESO_PINTURA $1,332,597.07 $1,332,597.07 $0.00 Por gastar - $1,332,597.07 0.00% Abrir menú":
+        - cell "Expandir YESO_PINTURA YESO_PINTURA":
+          - button "Expandir YESO_PINTURA":
+          - generic: YESO_PINTURA
+        - cell "$1,332,597.07"
+        - cell "$1,332,597.07":
+          - generic: $1,332,597.07
+        - cell "$0.00 Por gastar - $1,332,597.07":
+          - generic: $0.00
+          - generic: Por gastar - $1,332,597.07
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir CANCELERÍA CANCELERÍA $2,387,416.08 $2,387,416.08 $0.00 Por gastar - $2,387,416.08 0.00% Abrir menú":
+        - cell "Expandir CANCELERÍA CANCELERÍA":
+          - button "Expandir CANCELERÍA":
+          - generic: CANCELERÍA
+        - cell "$2,387,416.08"
+        - cell "$2,387,416.08":
+          - generic: $2,387,416.08
+        - cell "$0.00 Por gastar - $2,387,416.08":
+          - generic: $0.00
+          - generic: Por gastar - $2,387,416.08
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir CARPINTERÍA CARPINTERÍA $2,579,378.80 $2,579,378.80 $0.00 Por gastar - $2,579,378.80 0.00% Abrir menú":
+        - cell "Expandir CARPINTERÍA CARPINTERÍA":
+          - button "Expandir CARPINTERÍA":
+          - generic: CARPINTERÍA
+        - cell "$2,579,378.80"
+        - cell "$2,579,378.80":
+          - generic: $2,579,378.80
+        - cell "$0.00 Por gastar - $2,579,378.80":
+          - generic: $0.00
+          - generic: Por gastar - $2,579,378.80
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir HERRAJES HERRAJES $58,200.00 $58,200.00 $0.00 Por gastar - $58,200.00 0.00% Abrir menú":
+        - cell "Expandir HERRAJES HERRAJES":
+          - button "Expandir HERRAJES":
+          - generic: HERRAJES
+        - cell "$58,200.00"
+        - cell "$58,200.00":
+          - generic: $58,200.00
+        - cell "$0.00 Por gastar - $58,200.00":
+          - generic: $0.00
+          - generic: Por gastar - $58,200.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MOBILIARIO_EQUIPO MOBILIARIO_EQUIPO $219,500.00 $219,500.00 $0.00 Por gastar - $219,500.00 0.00% Abrir menú":
+        - cell "Expandir MOBILIARIO_EQUIPO MOBILIARIO_EQUIPO":
+          - button "Expandir MOBILIARIO_EQUIPO":
+          - generic: MOBILIARIO_EQUIPO
+        - cell "$219,500.00"
+        - cell "$219,500.00":
+          - generic: $219,500.00
+        - cell "$0.00 Por gastar - $219,500.00":
+          - generic: $0.00
+          - generic: Por gastar - $219,500.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir MUEBLES_BAÑO MUEBLES_BAÑO $353,800.00 $353,800.00 $0.00 Por gastar - $353,800.00 0.00% Abrir menú":
+        - cell "Expandir MUEBLES_BAÑO MUEBLES_BAÑO":
+          - button "Expandir MUEBLES_BAÑO":
+          - generic: MUEBLES_BAÑO
+        - cell "$353,800.00"
+        - cell "$353,800.00":
+          - generic: $353,800.00
+        - cell "$0.00 Por gastar - $353,800.00":
+          - generic: $0.00
+          - generic: Por gastar - $353,800.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir GAS GAS $399,040.00 $399,040.00 $0.00 Por gastar - $399,040.00 0.00% Abrir menú":
+        - cell "Expandir GAS GAS":
+          - button "Expandir GAS":
+          - generic: GAS
+        - cell "$399,040.00"
+        - cell "$399,040.00":
+          - generic: $399,040.00
+        - cell "$0.00 Por gastar - $399,040.00":
+          - generic: $0.00
+          - generic: Por gastar - $399,040.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir COCINA COCINA $902,952.71 $902,952.71 $0.00 Por gastar - $902,952.71 0.00% Abrir menú":
+        - cell "Expandir COCINA COCINA":
+          - button "Expandir COCINA":
+          - generic: COCINA
+        - cell "$902,952.71"
+        - cell "$902,952.71":
+          - generic: $902,952.71
+        - cell "$0.00 Por gastar - $902,952.71":
+          - generic: $0.00
+          - generic: Por gastar - $902,952.71
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir INSTALACIONES_ESPECIALES INSTALACIONES_ESPECIALES $130,460.00 $130,460.00 $0.00 Por gastar - $130,460.00 0.00% Abrir menú":
+        - cell "Expandir INSTALACIONES_ESPECIALES INSTALACIONES_ESPECIALES":
+          - button "Expandir INSTALACIONES_ESPECIALES":
+          - generic: INSTALACIONES_ESPECIALES
+        - cell "$130,460.00"
+        - cell "$130,460.00":
+          - generic: $130,460.00
+        - cell "$0.00 Por gastar - $130,460.00":
+          - generic: $0.00
+          - generic: Por gastar - $130,460.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir JARDÍN JARDÍN $189,036.00 $189,036.00 $0.00 Por gastar - $189,036.00 0.00% Abrir menú":
+        - cell "Expandir JARDÍN JARDÍN":
+          - button "Expandir JARDÍN":
+          - generic: JARDÍN
+        - cell "$189,036.00"
+        - cell "$189,036.00":
+          - generic: $189,036.00
+        - cell "$0.00 Por gastar - $189,036.00":
+          - generic: $0.00
+          - generic: Por gastar - $189,036.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir VARIOS VARIOS $315,000.00 $315,000.00 $0.00 Por gastar - $315,000.00 0.00% Abrir menú":
+        - cell "Expandir VARIOS VARIOS":
+          - button "Expandir VARIOS":
+          - generic: VARIOS
+        - cell "$315,000.00"
+        - cell "$315,000.00":
+          - generic: $315,000.00
+        - cell "$0.00 Por gastar - $315,000.00":
+          - generic: $0.00
+          - generic: Por gastar - $315,000.00
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir VIATICOS VIATICOS $3,613,120.00 $3,613,120.00 $799,774.65 Por gastar - $2,813,345.35 22.14% Abrir menú":
+        - cell "Expandir VIATICOS VIATICOS":
+          - button "Expandir VIATICOS":
+          - generic: VIATICOS
+        - cell "$3,613,120.00"
+        - cell "$3,613,120.00":
+          - generic: $3,613,120.00
+        - cell "$799,774.65 Por gastar - $2,813,345.35":
+          - generic: $799,774.65
+          - generic: Por gastar - $2,813,345.35
+        - cell "22.14%":
+          - generic: 22.14%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir HONORARIOS HONORARIOS $5,076,588.90 $5,076,588.90 $1,027,775.37 Por gastar - $4,048,813.53 20.25% Abrir menú":
+        - cell "Expandir HONORARIOS HONORARIOS":
+          - button "Expandir HONORARIOS":
+          - generic: HONORARIOS
+        - cell "$5,076,588.90"
+        - cell "$5,076,588.90":
+          - generic: $5,076,588.90
+        - cell "$1,027,775.37 Por gastar - $4,048,813.53":
+          - generic: $1,027,775.37
+          - generic: Por gastar - $4,048,813.53
+        - cell "20.25%":
+          - generic: 20.25%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir GENERAL CONDITIONS GENERAL CONDITIONS $846,098.15 $846,098.15 $171,295.81 Por gastar - $674,802.34 20.25% Abrir menú":
+        - cell "Expandir GENERAL CONDITIONS GENERAL CONDITIONS":
+          - button "Expandir GENERAL CONDITIONS":
+          - generic: GENERAL CONDITIONS
+        - cell "$846,098.15"
+        - cell "$846,098.15":
+          - generic: $846,098.15
+        - cell "$171,295.81 Por gastar - $674,802.34":
+          - generic: $171,295.81
+          - generic: Por gastar - $674,802.34
+        - cell "20.25%":
+          - generic: 20.25%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+      - row "Expandir VARIOS SH VARIOS SH $1,516,535.78 $1,516,535.78 $0.00 Por gastar - $1,516,535.78 0.00% Abrir menú":
+        - cell "Expandir VARIOS SH VARIOS SH":
+          - button "Expandir VARIOS SH":
+          - generic: VARIOS SH
+        - cell "$1,516,535.78"
+        - cell "$1,516,535.78":
+          - generic: $1,516,535.78
+        - cell "$0.00 Por gastar - $1,516,535.78":
+          - generic: $0.00
+          - generic: Por gastar - $1,516,535.78
+        - cell "0.00%":
+          - generic: 0.00%
+        - cell "Abrir menú":
+          - button "Abrir menú":
+            - generic: Abrir menú
+  - paragraph: Todas las partidas han sido cargadas
+- region "Notifications alt+T"

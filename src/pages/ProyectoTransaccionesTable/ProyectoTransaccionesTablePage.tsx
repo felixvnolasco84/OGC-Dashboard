@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, RefreshCw, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, MoreVertical, FileText, ArrowUp, ArrowDown, X, Filter, CalendarIcon, Eye, Files, UserCog, Trash2, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,10 +29,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTransactionDetailsModal } from "@/hooks/transaction-details-modal";
-import { InvoiceBackfillDialog } from "@/components/invoices/InvoiceBackfillDialog";
 import { InvoiceIntakeDialog } from "@/components/invoices/InvoiceIntakeDialog";
 import { AddTransactionMenu } from "@/components/transactions/AddTransactionMenu";
-import { LaborImportHistoryDialog } from "@/components/transactions/LaborImportHistory";
+import { ProjectTransactionTools } from "@/components/transactions/ProjectTransactionTools";
 import { useUploadProjectTransactionsModal } from "@/hooks/upload-project-transactions-modal";
 import { useAddPaymentModal } from "@/hooks/add-payment-modal";
 
@@ -124,9 +123,33 @@ export default function ProyectoTransaccionesTablePage() {
     const addPaymentModal = useAddPaymentModal();
     const currentUser = useQuery(api.users.getCurrentUser);
     const canCreateTransactions = Boolean(currentUser && currentUser.role !== "viewer");
+    const canReviewInvoices = currentUser?.role === "admin" || currentUser?.role === "finance";
     const [invoiceOpen, setInvoiceOpen] = useState(false);
+    const addTransactionTrigger = useRef<HTMLButtonElement>(null);
+    const creationDialogWasOpen = useRef(false);
+    const creationDialogOpen = addPaymentModal.isOpen || uploadProjectTransactionsModal.isOpen || invoiceOpen;
+
+    useEffect(() => {
+        const shouldRestoreFocus = creationDialogWasOpen.current && !creationDialogOpen;
+        creationDialogWasOpen.current = creationDialogOpen;
+        if (!shouldRestoreFocus) return;
+        // The global creation dialogs unmount after their 200 ms exit animation.
+        const timeout = window.setTimeout(() => {
+            if (document.activeElement === document.body) addTransactionTrigger.current?.focus();
+        }, 250);
+        return () => window.clearTimeout(timeout);
+    }, [creationDialogOpen]);
 
     const { proyectoId } = useParams<{ proyectoId: string }>();
+    useEffect(() => {
+        setInvoiceOpen(false);
+        return () => {
+            const payment = useAddPaymentModal.getState();
+            if (payment.paymentContext?.projectId === proyectoId) payment.onClose();
+            const upload = useUploadProjectTransactionsModal.getState();
+            if (upload.proyectoId === proyectoId) upload.onClose();
+        };
+    }, [proyectoId]);
     const [searchParams, setSearchParams] = useSearchParams();
     const initialConcept = searchParams.get("concepto") || searchParams.get("factura") || searchParams.get("categoria_factura") || "";
     const initialStatus = searchParams.get("status") || "all";
@@ -150,7 +173,8 @@ export default function ProyectoTransaccionesTablePage() {
         moneda?: string;
         proveedorNombre: string;
     } | null>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncingProjectId, setSyncingProjectId] = useState<string | null>(null);
+    const isSyncing = syncingProjectId === proyectoId;
     
     // Advanced search filters
     const [minAmount, setMinAmount] = useState<string>("");
@@ -468,9 +492,9 @@ export default function ProyectoTransaccionesTablePage() {
     };
 
     const handleSync = async () => {
-        if (!proyectoId) return;
+        if (!proyectoId || !canCreateTransactions || isSyncing) return;
 
-        setIsSyncing(true);
+        setSyncingProjectId(proyectoId);
         try {
             const result = await syncTransactionsWithDocuments({
                 proyecto_id: proyectoId as Id<"desarrollos">,
@@ -507,7 +531,7 @@ export default function ProyectoTransaccionesTablePage() {
                 description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
             });
         } finally {
-            setIsSyncing(false);
+            setSyncingProjectId((current) => current === proyectoId ? null : current);
         }
     };
 
@@ -532,24 +556,6 @@ export default function ProyectoTransaccionesTablePage() {
                             <h1 className="break-words text-2xl text-foreground">{proyecto.nombre}</h1>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <AddTransactionMenu
-                                visible={canCreateTransactions}
-                                onAddPayment={() => addPaymentModal.onOpen({ projectId: proyecto._id })}
-                                onUploadExcel={() => uploadProjectTransactionsModal.onOpen(proyectoId as Id<"desarrollos">, proyecto.nombre)}
-                                onUploadInvoice={() => setInvoiceOpen(true)}
-                            />
-                            <InvoiceBackfillDialog projectId={proyectoId as Id<"desarrollos">} />
-                            <LaborImportHistoryDialog key={proyecto._id} projectId={proyecto._id} />
-                            <Button
-                                onClick={handleSync}
-                                disabled={isSyncing}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none py-6  text-muted-foreground"
-                            >
-                                {isSyncing ? "Sincronizando..." : "Sincronizar Docs"}
-                                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
-                            </Button>
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Total: {transactionTotals?.count ?? 0}
@@ -560,6 +566,25 @@ export default function ProyectoTransaccionesTablePage() {
                                     Monto total: {formatCurrency(transactionTotals?.amount ?? 0)}
                                 </span>
                             </Badge>
+                            <div className="flex w-full items-center gap-2 sm:w-auto">
+                                <AddTransactionMenu
+                                    key={`add-${proyecto._id}`}
+                                    primary
+                                    triggerRef={addTransactionTrigger}
+                                    visible={canCreateTransactions}
+                                    onAddPayment={() => addPaymentModal.onOpen({ projectId: proyecto._id })}
+                                    onUploadExcel={() => uploadProjectTransactionsModal.onOpen(proyecto._id, proyecto.nombre)}
+                                    onUploadInvoice={() => setInvoiceOpen(true)}
+                                />
+                                <ProjectTransactionTools
+                                    key={`tools-${proyecto._id}`}
+                                    projectId={proyecto._id}
+                                    canReviewInvoices={canReviewInvoices}
+                                    canSync={canCreateTransactions}
+                                    isSyncing={isSyncing}
+                                    onSync={handleSync}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -1262,6 +1287,7 @@ export default function ProyectoTransaccionesTablePage() {
                 transactionIds={[...selectedTransactionIds]}
             />
             <InvoiceIntakeDialog
+                key={proyecto._id}
                 hideTrigger
                 open={invoiceOpen}
                 onOpenChange={setInvoiceOpen}

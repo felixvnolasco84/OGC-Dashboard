@@ -1,0 +1,167 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - button "P&L Mensual"
+  - button "Work in progress"
+  - button "Project profitability" [active]
+  - combobox "Filtrar Profit & Loss por ubicación":
+    - generic: Los Cabos
+  - button "Configuracion P&L":
+  - button "Ledger movimientos OGC":
+  - button "Cargar movimientos":
+    - text: Cargar movimientos
+  - paragraph: Margen bruto total OGC
+  - paragraph:
+    - generic "$1,998,845.83": $2.0M
+  - generic: Acumulado hasta Nov 2026
+  - paragraph: Margen bruto %
+  - paragraph: 100.00%
+  - generic: 1 obras activas
+  - paragraph: Margen mensual actual
+  - paragraph:
+    - generic "$0.00": $0
+  - generic: Nov 2026
+  - paragraph: Margen mensual %
+  - paragraph: 0.00%
+  - generic: Nov 2026
+  - heading "RENTABILIDAD POR OBRA - ACUMULADO AL CORTE" [level=2]
+  - paragraph: Ingresos por obra vs. costos reales OGC asignados y costos históricos de indirectos
+  - paragraph: Desde el inicio de cada obra hasta Nov 2026, con las reglas vigentes de Presupuesto.
+  - table:
+    - rowgroup:
+      - row "Obra Ingresos OGC Honorarios + indirectos cobrados Costos OGC Costos reales OGC asignados + costo histórico de indirectos Margen":
+        - columnheader "Obra"
+        - columnheader "Ingresos OGC Honorarios + indirectos cobrados":
+          - generic: Ingresos OGC
+          - generic: Honorarios + indirectos cobrados
+        - columnheader "Costos OGC Costos reales OGC asignados + costo histórico de indirectos":
+          - generic: Costos OGC
+          - generic: Costos reales OGC asignados + costo histórico de indirectos
+        - columnheader "Margen"
+    - rowgroup:
+      - row "Lote 77 $2.0M $0 $2.0M 100%":
+        - cell "Lote 77":
+          - generic: Lote 77
+        - cell "$2.0M":
+          - generic "$1,998,845.83": $2.0M
+        - cell "$0":
+          - generic "-$0.00": $0
+        - cell "$2.0M 100%":
+          - generic "$1,998,845.83": $2.0M
+          - generic: 100%
+      - row "TOTAL OGC $2.0M $0 $2.0M 100%":
+        - cell "TOTAL OGC"
+        - cell "$2.0M":
+          - generic "$1,998,845.83": $2.0M
+        - cell "$0":
+          - generic "-$0.00": $0
+        - cell "$2.0M 100%":
+          - generic "$1,998,845.83": $2.0M
+          - generic: 100%
+  - heading "COSTO ESTRUCTURA OGC" [level=2]
+  - paragraph: Acumulado hasta Nov 2026
+  - paragraph: Movimientos OGC con y sin obra asignada, por la fecha capturada.
+  - table:
+    - rowgroup:
+      - row "Categoria Monto % estructura":
+        - columnheader "Categoria"
+        - columnheader "Monto"
+        - columnheader "% estructura"
+    - rowgroup:
+      - row "COSTOS REALES DE INDIRECTOS $0 0%":
+        - cell "COSTOS REALES DE INDIRECTOS"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+      - row "NOMINA $0 0%":
+        - cell "NOMINA"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+      - row "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT) $0 0%":
+        - cell "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+      - row "TRANSPORTE $0 0%":
+        - cell "TRANSPORTE"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+      - row "RENTA $0 0%":
+        - cell "RENTA"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+      - row "OTROS $0 0%":
+        - cell "OTROS"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+      - row "TOTAL ESTRUCTURA $0 0%":
+        - cell "TOTAL ESTRUCTURA"
+        - cell "$0":
+          - generic "$0.00": $0
+        - cell "0%"
+  - heading "EBITDA OGC" [level=2]
+  - paragraph: Acumulado hasta Nov 2026
+  - table:
+    - rowgroup:
+      - row "Concepto Monto":
+        - columnheader "Concepto"
+        - columnheader "Monto"
+    - rowgroup:
+      - row "HONORARIOS OGC $1.0M":
+        - cell "HONORARIOS OGC"
+        - cell "$1.0M":
+          - generic "$1,027,775.37": $1.0M
+      - row "INDIRECTOS COBRADOS $971.1k":
+        - cell "INDIRECTOS COBRADOS"
+        - cell "$971.1k":
+          - generic "$971,070.46": $971.1k
+      - row "INGRESOS OGC $2.0M":
+        - cell "INGRESOS OGC"
+        - cell "$2.0M":
+          - generic "$1,998,845.83": $2.0M
+      - row "COSTOS OGC $0":
+        - cell "COSTOS OGC"
+        - cell "$0":
+          - generic "-$0.00": $0
+      - row "SALDO DE INDIRECTOS Cobrados menos costos reales y costo histórico $971.1k":
+        - cell "SALDO DE INDIRECTOS Cobrados menos costos reales y costo histórico":
+          - text: SALDO DE INDIRECTOS
+          - generic: Cobrados menos costos reales y costo histórico
+        - cell "$971.1k":
+          - generic "$971,070.46": $971.1k
+      - row "EBITDA % $2.0M 100.00%":
+        - cell "EBITDA %":
+          - generic: EBITDA
+          - generic: "%"
+        - cell "$2.0M 100.00%":
+          - generic "$1,998,845.83": $2.0M
+          - generic: 100.00%
+- region "Notifications alt+T"

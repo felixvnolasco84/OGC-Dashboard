@@ -1,0 +1,35 @@
+- img "Logo"
+- list:
+  - button:
+- list:
+  - link "P&L":
+    - /url: /pnl
+    - generic: P&L
+  - link "Proveedores":
+    - /url: /proveedores
+    - generic: Proveedores
+  - link "Documentos":
+    - /url: /documentos
+    - generic: Documentos
+  - link "Tareas":
+    - /url: /tareas
+    - generic: Tareas
+- list:
+  - button "Felix Enrique Vega Nolasco Felix Enrique Vega Nolasco felixvnolasco@gmail.com":
+    - img "Felix Enrique Vega Nolasco"
+    - generic: Felix Enrique Vega Nolasco
+    - generic: felixvnolasco@gmail.com
+- button "Toggle Sidebar"
+- main:
+  - button "Toggle Sidebar":
+    - generic: Toggle Sidebar
+  - button "Abrir asistente de proyectos":
+  - button "Menciones en planos":
+  - heading "Gestión de Proyectos de Ventas" [level=1]
+  - paragraph: Administra los proyectos de ventas y sus configuraciones
+  - button "Nuevo Proyecto":
+    - text: Nuevo Proyecto
+  - generic: Proyectos (0)
+  - generic: Selecciona un proyecto
+  - generic: Selecciona un proyecto de la lista o crea uno nuevo
+- region "Notifications alt+T"

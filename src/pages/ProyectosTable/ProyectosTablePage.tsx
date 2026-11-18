@@ -2,12 +2,12 @@ import { BudgetOriginalDialog } from "@/components/Presupuesto/BudgetOriginal";
 import { Table } from "@/components/ui/table";
 import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
 import { Link } from "react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, Plus, Settings2, Upload } from "lucide-react";
+import { History, Search, MoreHorizontal, MoreVertical, Plus, Settings2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,7 +24,15 @@ import { useEditProyectoModal } from "@/hooks/edit-proyecto-modal";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useUploadTransactionsModal } from "@/hooks/upload-transactions-modal";
 import { useUploadProjectionsModal } from "@/hooks/upload-projections-modal";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -44,9 +52,13 @@ type LocationFilter = string;
 export default function ProyectosTablePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [creationHistoryOpen, setCreationHistoryOpen] = useState(false);
   const [locationsModalOpen, setLocationsModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Id<"desarrollos"> | null>(null);
+  const actionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
   const currentUser = useQuery(api.users.getCurrentUser);
   const projects = useQuery(api.desarrollos.getAllWithMetrics);
@@ -56,6 +68,11 @@ export default function ProyectosTablePage() {
   const editProyectoModal = useEditProyectoModal();
   const uploadTransactionsModal = useUploadTransactionsModal();
   const uploadProjectionsModal = useUploadProjectionsModal();
+
+  const runAfterActionsClose = (action: () => void) => {
+    pendingActionRef.current = action;
+    setActionsOpen(false);
+  };
 
   const filteredProjects = projects?.filter((project) => {
     const matchesSearch = project.nombre.toLowerCase().includes(searchTerm.toLowerCase());
@@ -118,26 +135,66 @@ export default function ProyectosTablePage() {
                 Gestiona y consulta todos tus proyectos de construcción
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {currentUser?.role === "admin" && <BudgetOriginalDialog />}
+            <div className="flex shrink-0 items-center gap-2">
               <Button
+                type="button"
                 onClick={() => addProyectoModal.onOpen()}
-                variant="outline"
-                size="lg"
-                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
+                className="h-11 gap-2 px-4 sm:h-10"
               >
-                Agregar Proyecto
-                <Plus className="h-6 w-6 rounded-full shadow-none" />
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Nuevo proyecto
               </Button>
-              <Button
-                onClick={() => uploadTransactionsModal.onOpen()}
-                variant="outline"
-                size="lg"
-                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
-              >
-                Subir Transacciones
-                <Upload className="h-6 w-6 rounded-full shadow-none" />
-              </Button>
+              <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    ref={actionsTriggerRef}
+                    type="button"
+                    variant="outline"
+                    size="iconLg"
+                    className="h-11 w-11 shrink-0 sm:h-10 sm:w-10"
+                    aria-label="Acciones de proyectos"
+                  >
+                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={6}
+                  className="w-64 max-w-[calc(100vw-2rem)] rounded-none [&_[role=menuitem]]:min-h-11 sm:[&_[role=menuitem]]:min-h-9"
+                  onCloseAutoFocus={() => {
+                    // Open dialogs after the menu has unmounted and restored focus.
+                    const action = pendingActionRef.current;
+                    pendingActionRef.current = null;
+                    if (action) window.setTimeout(action, 0);
+                  }}
+                >
+                  {currentUser?.role === "admin" && <>
+                    <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Consultar</DropdownMenuLabel>
+                    <DropdownMenuGroup aria-label="Consultar">
+                      <DropdownMenuItem onSelect={() => runAfterActionsClose(() => setCreationHistoryOpen(true))}>
+                        <History aria-hidden="true" />
+                        Historial de creaciones
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                  </>}
+                  <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Importar</DropdownMenuLabel>
+                  <DropdownMenuGroup aria-label="Importar">
+                    <DropdownMenuItem onSelect={() => runAfterActionsClose(() => uploadTransactionsModal.onOpen())}>
+                      <Upload aria-hidden="true" />
+                      Subir transacciones
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Configuración</DropdownMenuLabel>
+                  <DropdownMenuGroup aria-label="Configuración">
+                    <DropdownMenuItem onSelect={() => runAfterActionsClose(() => setLocationsModalOpen(true))}>
+                      <Settings2 aria-hidden="true" />
+                      Configurar ubicaciones
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
           </div>
@@ -173,15 +230,6 @@ export default function ProyectosTablePage() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLocationsModalOpen(true)}
-              className="h-12 shrink-0 rounded-none"
-            >
-              <Settings2 className="h-4 w-4" />
-              Configurar ubicaciones
-            </Button>
           </div>
         </div>
         {/* Header */}
@@ -335,6 +383,15 @@ export default function ProyectosTablePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {currentUser?.role === "admin" && <BudgetOriginalDialog
+        open={creationHistoryOpen}
+        onOpenChange={setCreationHistoryOpen}
+        hideTrigger
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          actionsTriggerRef.current?.focus();
+        }}
+      />}
       <ProjectLocationsModal
         open={locationsModalOpen}
         onOpenChange={setLocationsModalOpen}

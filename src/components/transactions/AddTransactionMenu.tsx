@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CreditCard, FileSpreadsheet, Plus, Receipt } from "lucide-react";
+import { useEffect, useRef, useState, type Ref } from "react";
+import { ChevronDown, CreditCard, FileSpreadsheet, Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,20 +10,27 @@ import {
 
 export function AddTransactionMenu({
   visible = true,
+  primary = false,
+  triggerRef,
   onAddPayment,
   onUploadExcel,
   onUploadInvoice,
 }: {
   visible?: boolean;
+  primary?: boolean;
+  triggerRef?: Ref<HTMLButtonElement>;
   onAddPayment: () => void;
   onUploadExcel: () => void;
   onUploadInvoice: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const pendingAction = useRef<number>();
+
+  useEffect(() => () => window.clearTimeout(pendingAction.current), []);
 
   const runAfterClose = (action: () => void) => {
     setOpen(false);
-    window.setTimeout(action, 100);
+    pendingAction.current = window.setTimeout(action, 100);
   };
 
   if (!visible) return null;
@@ -32,16 +39,18 @@ export function AddTransactionMenu({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          ref={triggerRef}
+          variant={primary ? "inverse" : "outline"}
         >
+          {primary && <Plus className="h-4 w-4" />}
           Agregar
-          <Plus className="h-5 w-5" />
+          {primary ? <ChevronDown className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
         variant="transactionMenu"
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => { if (!primary) event.preventDefault(); }}
       >
         <DropdownMenuItem
           variant="transactionAction"
