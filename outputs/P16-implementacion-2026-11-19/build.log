@@ -1,0 +1,215 @@
+
+> epi-group-react-vite@0.0.0 build
+> tsc -b && vite build --outDir outputs/P16-implementacion-2026-11-19/build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 3679 modules transformed.
+rendering chunks...
+computing gzip size...
+outputs/P16-implementacion-2026-11-19/build/manifest.webmanifest                                            0.31 kB
+outputs/P16-implementacion-2026-11-19/build/index.html                                                      1.00 kB │ gzip:   0.54 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueMediumItalic-Bl5YIAyI.woff2                57.77 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueThinItalic-DwOkg1VI.woff2                  69.27 kB
+outputs/P16-implementacion-2026-11-19/build/.vite/manifest.json                                            73.68 kB │ gzip:   8.27 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueUltraLightItalic-IwmkWZPd.woff2            74.37 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueLightItalic-Co39Gl4B.woff2                 76.76 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueMedium-CvSkDtT4.woff2                      92.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueUltraLight-DznH1Su_.woff2                  96.90 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueLight-DmMSO1G8.woff2                      100.20 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueThin-_0QGwHMD.woff2                       105.81 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueItalic-B8W3LefX.woff2                     107.85 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueBoldItalic-Cu2p2s_H.woff2                 197.14 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueBold-4VTgTDj5.woff2                       200.39 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueHeavy-DEwYMjAX.woff2                      201.88 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueBlack-BQ8RHQD8.woff2                      203.70 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueRoman-ChPlQO7p.woff2                      206.04 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueHeavyItalic-ns-kvpFJ.woff2                214.62 kB
+outputs/P16-implementacion-2026-11-19/build/assets/HelveticaNeueBlackItalic-B4CDQZJ2.woff2                215.79 kB
+outputs/P16-implementacion-2026-11-19/build/assets/pdf.worker.min-DEtVeC4l.mjs                          1,255.07 kB
+outputs/P16-implementacion-2026-11-19/build/assets/index-BaVtFXkj.css                                     151.47 kB │ gzip:  24.62 kB
+outputs/P16-implementacion-2026-11-19/build/assets/providerRules-LqCrrhaq.js                                0.07 kB │ gzip:   0.09 kB
+outputs/P16-implementacion-2026-11-19/build/assets/Legales-JwKMY3uQ.js                                      0.21 kB │ gzip:   0.19 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AvisoPrivacidad-rCrCD6RG.js                              0.21 kB │ gzip:   0.19 kB
+outputs/P16-implementacion-2026-11-19/build/assets/transactionConcept-DP_lcRqu.js                           0.23 kB │ gzip:   0.18 kB
+outputs/P16-implementacion-2026-11-19/build/assets/extends-CF3RwP-h.js                                      0.23 kB │ gzip:   0.19 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectoTareasPage-uvce5kdF.js                           0.25 kB │ gzip:   0.22 kB
+outputs/P16-implementacion-2026-11-19/build/assets/design-tokens-CXc4Xkqy.js                                0.27 kB │ gzip:   0.20 kB
+outputs/P16-implementacion-2026-11-19/build/assets/responsive-currency-B5UEuNkb.js                          0.28 kB │ gzip:   0.22 kB
+outputs/P16-implementacion-2026-11-19/build/assets/chevron-up-DJNTlwAo.js                                   0.30 kB │ gzip:   0.25 kB
+outputs/P16-implementacion-2026-11-19/build/assets/chevron-down-dJCefObt.js                                 0.30 kB │ gzip:   0.25 kB
+outputs/P16-implementacion-2026-11-19/build/assets/chevron-left-CLrXYNg-.js                                 0.30 kB │ gzip:   0.25 kB
+outputs/P16-implementacion-2026-11-19/build/assets/filter-VfVospJp.js                                       0.34 kB │ gzip:   0.27 kB
+outputs/P16-implementacion-2026-11-19/build/assets/arrow-right-By_7XbYJ.js                                  0.34 kB │ gzip:   0.27 kB
+outputs/P16-implementacion-2026-11-19/build/assets/search-QXho6W4-.js                                       0.35 kB │ gzip:   0.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/circle-check-BhVSrWeT.js                                 0.35 kB │ gzip:   0.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/clock-3-BgF_r-HK.js                                      0.36 kB │ gzip:   0.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/circle-check-big-hA1WaP6r.js                             0.37 kB │ gzip:   0.29 kB
+outputs/P16-implementacion-2026-11-19/build/assets/trending-up-DeVIYAkF.js                                  0.38 kB │ gzip:   0.29 kB
+outputs/P16-implementacion-2026-11-19/build/assets/info-BFHJCtfu.js                                         0.38 kB │ gzip:   0.29 kB
+outputs/P16-implementacion-2026-11-19/build/assets/circle-x-DnnLv2X0.js                                     0.38 kB │ gzip:   0.29 kB
+outputs/P16-implementacion-2026-11-19/build/assets/credit-card-B0gAktbB.js                                  0.38 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/lock-B9plZRMU.js                                         0.38 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/unsupportedIterableToArray-CJNtVYa-.js                   0.39 kB │ gzip:   0.29 kB
+outputs/P16-implementacion-2026-11-19/build/assets/dollar-sign-BAjq1eSD.js                                  0.39 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ellipsis-8o09Tn3Y.js                                     0.40 kB │ gzip:   0.27 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ellipsis-vertical-caarVFfy.js                            0.41 kB │ gzip:   0.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/pen-DwGkKxYA.js                                          0.41 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/percent-CZ2QGAbB.js                                      0.42 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/circle-alert-D6Yd5Crv.js                                 0.42 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/chart-column-JKqU5Zeg.js                                 0.42 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/settings-2-BsqQwt8p.js                                   0.43 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/transactionImport-0JpW55yD.js                            0.43 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/eye-CPggVKJa.js                                          0.43 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/calendar-_nAkJsh0.js                                     0.43 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/download-XDK6OYc9.js                                     0.44 kB │ gzip:   0.32 kB
+outputs/P16-implementacion-2026-11-19/build/assets/pencil-D4jr7m2y.js                                       0.45 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/list-checks-BdJd5xJ3.js                                  0.45 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/receipt-C6JbrBY0.js                                      0.47 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/paperclip-CnYC7-S_.js                                    0.47 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SignInPage-mTijVY6-.js                                   0.48 kB │ gzip:   0.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/minimize-2-D_qJ2OAf.js                                   0.48 kB │ gzip:   0.32 kB
+outputs/P16-implementacion-2026-11-19/build/assets/folder-plus-BE6iMTx3.js                                  0.48 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/user-plus-DtD2oBw3.js                                    0.48 kB │ gzip:   0.34 kB
+outputs/P16-implementacion-2026-11-19/build/assets/square-pen-TZdZ8Ew5.js                                   0.49 kB │ gzip:   0.34 kB
+outputs/P16-implementacion-2026-11-19/build/assets/save-BnfwPYrZ.js                                         0.50 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AdminFlujoPage-Bvi59tIK.js                               0.51 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/focus-B5JqO4k_.js                                        0.51 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AdminSalesFlujoPage-CtGZAb-Z.js                          0.51 kB │ gzip:   0.31 kB
+outputs/P16-implementacion-2026-11-19/build/assets/file-image-BJjOoEg4.js                                   0.52 kB │ gzip:   0.35 kB
+outputs/P16-implementacion-2026-11-19/build/assets/trash-2-CAAzVfwF.js                                      0.53 kB │ gzip:   0.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/file-spreadsheet-DygkTASG.js                             0.55 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/calendar-clock-DYOhEN4Z.js                               0.56 kB │ gzip:   0.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/package-CRHx-c3k.js                                      0.56 kB │ gzip:   0.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/layers-jSMMScSG.js                                       0.60 kB │ gzip:   0.35 kB
+outputs/P16-implementacion-2026-11-19/build/assets/building-2-VSPuO4ls.js                                   0.61 kB │ gzip:   0.35 kB
+outputs/P16-implementacion-2026-11-19/build/assets/arrow-up-Yw6qFKf6.js                                     0.62 kB │ gzip:   0.32 kB
+outputs/P16-implementacion-2026-11-19/build/assets/play-CI3ZkcGp.js                                         0.64 kB │ gzip:   0.33 kB
+outputs/P16-implementacion-2026-11-19/build/assets/image-off-B4cL5TyF.js                                    0.64 kB │ gzip:   0.41 kB
+outputs/P16-implementacion-2026-11-19/build/assets/edit-transaction-modal-evhKuWx_.js                       0.65 kB │ gzip:   0.41 kB
+outputs/P16-implementacion-2026-11-19/build/assets/label-DjYK7Spx.js                                        0.66 kB │ gzip:   0.43 kB
+outputs/P16-implementacion-2026-11-19/build/assets/calendar-days-BWCmn8rE.js                                0.67 kB │ gzip:   0.37 kB
+outputs/P16-implementacion-2026-11-19/build/assets/edit-payment-modal-C3A_8c20.js                           0.68 kB │ gzip:   0.42 kB
+outputs/P16-implementacion-2026-11-19/build/assets/copy-CLEqQRwJ.js                                         0.71 kB │ gzip:   0.38 kB
+outputs/P16-implementacion-2026-11-19/build/assets/user-CubWZrH0.js                                         0.77 kB │ gzip:   0.42 kB
+outputs/P16-implementacion-2026-11-19/build/assets/money-CJzwNflU.js                                        0.92 kB │ gzip:   0.53 kB
+outputs/P16-implementacion-2026-11-19/build/assets/alert-DAPjBXx9.js                                        0.93 kB │ gzip:   0.47 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SignUpPage-D5x-FU3Z.js                                   0.99 kB │ gzip:   0.52 kB
+outputs/P16-implementacion-2026-11-19/build/assets/money-input-BUDicF_b.js                                  1.06 kB │ gzip:   0.66 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-projections-modal-Du-pil_f.js                     1.06 kB │ gzip:   0.61 kB
+outputs/P16-implementacion-2026-11-19/build/assets/card-DerP7VoA.js                                         1.26 kB │ gzip:   0.49 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AdminProjectionUpload-B4_CnDu6.js                        1.86 kB │ gzip:   0.89 kB
+outputs/P16-implementacion-2026-11-19/build/assets/progress-CKQJxVaL.js                                     1.90 kB │ gzip:   0.95 kB
+outputs/P16-implementacion-2026-11-19/build/assets/feeConceptRules-r0uR18sb.js                              2.05 kB │ gzip:   0.88 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-transactions-modal-CWsqfKh3.js                    2.20 kB │ gzip:   1.13 kB
+outputs/P16-implementacion-2026-11-19/build/assets/aggregated-details-modal-PZLtYwDB.js                     2.40 kB │ gzip:   1.04 kB
+outputs/P16-implementacion-2026-11-19/build/assets/useRfiUserDirectory-B6ZigSS9.js                          2.77 kB │ gzip:   1.09 kB
+outputs/P16-implementacion-2026-11-19/build/assets/tabs-9UxtDM5E.js                                         3.23 kB │ gzip:   1.37 kB
+outputs/P16-implementacion-2026-11-19/build/assets/dialog-CnKqQGYt.js                                       3.41 kB │ gzip:   1.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/edit-sales-project-modal-DXYpCj7e.js                     3.62 kB │ gzip:   1.52 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProviderFormDialog-W8VIdsZy.js                           3.67 kB │ gzip:   1.40 kB
+outputs/P16-implementacion-2026-11-19/build/assets/OfflineBitacoraApp-D-GFMZkX.js                           3.80 kB │ gzip:   1.81 kB
+outputs/P16-implementacion-2026-11-19/build/assets/checkbox-DapJSY7R.js                                     3.83 kB │ gzip:   1.70 kB
+outputs/P16-implementacion-2026-11-19/build/assets/sale-transaction-documentos-modal-CTh9xopF.js            4.05 kB │ gzip:   1.46 kB
+outputs/P16-implementacion-2026-11-19/build/assets/transaction-documentos-modal-CzDXMRJQ.js                 4.29 kB │ gzip:   1.71 kB
+outputs/P16-implementacion-2026-11-19/build/assets/Dashboard-BnE7T3Lh.js                                    4.40 kB │ gzip:   1.82 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AcceptInvitationPage-C_SMXG7L.js                         4.58 kB │ gzip:   1.85 kB
+outputs/P16-implementacion-2026-11-19/build/assets/transaction-conceptos-modal-BY8gcSd6.js                  4.91 kB │ gzip:   1.55 kB
+outputs/P16-implementacion-2026-11-19/build/assets/alert-dialog-CRUlFcFE.js                                 5.03 kB │ gzip:   1.89 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ogc-invoice-evidence-dialog-C-UBH4gK.js                  5.13 kB │ gzip:   2.25 kB
+outputs/P16-implementacion-2026-11-19/build/assets/sale-transaction-conceptos-modal-DzPFmKyA.js             5.34 kB │ gzip:   1.54 kB
+outputs/P16-implementacion-2026-11-19/build/assets/NewUserPage-BgmEo4mz.js                                  5.53 kB │ gzip:   2.22 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesUserManagementPage-0XBaGiB0.js                      5.58 kB │ gzip:   2.01 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectoProveedoresTablePage-DQqDVc5q.js                 5.65 kB │ gzip:   1.52 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesProyectosTablePage-B3pg7Wr6.js                      5.66 kB │ gzip:   1.99 kB
+outputs/P16-implementacion-2026-11-19/build/assets/workbox-window.prod.es5-BBnX5xw4.js                      5.75 kB │ gzip:   2.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/table-BTWpoUiX.js                                        5.78 kB │ gzip:   2.02 kB
+outputs/P16-implementacion-2026-11-19/build/assets/es-rWk1QRGI.js                                           5.99 kB │ gzip:   2.06 kB
+outputs/P16-implementacion-2026-11-19/build/assets/sale-transaction-details-modal-DxqtMA16.js               6.49 kB │ gzip:   1.77 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesProyectoDocumentosPage-POmx57tt.js                  6.50 kB │ gzip:   2.09 kB
+outputs/P16-implementacion-2026-11-19/build/assets/popover-DX403blt.js                                      7.04 kB │ gzip:   2.64 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProjectionImportForm-0ExylwR_.js                         7.26 kB │ gzip:   2.91 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesDocumentosPage-Cf9xP_Gj.js                          7.37 kB │ gzip:   2.35 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesProjectManagementPage-BwjgrAnk.js                   7.66 kB │ gzip:   2.62 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-documents-modal-C7Vad4o5.js                       7.72 kB │ gzip:   2.88 kB
+outputs/P16-implementacion-2026-11-19/build/assets/add-sales-project-modal-DrXmMHEU.js                      7.76 kB │ gzip:   3.05 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-sales-proyecto-documents-modal-BhpvC9s9.js        7.82 kB │ gzip:   2.92 kB
+outputs/P16-implementacion-2026-11-19/build/assets/see-sales-transactions-details-modal-Dg4E_Gcw.js         8.16 kB │ gzip:   2.43 kB
+outputs/P16-implementacion-2026-11-19/build/assets/App-mL9X7Z_I.js                                          8.17 kB │ gzip:   2.76 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AdminPage-BDLE_Vj5.js                                    8.27 kB │ gzip:   2.78 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-proyecto-documents-modal-DSi-Wm4C.js              8.39 kB │ gzip:   3.30 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AddTransactionMenu-D0ln_qCr.js                           8.59 kB │ gzip:   3.21 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProviderPaymentAccountPicker-Cd8JPiN4.js                 8.69 kB │ gzip:   2.93 kB
+outputs/P16-implementacion-2026-11-19/build/assets/DashboardTable-Dqjbd1hc.js                               8.96 kB │ gzip:   2.85 kB
+outputs/P16-implementacion-2026-11-19/build/assets/add-proyecto-modal-B2GEGk89.js                           9.07 kB │ gzip:   3.41 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectoFlujoPage-DliDbyP4.js                            9.23 kB │ gzip:   2.46 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesProyectoFlujoPage-DE3KvJfN.js                       9.28 kB │ gzip:   2.48 kB
+outputs/P16-implementacion-2026-11-19/build/assets/LaborImportHistory-B0jtLKea.js                           9.64 kB │ gzip:   3.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesTransaccionesTablePage-CUlDe4eL.js                 10.42 kB │ gzip:   2.98 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesProyectoTransaccionesPage-BvgNs-1U.js              10.91 kB │ gzip:   3.16 kB
+outputs/P16-implementacion-2026-11-19/build/assets/BudgetOriginal-DIDjgpFB.js                              11.06 kB │ gzip:   4.07 kB
+outputs/P16-implementacion-2026-11-19/build/assets/UserManagementPage-CnZvCX_M.js                          11.22 kB │ gzip:   3.70 kB
+outputs/P16-implementacion-2026-11-19/build/assets/laborPaymentImport-Dl9YIpyy.js                          11.97 kB │ gzip:   4.84 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProjectionImportHistory-C-BKPM7c.js                     12.10 kB │ gzip:   4.38 kB
+outputs/P16-implementacion-2026-11-19/build/assets/scroll-area-BvYiDo-L.js                                 12.72 kB │ gzip:   3.99 kB
+outputs/P16-implementacion-2026-11-19/build/assets/InvoiceAnalysisPanel-BiumU1gg.js                        12.87 kB │ gzip:   4.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/PartidaDetails-BKb26aUO.js                              13.08 kB │ gzip:   3.60 kB
+outputs/P16-implementacion-2026-11-19/build/assets/transaction-details-modal-DARn0mI_.js                   13.64 kB │ gzip:   4.06 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectosTablePage-B5L_SdMK.js                          14.06 kB │ gzip:   4.53 kB
+outputs/P16-implementacion-2026-11-19/build/assets/add-sale-payment-modal-BrTfjUPB.js                      14.49 kB │ gzip:   4.13 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ControlSalePage-Ce_htJfW.js                             16.23 kB │ gzip:   4.12 kB
+outputs/P16-implementacion-2026-11-19/build/assets/CommentThread-BMX-2cNY.js                               16.31 kB │ gzip:   6.03 kB
+outputs/P16-implementacion-2026-11-19/build/assets/see-transactions-details-modal-DaX9Jea5.js              16.38 kB │ gzip:   3.73 kB
+outputs/P16-implementacion-2026-11-19/build/assets/add-partida-modal-L24XTT8B.js                           16.67 kB │ gzip:   4.74 kB
+outputs/P16-implementacion-2026-11-19/build/assets/DocumentHeaderControls-e0yMhbzk.js                      17.43 kB │ gzip:   5.32 kB
+outputs/P16-implementacion-2026-11-19/build/assets/RFIListPage-CLxZBtNV.js                                 17.53 kB │ gzip:   5.46 kB
+outputs/P16-implementacion-2026-11-19/build/assets/TransaccionesTablePage-Ce7ngZs3.js                      18.02 kB │ gzip:   5.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-project-transactions-modal-aX5PTzU1.js           18.72 kB │ gzip:   5.87 kB
+outputs/P16-implementacion-2026-11-19/build/assets/TopVariancePartidasTable-CCdQMV4J.js                    19.01 kB │ gzip:   6.40 kB
+outputs/P16-implementacion-2026-11-19/build/assets/add-payment-modal-BY8LjAKz.js                           19.17 kB │ gzip:   5.84 kB
+outputs/P16-implementacion-2026-11-19/build/assets/PaymentEditSheet-CZrQhFK9.js                            19.74 kB │ gzip:   6.43 kB
+outputs/P16-implementacion-2026-11-19/build/assets/InvoiceIntakeDialog-_tP9mR0b.js                         20.61 kB │ gzip:   6.81 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ControlPage-JS7qz4th.js                                 21.08 kB │ gzip:   6.37 kB
+outputs/P16-implementacion-2026-11-19/build/assets/BitacoraModal-COpA2Duu.js                               21.81 kB │ gzip:   6.85 kB
+outputs/P16-implementacion-2026-11-19/build/assets/purify.es-CFh60W_8.js                                   22.77 kB │ gzip:   8.79 kB
+outputs/P16-implementacion-2026-11-19/build/assets/select-BTP8kXKg.js                                      22.98 kB │ gzip:   8.03 kB
+outputs/P16-implementacion-2026-11-19/build/assets/upload-sales-project-transactions-modal-DvxFQi0M.js     23.44 kB │ gzip:   5.70 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ReportesPage-CGeP142p.js                                24.39 kB │ gzip:   7.69 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectoDocumentosPage-Boa1FYv_.js                      26.24 kB │ gzip:   7.17 kB
+outputs/P16-implementacion-2026-11-19/build/assets/DocumentosPage-BvG-DNu7.js                              26.33 kB │ gzip:   7.16 kB
+outputs/P16-implementacion-2026-11-19/build/assets/SalesPresupuestoTable-CLu9We05.js                       26.73 kB │ gzip:   6.64 kB
+outputs/P16-implementacion-2026-11-19/build/assets/edit-proyecto-modal-BgUYnCH0.js                         31.62 kB │ gzip:   9.35 kB
+outputs/P16-implementacion-2026-11-19/build/assets/RFINewPage-DB0zcgUq.js                                  34.45 kB │ gzip:  10.23 kB
+outputs/P16-implementacion-2026-11-19/build/assets/BitacoraPage-ByiD5NYl.js                                34.95 kB │ gzip:  10.05 kB
+outputs/P16-implementacion-2026-11-19/build/assets/command-6zvmMD9U.js                                     35.97 kB │ gzip:  12.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/RFIDetailPage-MxSfKJ3J.js                               37.95 kB │ gzip:  11.41 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectoTransaccionesTablePage-CCB3jX0m.js              38.26 kB │ gzip:  11.25 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProveedoresTablePage-BHJYKsOY.js                        41.88 kB │ gzip:  11.77 kB
+outputs/P16-implementacion-2026-11-19/build/assets/PlanosPage-BRGLYpDw.js                                  67.20 kB │ gzip:  17.96 kB
+outputs/P16-implementacion-2026-11-19/build/assets/calendar-C_4P_aMj.js                                    71.61 kB │ gzip:  20.87 kB
+outputs/P16-implementacion-2026-11-19/build/assets/form-BcrXWfLM.js                                        86.74 kB │ gzip:  23.91 kB
+outputs/P16-implementacion-2026-11-19/build/assets/AutorizacionesObraPage-BT2Yojvh.js                      95.24 kB │ gzip:  18.99 kB
+outputs/P16-implementacion-2026-11-19/build/assets/PresupuestoPage-CdZWHcMS.js                             96.21 kB │ gzip:  25.85 kB
+outputs/P16-implementacion-2026-11-19/build/assets/TareasPage-VKO_52e-.js                                  99.13 kB │ gzip:  22.36 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProfitAndLossPage-BrDBEKie.js                          113.14 kB │ gzip:  28.04 kB
+outputs/P16-implementacion-2026-11-19/build/assets/Chart-atYmN64J.js                                      123.39 kB │ gzip:  39.67 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProyectoRequisicionesPage-bWfu0ttL.js                  131.47 kB │ gzip:  32.04 kB
+outputs/P16-implementacion-2026-11-19/build/assets/index.es-C4tFhWXf.js                                   160.40 kB │ gzip:  53.93 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProgramaObra-Cn7-HJbt.js                               185.55 kB │ gzip:  48.28 kB
+outputs/P16-implementacion-2026-11-19/build/assets/PlanCanvas-Dz9m8t15.js                                 482.73 kB │ gzip: 144.09 kB
+outputs/P16-implementacion-2026-11-19/build/assets/xlsx-BGhuli8m.js                                       500.06 kB │ gzip: 163.12 kB
+outputs/P16-implementacion-2026-11-19/build/assets/ProgramaObraPdfExport-DtmY5aiP.js                      600.29 kB │ gzip: 179.53 kB
+outputs/P16-implementacion-2026-11-19/build/assets/index-w72ZyzBN.js                                      802.05 kB │ gzip: 242.33 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.18s
+
+PWA v1.3.0
+mode      generateSW
+precache  48 entries (3289.17 KiB)
+files generated
+  outputs/P16-implementacion-2026-11-19/build/sw.js
+  outputs/P16-implementacion-2026-11-19/build/workbox-cb62cf87.js

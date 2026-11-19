@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MoreVertical, FileText, RefreshCw, Upload } from "lucide-react";
+import { Search, MoreHorizontal, MoreVertical, FileText, RefreshCw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -20,7 +20,7 @@ import {
 import { Id } from "../../../convex/_generated/dataModel";
 import { toast } from "sonner";
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useUploadSalesProjectTransactionsModal } from "@/hooks/upload-sales-project-transactions-modal";
 import { useSaleTransactionDetailsModal } from "@/hooks/sale-transaction-details-modal";
 import { useSaleTransactionConceptosModal } from "@/hooks/sale-transaction-conceptos-modal";
@@ -143,7 +143,7 @@ export default function SalesProyectoTransaccionesPage() {
     };
 
     const handleSync = async () => {
-        if (!salesProyectoId) return;
+        if (!salesProyectoId || !salesProyecto || isSyncing) return;
 
         setIsSyncing(true);
         try {
@@ -198,31 +198,49 @@ export default function SalesProyectoTransaccionesPage() {
         <div className="bg-card min-h-screen">
             <div className="max-w-full mx-auto py-8 text-left">
                 <div className="flex flex-col gap-4 px-4 sm:px-6 xl:px-12">
-                    <div className="mb-8 responsive-header">
-                        <div>
+                    <div className="mb-8 space-y-4">
+                        <div className="responsive-header">
+                            <div>
                             <p className="text-sm text-muted-foreground mb-1">Transacciones</p>
                             <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
+                            </div>
+                            <div className="flex items-center gap-2">
+                            <Button
+                                onClick={() => {
+                                    if (!salesProyectoId) return;
+                                    uploadSalesProjectTransactionsModal.onOpen(salesProyectoId as Id<"sales_projects">, salesProyecto.nombre);
+                                }}
+                                disabled={!salesProyectoId}
+                                size="lg"
+                                className="flex-1 px-4 sm:flex-none"
+                            >
+                                <Upload aria-hidden="true" />
+                                Subir transacciones
+                            </Button>
+                            <DropdownMenu key={salesProyectoId}>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="iconLg"
+                                        disabled={!salesProyectoId}
+                                        aria-label={isSyncing ? "Más acciones de transacciones: sincronizando documentos" : "Más acciones de transacciones"}
+                                    >
+                                        {isSyncing ? <RefreshCw className="animate-spin" aria-hidden="true" /> : <MoreHorizontal aria-hidden="true" />}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-2rem)] rounded-none">
+                                    <DropdownMenuLabel>Mantenimiento</DropdownMenuLabel>
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuItem onSelect={handleSync} disabled={isSyncing || !salesProyectoId}>
+                                            <RefreshCw className={isSyncing ? "animate-spin" : undefined} aria-hidden="true" />
+                                            {isSyncing ? "Sincronizando..." : "Sincronizar documentos"}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={() => uploadSalesProjectTransactionsModal.onOpen(salesProyectoId as Id<"sales_projects">, salesProyecto.nombre)}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
-                            >
-                                Subir Transacciones
-                                <Upload className="h-6 w-6 rounded-full shadow-none" />
-                            </Button>
-                            <Button
-                                onClick={handleSync}
-                                disabled={isSyncing}
-                                variant="outline"
-                                size="lg"
-                                className="flex items-center gap-2 rounded-none py-6 text-muted-foreground"
-                            >
-                                {isSyncing ? "Sincronizando..." : "Sincronizar Docs"}
-                                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
-                            </Button>
+                        <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">
                                 <span className="text-sm font-normal">
                                     Total: {transacciones?.length || 0}

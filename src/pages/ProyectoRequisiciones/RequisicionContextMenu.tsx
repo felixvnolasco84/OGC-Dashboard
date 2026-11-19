@@ -22,11 +22,12 @@ export type RequisicionActionGroup = {
 type Props = {
     position: { x: number; y: number };
     groups: RequisicionActionGroup[];
+    ariaLabel: string;
     returnFocus: HTMLElement | null;
     onClose: () => void;
 };
 
-export default function RequisicionContextMenu({ position, groups, returnFocus, onClose }: Props) {
+export default function RequisicionContextMenu({ position, groups, ariaLabel, returnFocus, onClose }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const commandRef = useRef<HTMLDivElement>(null);
 
@@ -74,7 +75,7 @@ export default function RequisicionContextMenu({ position, groups, returnFocus, 
         <div ref={containerRef} data-requisicion-context-menu className="fixed z-50 w-72 max-w-[calc(100vw-1rem)] overflow-hidden border border-border bg-card shadow-lg"
             style={{ left: position.x, top: position.y }}
             onContextMenu={(event) => event.preventDefault()}>
-            <Command ref={commandRef} tabIndex={0} aria-label="Acciones de requisición" className="h-auto rounded-none">
+            <Command ref={commandRef} tabIndex={0} aria-label={ariaLabel} className="h-auto rounded-none">
                 <CommandList className="max-h-[min(480px,calc(100dvh-1rem))]">
                     {groups.map((group, index) => <div key={group.label}>
                         {index > 0 && <CommandSeparator />}

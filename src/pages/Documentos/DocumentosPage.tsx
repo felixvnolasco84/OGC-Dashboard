@@ -16,13 +16,10 @@ import {
   Folder,
   FolderInput,
   FolderOpen,
-  Grid2X2,
-  List,
   MoreVertical,
   Plus,
   Search,
   Trash2,
-  Upload,
   X,
 } from "lucide-react";
 
@@ -72,7 +69,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -87,6 +83,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useUploadDocumentsModal } from "@/hooks/upload-documents-modal";
+import { DocumentAddMenu, DocumentViewToggle } from "@/components/documents/DocumentHeaderControls";
 
 type FolderId = Id<"document_folders">;
 type DocumentId = Id<"documentos">;
@@ -422,28 +419,16 @@ export default function DocumentosPage() {
                 <h1 className="text-2xl font-normal text-foreground">Documentos</h1>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:items-center lg:gap-3">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full rounded-none py-6 text-muted-foreground"
-                  onClick={() => {
+              <div className="w-full sm:w-auto">
+                <DocumentAddMenu
+                  dialogOpen={folderDialogOpen || uploadModal.isOpen}
+                  onNewFolder={() => {
                     setDraftName("");
                     setFolderDialogParentId(undefined);
                     setFolderDialogOpen(true);
                   }}
-                >
-                  Nueva carpeta
-                  <Plus className="h-5 w-5" />
-                </Button>
-                <Button
-                  size="lg"
-                  className="w-full rounded-none py-6"
-                  onClick={() => uploadModal.onOpen()}
-                >
-                  Subir documentos
-                  <Upload className="h-5 w-5" />
-                </Button>
+                  onUpload={() => uploadModal.onOpen()}
+                />
               </div>
             </div>
 
@@ -491,37 +476,7 @@ export default function DocumentosPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex h-12 border border-border-strong">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={cn("h-full rounded-none", viewMode === "list" && "bg-muted")}
-                      onClick={() => setViewMode("list")}
-                    >
-                      <List className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Vista de lista</TooltipContent>
-                </Tooltip>
-                <Separator orientation="vertical" />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={cn("h-full rounded-none", viewMode === "grid" && "bg-muted")}
-                      onClick={() => setViewMode("grid")}
-                    >
-                      <Grid2X2 className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Vista de mosaico</TooltipContent>
-                </Tooltip>
-              </div>
+              <DocumentViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
             </div>
           </div>
         </div>
@@ -701,12 +656,12 @@ export default function DocumentosPage() {
                 autoFocus
               />
             </div>
-            <DialogFooter>
-              <Button variant="outline" className="rounded-none" onClick={() => setFolderDialogOpen(false)}>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" size="field" className="h-11 rounded-none sm:h-9" onClick={() => setFolderDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button className="rounded-none" onClick={handleCreateFolder} disabled={!draftName.trim()}>
-                Crear
+              <Button size="field" className="h-11 rounded-none sm:h-9" onClick={handleCreateFolder} disabled={!draftName.trim()}>
+                Crear carpeta
               </Button>
             </DialogFooter>
           </DialogContent>

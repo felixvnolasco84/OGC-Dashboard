@@ -1641,16 +1641,20 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const taskCatalogs = useQuery(api.tareas.getCatalogs, {}) as TaskCatalogs | undefined;
   const organizationScopes = useQuery(api.tareas.getOrganizationScopes, {});
   const [search, setSearch] = useState("");
-  const [taskTab, setTaskTab] = useState<"all" | "open" | "overdue" | "done">("all");
+  const [taskTab, setTaskTab] = useState<"all" | "open" | "done">("all");
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [partidaFilter, setPartidaFilter] = useState("all");
   const [ownershipFilter, setOwnershipFilter] = useState<"all" | "mine" | "created">("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
-  const [projectFilter, setProjectFilter] = useState(() => searchParams.get("proyecto") || "all");
+  const scopedProjectFilter = proyectoId || searchParams.get("proyecto");
+  const canFilterProject = !isProjectScoped && !scopedProjectFilter;
+  const [projectFilter, setProjectFilter] = useState(() => scopedProjectFilter || "all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filtersDialogOpen, setFiltersDialogOpen] = useState(false);
+  const filtersTriggerRef = useRef<HTMLButtonElement>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<Id<"tareas"> | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -1708,9 +1712,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
   const taskNotificationSummary = useQuery(api.tareas.getAllUnreadSummary, {});
 
   useEffect(() => {
-    const requestedProject = searchParams.get("proyecto") || "all";
+    const requestedProject = proyectoId || searchParams.get("proyecto") || "all";
     setProjectFilter(requestedProject);
-  }, [searchParams]);
+  }, [proyectoId, searchParams]);
 
   useEffect(() => {
     const requestedTaskId = searchParams.get("tarea");
@@ -1873,8 +1877,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       const matchesTab =
         taskTab === "all" ||
         (taskTab === "open" && task.status !== "Completada" && task.status !== "Cancelada") ||
-        (taskTab === "overdue" && isOverdue(task)) ||
         (taskTab === "done" && task.status === "Completada");
+      const matchesOverdue = !overdueOnly || isOverdue(task);
       const matchesStatus = statusFilter === "all" || task.status === statusFilter;
       const matchesPriority = priorityFilter === "all" || task.prioridad === priorityFilter;
       const matchesCategory = categoryFilter === "all" || (task.categoria || "General") === categoryFilter;
@@ -1886,9 +1890,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       const matchesAssignee = assigneeFilter === "all" || task.asignados.includes(assigneeFilter as Id<"users">);
       const matchesProject = projectFilter === "all" ||
         (projectFilter === GENERAL_SCOPE ? !task.proyecto : task.proyecto === projectFilter);
-      return matchesSearch && matchesTab && matchesStatus && matchesPriority && matchesCategory && matchesPartida && matchesOwnership && matchesAssignee && matchesProject;
+      return matchesSearch && matchesTab && matchesOverdue && matchesStatus && matchesPriority && matchesCategory && matchesPartida && matchesOwnership && matchesAssignee && matchesProject;
     });
-  }, [assigneeFilter, categoryFilter, currentUser?._id, ownershipFilter, partidaFilter, priorityFilter, projectFilter, search, statusFilter, taskTab, tareas]);
+  }, [assigneeFilter, categoryFilter, currentUser?._id, overdueOnly, ownershipFilter, partidaFilter, priorityFilter, projectFilter, search, statusFilter, taskTab, tareas]);
 
   const tasksRelevantToScope = useMemo(() => {
     const list = tareas || [];
@@ -1917,9 +1921,47 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       categoryFilter !== "all",
       ownershipFilter !== "all",
       partidaFilter !== "all",
-      !isProjectScoped && projectFilter !== "all",
+      canFilterProject && projectFilter !== "all",
     ].filter(Boolean).length;
-  }, [categoryFilter, isProjectScoped, ownershipFilter, partidaFilter, priorityFilter, projectFilter]);
+  }, [canFilterProject, categoryFilter, ownershipFilter, partidaFilter, priorityFilter, projectFilter]);
+
+  const clearAdditionalFilters = () => {
+    setPriorityFilter("all");
+    setCategoryFilter("all");
+    setOwnershipFilter("all");
+    setPartidaFilter("all");
+    if (canFilterProject) setProjectFilter("all");
+  };
+  const clearStatusFilter = () => {
+    setTaskTab("all");
+    setStatusFilter("all");
+  };
+  const projectFilterLabel = projectFilter === GENERAL_SCOPE
+    ? "General"
+    : proyectos?.find((project) => project._id === projectFilter)?.nombre || "Proyecto seleccionado";
+  const activeFilters = [
+    ...(search.trim() ? [{ id: "search", label: `Búsqueda: ${search.trim()}`, clear: () => setSearch("") }] : []),
+    ...(taskTab !== "all" || statusFilter !== "all" ? [{
+      id: "status",
+      label: `Estado: ${taskTab === "open" ? "Abiertas" : taskTab === "done" ? "Completas" : statusFilter}`,
+      clear: clearStatusFilter,
+    }] : []),
+    ...(overdueOnly ? [{ id: "overdue", label: "Vencidas", clear: () => setOverdueOnly(false) }] : []),
+    ...(assigneeFilter !== "all" ? [{
+      id: "assignee",
+      label: `Responsable: ${assigneeFilterOptions.find((user) => user._id === assigneeFilter)?.name || "Seleccionado"}`,
+      clear: () => setAssigneeFilter("all"),
+    }] : []),
+    ...(priorityFilter !== "all" ? [{ id: "priority", label: `Prioridad: ${priorityFilter}`, clear: () => setPriorityFilter("all") }] : []),
+    ...(categoryFilter !== "all" ? [{ id: "category", label: `Especialidad: ${categoryFilter}`, clear: () => setCategoryFilter("all") }] : []),
+    ...(ownershipFilter !== "all" ? [{ id: "ownership", label: ownershipFilter === "mine" ? "Mis tareas" : "Creadas por mí", clear: () => setOwnershipFilter("all") }] : []),
+    ...(partidaFilter !== "all" ? [{
+      id: "partida",
+      label: `Partida: ${partidaFilterOptions.find((partida) => partida._id === partidaFilter)?.nombre || "Seleccionada"}`,
+      clear: () => setPartidaFilter("all"),
+    }] : []),
+    ...(canFilterProject && projectFilter !== "all" ? [{ id: "project", label: `Proyecto: ${projectFilterLabel}`, clear: () => setProjectFilter("all") }] : []),
+  ];
 
   const { groupedTasks, projectedChildrenByGroup } = useMemo(() => {
     const projectNames = new Map<string, string>();
@@ -3231,58 +3273,54 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </div>
 
       <div className="space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8 lg:px-10 min-[1440px]:px-16">
-        <div className="grid grid-cols-2 border-b border-border sm:grid-cols-4">
-          {[
-            { id: "all" as const, label: "Total", value: stats.total },
-            { id: "open" as const, label: "Abiertas", value: stats.pending },
-            { id: "overdue" as const, label: "Vencidas", value: stats.overdue },
-            { id: "done" as const, label: "Completas", value: stats.done },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTaskTab(item.id)}
-              className={cn(
-                "flex min-w-0 items-center justify-center gap-2 px-2 py-3 text-sm text-muted-foreground sm:py-4",
-                taskTab === item.id && "border-b-2 border-foreground text-foreground"
-              )}
-            >
-              <span>{item.label}</span>
-              <span className="flex h-[24px] min-w-[24px] items-center justify-center rounded-full bg-disabled px-2 text-[15px] text-foreground">
-                {item.value}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:p-4 md:grid-cols-2 min-[1440px]:grid-cols-[minmax(280px,1fr)_minmax(180px,0.55fr)_minmax(220px,0.65fr)_auto] min-[1440px]:gap-4">
-          <div className="relative md:col-span-2 min-[1440px]:col-span-1">
-            <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-disabled-foreground" />
+        <section aria-label="Filtros de tareas" className="space-y-3">
+        <div className="grid grid-cols-2 items-end gap-2 md:grid-cols-[minmax(180px,1fr)_minmax(140px,0.65fr)_minmax(160px,0.75fr)_auto] md:gap-3">
+          <div className="relative col-span-2 md:col-span-1">
+            <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Buscar tareas"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por título, descripción o asignado"
-              className="h-9 rounded-none border-border bg-card pl-14 text-sm font-normal text-disabled-foreground shadow-none placeholder:text-disabled-foreground focus-visible:ring-ring"
+              placeholder="Buscar tareas…"
+              className="h-11 rounded-none border-border bg-card pl-9 text-sm font-normal shadow-none md:h-9"
             />
           </div>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none focus:ring-ring">
+          <div className="min-w-0 space-y-1">
+          <Label htmlFor="task-status-filter" className="text-xs font-normal text-muted-foreground">Estado</Label>
+          <Select
+            value={taskTab !== "all" ? taskTab : statusFilter === "all" ? "all" : `status:${statusFilter}`}
+            onValueChange={(value) => {
+              if (value === "all" || value === "open" || value === "done") {
+                setTaskTab(value);
+                setStatusFilter("all");
+              } else {
+                setTaskTab("all");
+                setStatusFilter(value.slice("status:".length));
+              }
+            }}
+          >
+            <SelectTrigger id="task-status-filter" className="h-11 min-w-0 rounded-none border-border bg-card text-sm font-normal shadow-none md:h-9">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
-              {effectiveStatusLabels.map((status) => (
-                <SelectItem key={status.id} value={status.label}>
+              <SelectItem value="open">Abiertas</SelectItem>
+              <SelectItem value="done">Completas</SelectItem>
+              {effectiveStatusLabels.filter((status) => status.label !== "Completada").map((status) => (
+                <SelectItem key={status.id} value={`status:${status.label}`}>
                   {status.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          </div>
 
+          <div className="min-w-0 space-y-1">
+          <Label htmlFor="task-assignee-filter" className="text-xs font-normal text-muted-foreground">Responsable</Label>
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none focus:ring-ring">
-              <SelectValue placeholder="Asignado" />
+            <SelectTrigger id="task-assignee-filter" className="h-11 min-w-0 rounded-none border-border bg-card text-sm font-normal shadow-none md:h-9">
+              <SelectValue placeholder="Responsable" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los usuarios</SelectItem>
@@ -3293,12 +3331,14 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               ))}
             </SelectContent>
           </Select>
+          </div>
 
           <Button
             type="button"
             variant="outline"
             onClick={() => setFiltersDialogOpen(true)}
-            className="h-9 rounded-none border-border bg-card px-5 text-sm text-disabled-foreground shadow-none hover:bg-card hover:text-disabled-foreground md:col-span-2 min-[1440px]:col-span-1"
+            ref={filtersTriggerRef}
+            className="col-span-2 h-11 rounded-none border-border px-4 text-sm font-normal text-foreground shadow-none md:col-span-1 md:h-9"
           >
             <Filter className="h-4 w-4" />
             Más filtros
@@ -3309,6 +3349,65 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             )}
           </Button>
         </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            aria-pressed={overdueOnly}
+            onClick={() => setOverdueOnly((value) => !value)}
+            className={cn("h-11 gap-1.5 px-3 text-sm font-normal shadow-none md:h-9", overdueOnly && "border-foreground bg-muted text-foreground")}
+          >
+            Vencidas · {stats.overdue}
+          </Button>
+          <p aria-label="Resumen del alcance" className="text-xs text-muted-foreground">
+            Total {stats.total} · Abiertas {stats.pending} · Completas {stats.done}
+          </p>
+          <p role="status" className="text-xs text-muted-foreground md:ml-auto">
+            {filteredTasks.length} {filteredTasks.length === 1 ? "resultado" : "resultados"}
+          </p>
+        </div>
+
+        {((!canFilterProject && projectFilter !== "all") || activeFilters.length > 0) && (
+          <div aria-label="Filtros activos" className="flex flex-wrap items-center gap-2">
+            {!canFilterProject && projectFilter !== "all" && (
+              <span className="max-w-full break-words border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+                Proyecto: {projectFilterLabel}
+              </span>
+            )}
+            {activeFilters.map((filter) => (
+              <Button
+                key={filter.id}
+                type="button"
+                variant="outline"
+                onClick={filter.clear}
+                aria-label={`Quitar filtro ${filter.label}`}
+                title={filter.label}
+                className="h-auto min-h-9 max-w-full gap-2 bg-card px-3 py-2 text-xs font-normal shadow-none"
+              >
+                <span className="min-w-0 truncate">{filter.label}</span>
+                <X aria-hidden="true" className="h-3 w-3 shrink-0" />
+              </Button>
+            ))}
+            {activeFilters.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 px-2 text-xs font-normal"
+                onClick={() => {
+                  setSearch("");
+                  clearStatusFilter();
+                  setOverdueOnly(false);
+                  setAssigneeFilter("all");
+                  clearAdditionalFilters();
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            )}
+          </div>
+        )}
+        </section>
 
         <div className="space-y-6 bg-card sm:space-y-8 min-[1440px]:space-y-10">
               {groupedTasks.map((group) => {
@@ -3965,19 +4064,25 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
       </Sheet>
 
       <Dialog open={filtersDialogOpen} onOpenChange={setFiltersDialogOpen}>
-        <DialogContent className="max-w-3xl w-[90vw]">
+        <DialogContent
+          className="max-h-[90vh] w-[90vw] max-w-3xl overflow-y-auto"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            filtersTriggerRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Más filtros</DialogTitle>
             <DialogDescription className="sr-only">
-              Ajusta los filtros adicionales de tareas.
+              Los filtros adicionales de tareas se aplican al seleccionarlos.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-5 py-2 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Prioridad</Label>
+              <Label htmlFor="task-priority-filter">Prioridad</Label>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger id="task-priority-filter" className="h-11">
                   <SelectValue placeholder="Prioridad" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3992,9 +4097,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Especialidad</Label>
+              <Label htmlFor="task-category-filter">Especialidad</Label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger id="task-category-filter" className="h-11">
                   <SelectValue placeholder="Especialidad" />
                 </SelectTrigger>
                 <SelectContent>
@@ -4009,9 +4114,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Vista</Label>
+              <Label htmlFor="task-ownership-filter">Vista</Label>
               <Select value={ownershipFilter} onValueChange={(value) => setOwnershipFilter(value as typeof ownershipFilter)}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger id="task-ownership-filter" className="h-11">
                   <SelectValue placeholder="Vista" />
                 </SelectTrigger>
                 <SelectContent>
@@ -4023,9 +4128,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Partida</Label>
+              <Label htmlFor="task-partida-filter">Partida</Label>
               <Select value={partidaFilter} onValueChange={setPartidaFilter}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger id="task-partida-filter" className="h-11">
                   <SelectValue placeholder="Partida" />
                 </SelectTrigger>
                 <SelectContent>
@@ -4041,9 +4146,9 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
 
             {!isProjectScoped && (
               <div className="space-y-2 md:col-span-2">
-                <Label>Proyecto</Label>
-                <Select value={projectFilter} onValueChange={setProjectFilter}>
-                  <SelectTrigger className="h-11">
+                <Label htmlFor="task-project-filter">Proyecto</Label>
+                <Select value={projectFilter} onValueChange={setProjectFilter} disabled={!canFilterProject}>
+                  <SelectTrigger id="task-project-filter" className="h-11">
                     <SelectValue placeholder="Proyecto" />
                   </SelectTrigger>
                   <SelectContent>
@@ -4064,13 +4169,7 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setPriorityFilter("all");
-                setCategoryFilter("all");
-                setOwnershipFilter("all");
-                setPartidaFilter("all");
-                if (!isProjectScoped) setProjectFilter("all");
-              }}
+              onClick={clearAdditionalFilters}
               className="rounded-none"
             >
               Limpiar filtros

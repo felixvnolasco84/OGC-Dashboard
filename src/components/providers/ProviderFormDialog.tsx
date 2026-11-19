@@ -177,13 +177,13 @@ export default function ProviderFormDialog({
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="outline" size="field" className="h-11 sm:h-9" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!canManage || isSaving || !form.razon_social.trim()}>
+          <Button size="field" className="h-11 sm:h-9" onClick={handleSave} disabled={!canManage || isSaving || !form.razon_social.trim()}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar
+            {isSaving ? (provider ? "Guardando proveedor…" : "Creando proveedor…") : (provider ? "Guardar proveedor" : "Crear proveedor")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,0 +1,1 @@
+import{j as t}from"./index-w72ZyzBN.js";function a(){return t.jsx("div",{className:"container mx-auto flex flex-col gap-y-7 px-4 py-12 text-justify text-muted-foreground lg:flex lg:gap-12"})}export{a as default};

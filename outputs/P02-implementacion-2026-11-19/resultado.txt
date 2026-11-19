@@ -1,0 +1,57 @@
+P02 · Obra · Presupuesto · Filtros y visualización
+Fecha: 19 de noviembre de 2026
+
+Implementación
+- Archivo de producción: src/pages/Presupuesto/PresupuestoPage.tsx.
+- Barra local con Partida, Familia, Fecha y Vista. Alineación en escritorio;
+  dos columnas en móvil y una columna en 320 px, con etiquetas visibles.
+- Vista contiene Mostrar precio unitario con semántica menuitemcheckbox
+  y aria-checked, reutilizando showPrecioUnitario y su handler existente.
+- Se conservan arrays, búsquedas, chips, limpieza y filtrado jerárquico.
+- Búsqueda recibe foco al abrir; Flecha abajo pasa a opciones, Espacio
+  cambia su selección y Escape devuelve el foco al filtro.
+- Controles de consulta y menús habilitados para lector mediante el
+  atributo existente data-viewer-readonly-allow, sólo en esta franja.
+- Sin cambios en cabecera P01, métricas, cálculos, queries, permisos de
+  escritura, Excel de origen ni menús de partida P27.
+
+Validación
+- npm run build -- --outDir node_modules/.cache/p02-build: PASÓ
+  (tsc -b y vite build; advertencia de tamaño de chunks).
+- npx vitest run --config vitest.config.ts --configLoader runner
+  convex/presupuesto.test.mjs: PASÓ, 14 pruebas.
+- git diff --check -- src/pages/Presupuesto/PresupuestoPage.tsx: PASÓ.
+- 17 comprobaciones de UI registradas en checks-ui.json: todas pasaron.
+- Revisión del componente real en Chrome con datos ficticios: multiselección
+  de partidas y familias, búsqueda, chips individuales, limpieza de ambos
+  filtros, jerarquía y combinación sin filas; teclado y retorno del foco;
+  Vista mantiene selecciones y su estado checked al reabrirse.
+- Rango 10-20 de noviembre de 2026: la consulta mostró start_date
+  2026-11-10 y end_date 2026-11-20. Tabla recibió pagos filtrados ficticios.
+- Rol lector: búsqueda y selección de partidas, acceso a Vista y columnas
+  de precio unitario, conservando la selección de partida.
+- Anchos CSS verificados: 320, 390, 768, 1024 y 1440 px, sin desbordamiento
+  horizontal. Geometría registrada en layouts.json.
+
+Evidencia
+- despues-escritorio-1440.jpg
+- despues-movil-390.jpg
+- vista-lector-movil-390.jpg
+- calendario-movil-390.jpg
+- busqueda-sin-resultados-movil.jpg
+- antes-escritorio.jpg y antes-movil.jpg (capturas iniciales del fixture).
+
+Entorno y límites
+- localhost:5173 rechazó la conexión; no se validó contra la sesión real.
+- Fixture: verificacion/, importa PresupuestoPage y PresupuestoTable reales,
+  sustituye únicamente servicios por datos locales y bloquea mutaciones.
+- URL: http://127.0.0.1:5192/outputs/P02-implementacion-2026-11-19/verificacion/index.html
+  (agregar ?role=viewer para el lector).
+- HMR desactivado en el fixture para evitar recargas causadas por los otros
+  chats que editan el árbol compartido. El código de producción no cambia
+  su configuración de desarrollo.
+- El primer build encontró Loader2 sin usar en PermisosYLegalTab.tsx;
+  ese cambio ajeno fue resuelto por su responsable y el segundo build pasó.
+- No se escribieron datos reales, no se ejecutaron sincronizaciones ni
+  operaciones financieras. No se crearon commits ni se agregaron archivos
+  al staging. Los cambios concurrentes de otros puntos se conservaron.

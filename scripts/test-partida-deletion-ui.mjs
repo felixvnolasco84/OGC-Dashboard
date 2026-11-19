@@ -18,7 +18,7 @@ try {
     if (nivel > 1) await page.getByRole("button", { name: "Expandir OBRA", exact: true }).click();
     if (nivel > 2) await page.getByRole("button", { name: "Expandir ACERO", exact: true }).click();
     const name = nivel === 1 ? "OBRA" : nivel === 2 ? "ACERO" : "VARILLA";
-    await page.getByRole("row").filter({ has: page.getByText(name, { exact: true }) }).getByRole("button", { name: "Abrir menú", exact: true }).click();
+    await page.getByRole("row").filter({ has: page.getByText(name, { exact: true }) }).getByRole("button", { name: /^Acciones de la / }).click();
     await page.getByRole("menuitem", { name: `Eliminar ${nivel === 1 ? "partida" : nivel === 2 ? "familia" : "subpartida"}`, exact: true }).click();
     await expect(page.getByRole("alertdialog")).toBeVisible();
   };
@@ -87,7 +87,7 @@ try {
     }
     for (const scenario of ["viewer", "writer"]) {
       await page.goto(`http://127.0.0.1:4198/e2e/partida-deletion/preview.html?case=${scenario}`);
-      await page.getByRole("button", { name: "Abrir menú", exact: true }).click();
+      await page.getByRole("button", { name: /^Acciones de la / }).click();
       assert.equal(await page.getByRole("menuitem", { name: /Eliminar/ }).count(), 0);
     }
     await open(page);

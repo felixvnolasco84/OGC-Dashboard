@@ -1,0 +1,33 @@
+{
+  "punto": "P24 · Presupuesto de Ventas · Sincronizar como utilidad secundaria",
+  "fecha": "2026-11-19",
+  "implementacion": {
+    "cabecera": "src/components/Tables/SalesPresupuestoTable.tsx",
+    "accion": "… → Mantenimiento → Sincronizar datos",
+    "backend": "convex/sales_partidas_sync.ts",
+    "permisos": "Mismos roles de la ruta (admin/user), acceso al proyecto y ámbito de organización; comprobados antes de la cascada.",
+    "conservado": "Consultas, nombre de proyecto, métricas y moneda, filtros multiselección, expansión jerárquica, tabla y acciones por registro. La cascada de sincronización no se modificó."
+  },
+  "validaciones": [
+    { "comando": "npm run build -- --outDir node_modules/.tmp/p24-build", "resultado": "correcto", "nota": "Salida aislada; advertencia de chunks mayores de 500 kB.", "log": "build.log" },
+    { "comando": "npx eslint src/components/Tables/SalesPresupuestoTable.tsx convex/sales_partidas_sync.ts", "resultado": "correcto" },
+    { "comando": "npx vitest run --config e2e/sales-budget-header/vitest.config.ts --configLoader runner", "resultado": "12 pruebas correctas", "alcance": "Convex en memoria: autenticación, roles, organización, proyecto asignado/ajeno/ausente, rechazo sin cambios y cascada de pagos existentes." },
+    { "comando": "node scripts/test-sales-budget-header-ui.mjs", "resultado": "correcto", "anchos": [1440, 1024, 390], "informe": "resultados-ui.json", "alcance": "Componente real con consultas y mutación sustituidas localmente. Menú cerrado/abierto, teclado/foco, spinner, bloqueo, una sola petición explícita, error/reintento, contexto al navegar, permisos, métricas USD, multiselección y expansión." }
+  ],
+  "capturas": {
+    "escritorio_cerrado": "fixture-cerrado-1440.png",
+    "escritorio_abierto": "fixture-menu-1440.png",
+    "movil_cerrado": "fixture-cerrado-390.png",
+    "movil_abierto": "fixture-menu-390.png",
+    "espera": "fixture-sincronizando-390.png",
+    "error": "fixture-error-1440.png",
+    "aviso": "Todas son capturas nuevas de un fixture, marcadas como datos ficticios; no son evidencia de un proyecto real."
+  },
+  "limitaciones": {
+    "ruta_real_verificada": false,
+    "motivo": "La pestaña propia http://localhost:5173/sales-proyectos respondió net::ERR_CONNECTION_TIMED_OUT. No se solicitó ni amplió acceso.",
+    "sincronizaciones_reales": 0,
+    "datos_reales_modificados": false,
+    "pendiente": "Comprobación visual en la aplicación con un proyecto de Ventas accesible. No se desplegaron cambios a Convex."
+  }
+}

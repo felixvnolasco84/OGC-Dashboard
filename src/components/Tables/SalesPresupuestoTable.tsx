@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
 const formatCurrencyCompact = (amount: number, currency: string) => <ResponsiveCurrency amount={amount} currency={currency} compact={formatDesktopCurrency(amount, currency)} />;
 import { Doc, Id } from "convex/_generated/dataModel";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -26,7 +26,7 @@ import {
 import {
   ChevronDown, ChevronRight,
   // Plus,
-  X, RefreshCw
+  X, RefreshCw, MoreHorizontal
 } from "lucide-react";
 import { cn, formatCurrencyCompact as formatDesktopCurrency } from "@/lib/utils";
 import { useParams } from "react-router";
@@ -89,9 +89,19 @@ export default function SalesPresupuestoTable() {
   const [isPartidaOpen, setIsPartidaOpen] = useState(false);
   const [isFamiliaOpen, setIsFamiliaOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const syncInFlight = useRef(false);
+  const activeProjectId = useRef(salesProyectoId);
+  useEffect(() => {
+    activeProjectId.current = salesProyectoId;
+    return () => { activeProjectId.current = undefined; };
+  }, [salesProyectoId]);
 
   // Fetch sales project
   const salesProyecto = useQuery(api.sales_projects.getById, salesProyectoId ? { id: salesProyectoId as Id<"sales_projects"> } : "skip");
+  const currentUser = useQuery(api.users.getCurrentUser);
+  // getById enforces project access; mirror the route's writable roles here.
+  const canSync = Boolean(salesProyecto && salesProyecto._id === salesProyectoId &&
+    (currentUser?.role === "admin" || currentUser?.role === "user"));
 
   const partidas = useQuery(api.sales_partidas.getBySalesProject, salesProyectoId ? { salesProjectId: salesProyectoId as Id<"sales_projects"> } : "skip");
   
@@ -104,6 +114,27 @@ export default function SalesPresupuestoTable() {
 
   // Sync mutation - updates in cascade like functions.ts
   const syncPartidas = useMutation(api.sales_partidas_sync.syncSalesPartidasFromTransactions);
+
+  const handleSync = async () => {
+    if (!salesProyectoId || !canSync || syncInFlight.current) return;
+    const projectId = salesProyectoId;
+    syncInFlight.current = true;
+    setIsSyncing(true);
+    try {
+      const result = await syncPartidas({ salesProjectId: projectId as Id<"sales_projects"> });
+      if (activeProjectId.current === projectId) {
+        toast.success("Sincronización exitosa", { description: result.message });
+      }
+    } catch (error) {
+      console.error("Error syncing:", error);
+      if (activeProjectId.current === projectId) {
+        toast.error("Error al sincronizar", { description: "No se pudo sincronizar los datos." });
+      }
+    } finally {
+      syncInFlight.current = false;
+      setIsSyncing(false);
+    }
+  };
 
   // Get unique partidas and familias for filters
   const uniquePartidas = useMemo(() =>
@@ -362,39 +393,35 @@ export default function SalesPresupuestoTable() {
       <div className="max-w-full mx-auto space-y-12">
         {/* Header */}
         <div className="py-6 border-b border-border px-12 pb-12">
-          <div className="responsive-header">
-            <div className="flex flex-col text-left">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-col text-left">
               <p className="text-base text-muted-foreground mb-1">Presupuesto</p>
-              <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
+              <h1 className="break-words text-2xl text-foreground">{salesProyecto.nombre}</h1>
             </div>
-            <div className="flex items-end gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="flex justify-center items-center gap-2 rounded-none text-muted-foreground py-6"
-                onClick={async () => {
-                  if (!salesProyectoId) return;
-                  setIsSyncing(true);
-                  try {
-                    const result = await syncPartidas({ salesProjectId: salesProyectoId as Id<"sales_projects"> });
-                    toast.success("Sincronización exitosa", {
-                      description: result.message,
-                    });
-                  } catch (error) {
-                    console.error("Error syncing:", error);
-                    toast.error("Error al sincronizar", {
-                      description: "No se pudo sincronizar los datos.",
-                    });
-                  } finally {
-                    setIsSyncing(false);
-                  }
-                }}
-                disabled={isSyncing}
-              >
-                <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? "Sincronizando..." : "Sincronizar"}
-              </Button>
-            </div>
+            {canSync && <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 rounded-none text-muted-foreground"
+                  aria-label="Más acciones del presupuesto de ventas"
+                  aria-busy={isSyncing}
+                >
+                  {isSyncing ? <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" collisionPadding={16} className="w-56 max-w-[calc(100vw-2rem)] rounded-none">
+                <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Mantenimiento</DropdownMenuLabel>
+                <DropdownMenuGroup aria-label="Mantenimiento">
+                  <DropdownMenuItem className="min-h-11 sm:min-h-0" onSelect={() => { void handleSync(); }} disabled={isSyncing}>
+                    <RefreshCw className={cn("h-4 w-4", isSyncing && "animate-spin")} aria-hidden="true" />
+                    {isSyncing ? "Sincronizando..." : "Sincronizar datos"}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>}
+            <span className="sr-only" role="status">{isSyncing ? "Sincronizando datos..." : ""}</span>
             {/* <div className="flex items-end gap-3">
               <Button
                 variant="outline"

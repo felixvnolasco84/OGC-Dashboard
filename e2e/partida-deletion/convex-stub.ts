@@ -46,6 +46,7 @@ const client = {
   },
 };
 export function useConvex() { return client; }
+export function useAction() { return async () => { throw new Error("Unexpected partida deletion fixture action"); }; }
 export function useMutation(query) {
   const name = getFunctionName(query);
   return async args => {

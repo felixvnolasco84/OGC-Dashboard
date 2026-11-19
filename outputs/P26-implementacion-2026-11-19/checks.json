@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "implementation": "src/pages/Tareas/TareasPage.tsx",
+  "fixture": "e2e/task-filters",
+  "checks": [
+    "1440: aggregate/custom/completed/cancelled states, overdue intersections, assignee, individual chips",
+    "1440: search, ownership distinction, all advanced intersections and chips, focus restored",
+    "1440: root/general/project and wrapper/prop scopes, summary includes minute parent, cleanup retains URL",
+    "1440: keyboard, viewer permissions, empty/loading, no overflow, no JS errors or mutations",
+    "390: aggregate/custom/completed/cancelled states, overdue intersections, assignee, individual chips",
+    "390: search, ownership distinction, all advanced intersections and chips, focus restored",
+    "390: root/general/project and wrapper/prop scopes, summary includes minute parent, cleanup retains URL",
+    "390: keyboard, viewer permissions, empty/loading, no overflow, no JS errors or mutations",
+    "1024: rendered compact toolbar, no horizontal overflow"
+  ]
+}

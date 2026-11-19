@@ -334,52 +334,41 @@ export default function AddPaymentModal() {
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                     {/* Status Selection */}
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                        <span id="payment-status-label" className="block text-xs text-muted-foreground">Estado del pago</span>
+                        <div role="group" aria-labelledby="payment-status-label" className="inline-flex gap-1 border border-border bg-muted p-1">
                             <Button
                                 type="button"
                                 onClick={() => setStatus('Pagado')}
                                 aria-pressed={status === 'Pagado'}
-                                variant={status === 'Pagado' ? 'choiceSelected' : 'choice'}
-                                size="choice"
+                                variant={status === 'Pagado' ? 'inverse' : 'ghost'}
+                                size="sm"
                             >
-                                <Check className={cn(
-                                    "h-5 w-5",
-                                    status === 'Pagado' ? "text-success" : "text-disabled-foreground"
-                                )} />
-                                <span className={cn(
-                                    "text-base",
-                                    status === 'Pagado' ? "text-foreground font-medium" : "text-muted-foreground"
-                                )}>Pagado</span>
+                                <Check className="h-4 w-4" aria-hidden="true" />
+                                Pagado
                             </Button>
                             <Button
                                 type="button"
                                 onClick={() => setStatus('Por pagar')}
                                 aria-pressed={status === 'Por pagar'}
-                                variant={status === 'Por pagar' ? 'choiceSelected' : 'choice'}
-                                size="choice"
+                                variant={status === 'Por pagar' ? 'inverse' : 'ghost'}
+                                size="sm"
                             >
-                                <Circle className={cn(
-                                    "h-5 w-5",
-                                    status === 'Por pagar' ? "text-muted-foreground" : "text-disabled-foreground"
-                                )} />
-                                <span className={cn(
-                                    "text-base",
-                                    status === 'Por pagar' ? "text-foreground font-medium" : "text-muted-foreground"
-                                )}>Por pagar</span>
+                                <Circle className="h-4 w-4" aria-hidden="true" />
+                                Por pagar
                             </Button>
                         </div>
                     </div>
 
                     <div className="space-y-2 border p-4">
-                        <div className="flex items-center justify-between">
-                            <div>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1 basis-32">
                                 <h3 className="font-medium text-foreground">Proveedor</h3>
                                 <p className="text-xs text-muted-foreground">Opcional; puede asignarse o modificarse después.</p>
                             </div>
                             {canManageProviders && (
                                 <Button type="button" variant="outline" size="sm" onClick={() => setProviderFormOpen(true)}>
-                                    <Plus className="mr-2 h-4 w-4" /> Nuevo
+                                    <Plus className="h-4 w-4" aria-hidden="true" /> Crear proveedor
                                 </Button>
                             )}
                         </div>
@@ -616,11 +605,11 @@ export default function AddPaymentModal() {
                         <Button
                             type="button"
                             variant="outline"
+                            size="sm"
                             onClick={addPartida}
-
                         >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Agregar Partida
+                            <Plus className="h-4 w-4" aria-hidden="true" />
+                            Agregar partida
                         </Button>
                     </div>
 

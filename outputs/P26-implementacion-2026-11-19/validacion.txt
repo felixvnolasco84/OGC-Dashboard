@@ -1,0 +1,37 @@
+P26 · General y Obra · Tareas · Filtros
+Fecha: 19 de noviembre de 2026 (America/Mexico_City)
+
+Implementación: src/pages/Tareas/TareasPage.tsx
+Sólo se modificaron la composición y los estados de los filtros y su diálogo.
+
+Resultado
+- Una barra de búsqueda, Estado, Responsable y Más filtros.
+- Abiertas/Completas se consultan desde Estado; los estados configurables siguen disponibles.
+- Vencidas es un filtro rápido independiente y combinable; conserva isOverdue.
+- Total/Abiertas/Completas conservan tasksRelevantToScope; Resultados cuenta filteredTasks.
+- Chips por filtro, limpieza individual/global y alcance de proyecto/General conservado.
+- Más filtros mantiene prioridad, especialidad, vista, partida y proyecto, con selección inmediata.
+- Retorno de foco al cerrar el diálogo; etiquetas asociadas y scroll del diálogo en móvil.
+- Nueva tarea conserva canCreate. No se alteraron grupos, subtareas, DnD ni operaciones de tareas.
+
+Validación ejecutada
+1. node scripts/test-task-filters-ui.mjs: PASS.
+   1440×1000, 390×844 y comprobación adicional a 1024×1000.
+   Ver checks.json y 15 capturas PNG nuevas en esta carpeta.
+   Fixture con componente real; sin cliente Convex ni datos del simulador de auditoría.
+   Sin errores JavaScript, desbordamiento horizontal, solicitudes externas ni mutaciones.
+2. npm run build -- --outDir outputs/P26-implementacion-2026-11-19/build-app: PASS.
+   tsc -b + vite build + generación PWA completos.
+   Advertencia habitual de Vite por algunos chunks superiores a 500 kB.
+3. git diff --check -- src/pages/Tareas/TareasPage.tsx: PASS.
+4. Revisión visual de root-1440, status-overdue-assignee-1440, root-390,
+   status-overdue-assignee-390, advanced-390 y tablet-1024: sin solapamientos en filtros.
+
+Limitaciones
+- La sesión real en http://localhost:5173/tareas no respondió durante la comprobación con Computer Use.
+- La evidencia corresponde a la implementación real con consultas ficticias y Chrome automatizado.
+- No se probaron operaciones de escritura, notificaciones, edición, creación ni reordenamiento de tareas reales.
+- La primera compilación encontró un import Loader2 sin uso en PermisosYLegalTab.tsx mientras otras
+  conversaciones trabajaban en ese archivo. No se modificó ese módulo; la compilación posterior pasó.
+
+No se hizo commit ni stage. Se conservaron los cambios concurrentes de otras conversaciones.

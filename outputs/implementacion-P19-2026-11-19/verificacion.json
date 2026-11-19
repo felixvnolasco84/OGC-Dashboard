@@ -1,0 +1,36 @@
+{
+  "punto": "P19",
+  "fecha": "2026-11-19",
+  "implementacion": "src/pages/ProfitAndLoss/ProfitAndLossPage.tsx",
+  "cambios": [
+    "Cargar movimientos visible como acción principal; ubicación y tres pestañas visibles.",
+    "Menú secundario con Movimientos OGC en Consultar y Configurar P&L en Configuración.",
+    "Diálogos controlados fuera del menú; foco restaurado al botón de herramientas.",
+    "Etiquetas asociadas a los campos de configuración. Aplicación inmediata, Restablecer y Listo conservados."
+  ],
+  "validacion": {
+    "npm run build": "aprobado: tsc -b y vite build",
+    "npm run test:pnl": { "aprobadas": 46, "omitidas": 1 },
+    "npm run test:pnl-ui": "aprobado en 1440x1000 y 390x844 con fixture sintético",
+    "git diff --check": "aprobado para los tres archivos de P19",
+    "comportamientos": [
+      "Navegación de las tres vistas y carga independiente de informes/ledger.",
+      "Abrir menú no abre diálogos ni cambia parámetros financieros.",
+      "Apertura con Enter, navegación con flechas y cierre con Escape.",
+      "Foco inicial dentro del diálogo y retorno al botón persistente al cerrar.",
+      "Conversión enviada inmediatamente a la consulta; ISR reflejado inmediatamente en la tabla.",
+      "Listo conserva ajustes; Restablecer restituye valores y mantiene el diálogo abierto.",
+      "Ledger limitado a Los Cabos o Ciudad de México según el selector.",
+      "Carga original abre y cierra; cero mutations y cero errores de página en el fixture.",
+      "Regresiones existentes de ingresos acumulados, estructura corporativa y exclusión de dispersiones."
+    ]
+  },
+  "capturas": "capturas/p19-{menu,settings,ledger,upload}-{1440,390}.png",
+  "limite": "localhost:5173 no respondía. Verificación con componente real en fixture aislado; no se modificaron movimientos ni impuestos reales.",
+  "reproduccion": {
+    "servidor": "npx vite --config outputs/implementacion-P19-2026-11-19/vite.config.mjs",
+    "url": "http://127.0.0.1:5199/e2e/indirectos/preview.html?reportScenario=tools",
+    "ui_port_env": "PNL_UI_PORT=4299",
+    "capturas_env": "PNL_UI_SCREENSHOT_DIR=outputs/implementacion-P19-2026-11-19/capturas"
+  }
+}

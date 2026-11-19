@@ -19,10 +19,7 @@ import {
   Folder,
   FolderInput,
   FolderOpen,
-  Grid2X2,
-  List,
   MoreVertical,
-  Plus,
   Search,
   Trash2,
   Upload,
@@ -65,13 +62,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { DocumentAddMenu, DocumentViewToggle } from "@/components/documents/DocumentHeaderControls";
 import { cn } from "@/lib/utils";
 import { MoveLocationDialog } from "@/components/documents/DocumentFolderNavigation";
 import { useUploadProyectoDocumentsModal } from "@/hooks/upload-proyecto-documents-modal";
@@ -512,24 +504,16 @@ export default function ProyectoDocumentosPage() {
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="rounded-none py-6 text-muted-foreground"
-                onClick={() => {
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap">
+              <DocumentAddMenu
+                dialogOpen={folderDialogOpen || uploadModal.isOpen}
+                onNewFolder={() => {
                   setDraftName("");
                   setFolderDialogParentId(undefined);
                   setFolderDialogOpen(true);
                 }}
-              >
-                Nueva carpeta
-                <Plus className="h-5 w-5" />
-              </Button>
-              <Button size="lg" className="rounded-none py-6" onClick={handleUploadClick}>
-                Subir documentos
-                <Upload className="h-5 w-5" />
-              </Button>
+                onUpload={handleUploadClick}
+              />
               <Badge variant="outline" className="rounded-none px-4 py-3 bg-muted">
                 Total: {documentosPage?.total || 0}
               </Badge>
@@ -547,37 +531,7 @@ export default function ProyectoDocumentosPage() {
               />
             </div>
 
-            <div className="flex h-12 border border-border-strong">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-full rounded-none", viewMode === "list" && "bg-muted")}
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Vista de lista</TooltipContent>
-              </Tooltip>
-              <Separator orientation="vertical" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-full rounded-none", viewMode === "grid" && "bg-muted")}
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <Grid2X2 className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Vista de mosaico</TooltipContent>
-              </Tooltip>
-            </div>
+            <DocumentViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
           </div>
         </div>
       </div>

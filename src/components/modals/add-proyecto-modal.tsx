@@ -382,12 +382,14 @@ export default function AddProyectoModal() {
           <p className="text-xs text-muted-foreground">Al confirmar se guardará el Excel original para consultarlo desde Presupuesto y Documentos.</p>
           {creation.attemptId && <div ref={progressRef}><BudgetAttemptCard attemptId={creation.attemptId} /></div>}
           {/* Form Actions */}
-            <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t">
-              <Button type="button" variant="outline" onClick={handleClose}>
+            <div className="sticky bottom-0 flex flex-col-reverse justify-end gap-2 bg-background py-4 border-t sm:flex-row sm:flex-wrap">
+              <Button type="button" variant="outline" size="field" className="h-11 sm:h-9" onClick={handleClose}>
               {creation.attemptId ? "Cerrar y conservar intento" : "Cancelar"}
               </Button>
             {!confirmedAttempt?.proyecto && <Button
                 type="submit"
+                size="field"
+                className="h-11 sm:h-9"
                 disabled={!isFormValid() || isSubmitting}
               >
                 {isSubmitting ? 'Guardando y creando…' : 'Crear proyecto y guardar Excel'}
@@ -397,7 +399,7 @@ export default function AddProyectoModal() {
         ) : (
           <div className="mt-6">
             <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 bg-background py-4 border-t mt-6">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" size="field" className="h-11 sm:h-9" onClick={handleClose}>
                 Finalizar
               </Button>
             </div>

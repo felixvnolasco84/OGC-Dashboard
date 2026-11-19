@@ -1,5 +1,7 @@
 import { useWorkAccess, useWorkMutation } from "./useWorkAccess";
 import { ResponsiveFields } from "@/components/ui/responsive-fields";
+import { DocumentActions } from "./DocumentActions";
+import { Button } from "@/components/ui/button";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -16,13 +18,9 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   ChevronUp,
   ChevronDown,
-  Upload,
   FileText,
   Plus,
   Trash2,
-  RefreshCw,
-  Loader2,
-  History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parse } from "date-fns";
@@ -164,6 +162,7 @@ export function ResponsableSelector({
 }) {
   const canManage = useWorkAccess();
   const current = users.find((u) => u._id === currentId);
+  const name = currentName || current?.name;
 
   if (!canManage) {
     return <span className="text-sm text-muted-foreground">{currentName || current?.name || "Sin responsable"}</span>;
@@ -172,25 +171,23 @@ export function ResponsableSelector({
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        {current ? (
-          <button disabled={!canManage} className="flex items-center gap-2 text-sm text-foreground hover:text-foreground">
-            <span>{current.name}</span>
-            <span className="w-7 h-7 rounded-full bg-disabled flex items-center justify-center text-xs font-medium text-muted-foreground">
-              {current.name.charAt(0).toUpperCase()}
-            </span>
-          </button>
-        ) : (
-          <button disabled={!canManage} className="text-sm text-muted-foreground hover:text-muted-foreground">
-            Asignar responsable
-          </button>
-        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto min-h-9 max-w-full whitespace-normal text-left text-muted-foreground"
+          aria-label={name ? `Cambiar responsable: ${name}` : "Asignar responsable"}
+        >
+          <span>{name ? `Responsable: ${name}` : "Asignar responsable"}</span>
+          <ChevronDown className="shrink-0" aria-hidden="true" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64 p-2" align="end">
         <div className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">
           Seleccionar responsable
         </div>
         <div className="max-h-48 overflow-y-auto">
-          {current && (
+          {currentId && (
             <DropdownMenuItem
               disabled={!canManage}
               className="w-full text-left px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 rounded"
@@ -265,6 +262,7 @@ function DatePickerField({
 /** Document attachment display with replace option */
 function DocumentAttachment({
   nombre,
+  documentLabel,
   uploadedAt,
   url,
   onUpload,
@@ -274,6 +272,7 @@ function DocumentAttachment({
   parentId,
 }: {
   nombre?: string;
+  documentLabel: string;
   uploadedAt?: number;
   url?: string | null;
   onUpload: (file: File) => void;
@@ -296,35 +295,29 @@ function DocumentAttachment({
     return (
       <div>
         <input
-          disabled={!canManage}
+          disabled={!canManage || uploading}
           ref={fileInputRef}
           type="file"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onUpload(f);
+            if (f && canManage && !uploading) onUpload(f);
             if (fileInputRef.current) fileInputRef.current.value = "";
           }}
         />
-        <button
-          className="flex items-center gap-2 text-sm text-disabled-foreground hover:text-muted-foreground border border-dashed border-border-strong px-3 py-2 hover:border-border-strong transition-colors"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={!canManage || uploading}
-        >
-          {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4" />
-          )}
-          Agregar documento
-        </button>
+        {!canManage && <span className="text-sm text-disabled-foreground">Sin documento</span>}
+        <DocumentActions
+          context={documentLabel}
+          uploading={uploading}
+          onChooseFile={() => fileInputRef.current?.click()}
+        />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
         <a
           href={url || "#"}
           target="_blank"
@@ -332,40 +325,27 @@ function DocumentAttachment({
           className="flex items-center gap-1.5 text-sm text-foreground hover:text-muted-foreground"
         >
           <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
-          <span className="font-medium">{nombre}</span>
+          <span className="font-medium break-all">{nombre}</span>
         </a>
         <input
-          disabled={!canManage}
+          disabled={!canManage || uploading}
           ref={replaceInputRef}
           type="file"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onReplace(f);
+            if (f && canManage && !uploading) onReplace(f);
             if (replaceInputRef.current) replaceInputRef.current.value = "";
           }}
         />
-        <button
-          className="text-disabled-foreground hover:text-muted-foreground p-1"
-          onClick={() => replaceInputRef.current?.click()}
-          disabled={!canManage || uploading}
-          title="Reemplazar archivo"
-        >
-          {uploading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <RefreshCw className="w-3.5 h-3.5" />
-          )}
-        </button>
-        {historial && historial.length > 0 && (
-          <button
-            className="text-disabled-foreground hover:text-muted-foreground p-1"
-            onClick={() => setShowHistory(!showHistory)}
-            title="Ver historial de archivos"
-          >
-            <History className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <DocumentActions
+          nombre={nombre}
+          context={`${documentLabel}: ${nombre}`}
+          uploading={uploading}
+          onChooseFile={() => replaceInputRef.current?.click()}
+          onToggleHistory={historial?.length ? () => setShowHistory((open) => !open) : undefined}
+          historyOpen={showHistory}
+        />
       </div>
       {uploadedAt && (
         <span className="text-xs text-disabled-foreground font-light">{formatFileDate(uploadedAt)}</span>
@@ -374,7 +354,7 @@ function DocumentAttachment({
         <div className="mt-2 border border-border rounded p-2 bg-background">
           <div className="text-xs font-medium text-muted-foreground mb-1">Historial de archivos</div>
           {historial.map((h: HistorialEntry) => (
-            <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
+            <div key={h._id} className="flex flex-wrap items-center gap-2 py-1 text-xs text-muted-foreground">
               <FileText className="w-3 h-3 shrink-0" />
               <a
                 href={h.url || "#"}
@@ -463,6 +443,7 @@ function LicenciaSection({
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
               url={section?.documento_url}
+              documentLabel="Licencia de construcción"
               onUpload={(f) => onUploadDocument("licencia", f, false)}
               onReplace={(f) => onUploadDocument("licencia", f, true)}
               uploading={uploading}
@@ -559,6 +540,7 @@ function PolizaSection({
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
               url={section?.documento_url}
+              documentLabel="Póliza de seguro"
               onUpload={(f) => onUploadDocument("poliza", f, false)}
               onReplace={(f) => onUploadDocument("poliza", f, true)}
               uploading={uploading}
@@ -776,18 +758,18 @@ function TramiteRow({
       {/* Comprobante */}
       <div className="text-right">
         <input
-          disabled={!canManage}
+          disabled={!canManage || uploading}
           ref={fileInputRef}
           type="file"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) onUploadDocument(f);
+            if (f && canManage && !uploading) onUploadDocument(f);
             if (fileInputRef.current) fileInputRef.current.value = "";
           }}
         />
         {tramite.documento_nombre ? (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <a
               href={tramite.documento_url || "#"}
               target="_blank"
@@ -797,32 +779,22 @@ function TramiteRow({
               <FileText className="w-3.5 h-3.5 text-disabled-foreground" />
               <span className="font-medium truncate max-w-[160px]">{tramite.documento_nombre}</span>
             </a>
-            <button
-              className="text-disabled-foreground hover:text-muted-foreground"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!canManage || uploading}
-              title="Reemplazar"
-            >
-              {uploading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3 h-3" />
-              )}
-            </button>
+            <DocumentActions
+              nombre={tramite.documento_nombre}
+              context={`Comprobante: ${tramite.tramite || tramite.servicio}`}
+              uploading={uploading}
+              onChooseFile={() => fileInputRef.current?.click()}
+            />
           </div>
         ) : (
-          <button
-            className="flex items-center gap-1.5 text-sm text-disabled-foreground hover:text-muted-foreground ml-auto"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={!canManage || uploading}
-          >
-            {uploading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Upload className="w-3.5 h-3.5" />
-            )}
-            Agregar documento
-          </button>
+          <>
+            {!canManage && <span className="text-sm text-disabled-foreground">Sin documento</span>}
+            <DocumentActions
+              context={`Comprobante: ${tramite.tramite || tramite.servicio}`}
+              uploading={uploading}
+              onChooseFile={() => fileInputRef.current?.click()}
+            />
+          </>
         )}
         {tramite.documento_uploaded_at && (
           <div className="text-xs text-disabled-foreground mt-0.5">
@@ -901,6 +873,7 @@ function PlanSeguridadSection({
               nombre={section?.documento_nombre}
               uploadedAt={section?.documento_uploaded_at}
               url={section?.documento_url}
+              documentLabel="Plan de seguridad"
               onUpload={(f) => onUploadDocument("plan_seguridad", f, false)}
               onReplace={(f) => onUploadDocument("plan_seguridad", f, true)}
               uploading={uploading}

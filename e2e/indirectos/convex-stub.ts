@@ -21,6 +21,7 @@ const totals = { honorarios: 15000, indirectos: 10000, indirectosLegacyCosto: 0,
 const pnl = { totals, monthlyOgcMovements, structureGroups: [{ key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS" }], period: { year: 2026, cutoffMonth: 10, currentMonthKey: "2026-10" } };
 const profitability = { ...pnl, projects: [{ ...project, id: "project", ...totals, wip: { ...totals.wip, avance: .5, valorGanado: 100000, restante: 75000, eac: 250000, varianza: -50000, cpi: .8, ingresosBreakdown: [], runway: 4, averageMonthlyExpense: 100000 } }] };
 const profitabilityFixes = new URLSearchParams(location.search).get("reportScenario") === "profitabilityFixes";
+const toolsScenario = new URLSearchParams(location.search).get("reportScenario") === "tools";
 const accumulatedProject = {
   ...profitability.projects[0], honorarios: 11069963.72, indirectos: 2665542.77,
   ingresosOgc: 13735506.49, margen: 13728506.49, margenPercent: 13728506.49 / 13735506.49,
@@ -41,8 +42,10 @@ let paymentBase = 100000;
 let reportLoading = new URLSearchParams(location.search).get("reportLoading");
 const ledgerQueries: string[] = [];
 const reportQueries: string[] = [];
+const reportQueryArgs: Array<{ name: string; args: unknown }> = [];
 Object.assign(window, {
   pnlFixtureQueries: reportQueries,
+  pnlFixtureQueryArgs: reportQueryArgs,
   pnlFixtureLedgerQueries: ledgerQueries,
   feeFixtureChange: (change: { project?: Record<string, unknown>; approvedWork?: number; gcOriginal?: number; paymentBase?: number; previewFailure?: boolean; mutationFailure?: boolean; delayedMutation?: boolean; reportLoading?: "pnl" | "profitability" | null }) => {
     Object.assign(project, change.project || {});
@@ -111,9 +114,15 @@ function queryResult(name: string, args?: unknown): unknown {
     return { ...structuredClone(project), fee_concepts, honorarios_monto: charges.find(c => c.config.concepto === "honorarios")?.monto ?? p.honorarios_monto };
   }
   if (name === "desarrollos:previewFeeImpact") return feeImpact(args as FixtureProposal);
-  if (name === "desarrollos:getAll") return [project];
+  if (name === "desarrollos:getAll") return toolsScenario ? [
+    { ...project, ubicacion: "Los Cabos" },
+    { ...project, _id: "other-project", nombre: "Obra CDMX de prueba", ubicacion: "Ciudad de México" },
+  ] : [project];
   if (name === "partida:getByProject") return partidas;
-  if (name === "project_locations:list") return [];
+  if (name === "project_locations:list") return toolsScenario ? [
+    { key: "Los Cabos", name: "Los Cabos", order: 0 },
+    { key: "Ciudad de México", name: "Ciudad de México", order: 1 },
+  ] : [];
   if (name === "users:getCurrentUser") return { role: "admin" };
   if (name === "currency_helpers:getProjectDefaultCurrency") return { defaultCurrency: "MXN" };
   if (name === "pagos:getPaymentsByDateRange") {
@@ -127,15 +136,21 @@ function queryResult(name: string, args?: unknown): unknown {
   }
   if (name === "desarrollos:getPnlSummary") {
     reportQueries.push(name);
+    reportQueryArgs.push({ name, args });
     return reportLoading === "pnl" ? undefined : profitabilityFixes ? { ...pnl, structureGroups: undefined } : pnl;
   }
   if (name === "desarrollos:getProfitabilitySummary") {
     reportQueries.push(name);
+    reportQueryArgs.push({ name, args });
     return reportLoading === "profitability" ? undefined : profitabilityFixes ? correctedProfitability : profitability;
   }
   if (name === "ogc_movimientos:getAll") {
     ledgerQueries.push(name);
     if (reportLoading === "ledger") return undefined;
+    if (toolsScenario) return [
+      { _id: "cabos", proyecto: "project", tipo: "ingreso", categoria: "HONORARIOS", descripcion: "Movimiento Cabos de prueba", monto: 100, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },
+      { _id: "cdmx", proyecto: "other-project", tipo: "ingreso", categoria: "HONORARIOS", descripcion: "Movimiento CDMX de prueba", monto: 200, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },
+    ];
     return profitabilityFixes ? [
       { _id: "nomina", tipo: "costo_estructura", categoria: "NOMINA", descripcion: "Nómina corporativa de prueba", monto: 12000, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },
       { _id: "disp", tipo: "costo_estructura", categoria: "DISP HONORARIOS", descripcion: "Dispersión excluida de prueba", monto: 9000, fecha: "01/10/2026", moneda: "MXN", created_by_name: "Prueba", created_at: 1 },

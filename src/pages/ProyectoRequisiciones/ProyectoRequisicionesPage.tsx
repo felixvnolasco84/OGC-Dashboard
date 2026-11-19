@@ -487,13 +487,13 @@ export default function ProyectoRequisicionesPage() {
         },
         {
             key: "pagadas" as const,
-            label: "Pagada",
+            label: req.status === "Pagado" ? "Pagada" : req.status === "Cancelado" ? "Pago cancelado" : "Pago pendiente",
             icon: CreditCard,
             complete: req.status === "Pagado",
         },
         {
             key: "recibidas" as const,
-            label: "Recibida",
+            label: req.status_entrega === "Completo" ? "Recibida" : req.status_entrega === "Parcial" ? "Entrega parcial" : "Entrega pendiente",
             icon: PackageCheck,
             complete: req.status_entrega === "Completo",
         },
@@ -713,7 +713,7 @@ export default function ProyectoRequisicionesPage() {
         req: NonNullable<typeof requisiciones>[number],
         paymentStatus: string
     ) => {
-        if (submittingStatusHistoryRef.current || req.status === paymentStatus) return;
+        if (submittingStatusHistoryRef.current || !canUpdatePipelineStage(req, "pagadas") || req.status === paymentStatus) return;
         setPendingStatusChange({
             requisicionId: req._id,
             paymentStatus,
@@ -729,7 +729,7 @@ export default function ProyectoRequisicionesPage() {
         req: NonNullable<typeof requisiciones>[number],
         deliveryStatus: string
     ) => {
-        if (submittingStatusHistoryRef.current || (req.status_entrega || "Pendiente") === deliveryStatus) return;
+        if (submittingStatusHistoryRef.current || !canUpdatePipelineStage(req, "recibidas") || (req.status_entrega || "Pendiente") === deliveryStatus) return;
         setPendingStatusChange({
             requisicionId: req._id,
             deliveryStatus,
@@ -1084,20 +1084,21 @@ export default function ProyectoRequisicionesPage() {
                 { label: "Agregar proveedor", icon: UserPlus, onSelect: () => openProviderDialog(req._id) },
             );
         }
-        groups.push({
-            label: "Aprobación, pago y entrega", icon: CheckCircle,
-            actions: getPipelineStages(req).map((stage) => ({
-                label: stage.key === "aprobadas" && !stage.complete ? "Revisar aprobación" : `${stage.complete ? "Estado:" : "Marcar como"} ${stage.label}`, icon: stage.icon, complete: stage.complete,
+        const stageActions = getPipelineStages(req)
+            .filter((stage) => !stage.complete && canUpdatePipelineStage(req, stage.key))
+            .map((stage) => ({
+                label: stage.key === "aprobadas" ? "Revisar aprobación" : stage.key === "pagadas" ? "Registrar pago" : "Registrar entrega",
+                icon: stage.icon,
                 busy: isSubmittingStatusHistory && pendingStatusChange?.requisicionId === req._id,
-                disabled: isSubmittingStatusHistory || !canUpdatePipelineStage(req, stage.key),
+                disabled: isSubmittingStatusHistory,
                 onSelect: () => openPipelineStatusDialog(req, stage.key),
-            })),
-        });
+            }));
+        if (stageActions.length > 0) groups.push({ label: "Aprobación, pago y entrega", actions: stageActions });
         if (currentUser?.role === "admin" || currentUser?.role === "finance") {
             groups.push({
                 label: "Estado de pago", icon: Receipt,
                 actions: (currentUser.role === "finance" ? ["Pagado", "Cancelado"] : ["En proceso", "Pagado", "Cancelado"]).map((status) => ({
-                    label: status, icon: CreditCard, disabled: status === req.status, complete: status === req.status,
+                    label: status, icon: CreditCard, disabled: isSubmittingStatusHistory || status === req.status, complete: status === req.status,
                     onSelect: () => openPaymentStatusDialog(req, status),
                 })),
             });
@@ -1106,7 +1107,7 @@ export default function ProyectoRequisicionesPage() {
             groups.push({
                 label: "Estado de entrega", icon: Truck,
                 actions: ["Pendiente", "Parcial", "Completo"].map((status) => ({
-                    label: status, icon: PackageCheck, disabled: status === (req.status_entrega || "Pendiente"),
+                    label: status, icon: PackageCheck, disabled: isSubmittingStatusHistory || status === (req.status_entrega || "Pendiente"),
                     complete: status === (req.status_entrega || "Pendiente"),
                     onSelect: () => openDeliveryStatusDialog(req, status),
                 })),
@@ -1452,46 +1453,35 @@ export default function ProyectoRequisicionesPage() {
                                             </span>
                                         </div>
 
-                                        {/* Independent approval, payment and delivery controls */}
-                                        <div className="order-6 col-span-2 min-w-0 md:col-span-3 2xl:order-5 2xl:col-span-1" onClick={(e) => e.stopPropagation()}>
-                                            <div className="relative grid grid-cols-3 gap-1">
-                                                {pipelineStages.map((stage) => {
-                                                    const canUpdateStage = canUpdatePipelineStage(req, stage.key);
-                                                    return (
-                                                        <div key={stage.key} className="relative min-w-0">
-                                                            <button type="button"
-                                                                disabled={pipelineBusy || !canUpdateStage}
-                                                                onClick={() => openPipelineStatusDialog(req, stage.key)}
-                                                                aria-label={stage.key === "aprobadas" && !stage.complete ? "Revisar aprobación" : `Cambiar a ${stage.label}`}
-                                                                title={!canUpdateStage ? "Sin permisos para actualizar este estado" : stage.complete ? "Condición cumplida" : stage.key === "aprobadas" ? "Revisar materiales" : `Cambiar a ${stage.label}`}
-                                                                className={cn("relative z-10 flex min-h-11 w-full flex-col items-center gap-2 rounded-sm py-1 text-xs transition-colors focus-visible:outline focus-visible:outline-2", stage.complete ? "text-foreground" : "text-muted-foreground hover:text-foreground", (pipelineBusy || !canUpdateStage) && "cursor-not-allowed opacity-60")}>
-                                                                <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border bg-card", stage.complete ? "border-[#50AC66] bg-[#50AC66]" : "border-border-strong")}>
-                                                                    {pipelineBusy ? <Loader2 className="h-2 w-2 animate-spin" /> : <span className={cn("h-2 w-2 rounded-full", stage.complete ? "bg-[#50AC66]" : "bg-transparent")} />}
-                                                                </span>
-                                                                <span>{stage.label}</span>
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+                                        {/* Independent approval, payment and delivery information */}
+                                        <div className="order-6 col-span-2 min-w-0 cursor-default md:col-span-3 2xl:order-5 2xl:col-span-1" onClick={(e) => e.stopPropagation()}>
+                                            <ul data-requisicion-progress aria-label={`Avance de requisición de ${req.solicitante_nombre || "solicitante"}`} aria-busy={pipelineBusy}
+                                                className="grid grid-cols-3 gap-1">
+                                                {pipelineStages.map((stage) => (
+                                                    <li key={stage.key} className={cn("flex min-h-11 min-w-0 flex-col items-center gap-2 py-1 text-center text-xs", stage.complete ? "text-foreground" : "text-muted-foreground")}>
+                                                        <span aria-hidden="true" className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border bg-card", stage.complete ? "border-[#50AC66] bg-[#50AC66]" : "border-border-strong")} />
+                                                        <span>{stage.label}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
 
                                         {/* Actions Menu */}
                                         <div className="absolute right-3 top-3 order-2 flex items-center justify-end gap-1 md:static md:self-start 2xl:order-6 2xl:self-center" onClick={(e) => e.stopPropagation()}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-11 w-11 p-0 hover:bg-muted" aria-label="Acciones de requisición" title="Acciones de requisición">
+                                                    <Button variant="ghost" size="sm" className="h-11 w-11 p-0 hover:bg-muted" aria-label={`Acciones de requisición de ${req.solicitante_nombre || "solicitante"}: ${categoryLabel}`} title="Acciones de requisición">
                                                         <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="max-w-[calc(100vw-2rem)] border-border p-1 [&_[role=menuitem]]:min-h-11">
+                                                <DropdownMenuContent align="end" aria-label={`Acciones de requisición de ${req.solicitante_nombre || "solicitante"}: ${categoryLabel}`} className="max-w-[calc(100vw-2rem)] border-border p-1 [&_[role=menuitem]]:min-h-11">
                                                     {actionGroups.map((group, groupIndex) => {
                                                         const items = group.actions.map((action) => {
                                                             const Icon = action.busy ? Loader2 : action.icon;
                                                             return (
                                                                 <DropdownMenuItem key={action.label} disabled={action.disabled}
                                                                     className={cn("gap-2 focus:bg-muted focus:text-foreground", action.destructive && "text-red-600 focus:bg-red-50 focus:text-red-700")}
-                                                                    onClick={action.onSelect}>
+                                                                    onSelect={action.onSelect}>
                                                                     <Icon className={cn("h-4 w-4", action.busy && "animate-spin", action.complete && "text-[#50AC66]")} />
                                                                     {action.label}
                                                                     {action.complete && <span className="ml-auto h-2 w-2 rounded-full bg-[#50AC66]" />}
@@ -1567,6 +1557,7 @@ export default function ProyectoRequisicionesPage() {
                 <RequisicionContextMenu
                     position={contextMenu}
                     groups={getRequisicionActionGroups(contextMenuRequisicion)}
+                    ariaLabel={`Acciones de requisición de ${contextMenuRequisicion.solicitante_nombre || "solicitante"}, solicitada el ${formatDate(contextMenuRequisicion.fecha_solicitud)}`}
                     returnFocus={contextMenu.returnFocus}
                     onClose={closeContextMenu}
                 />

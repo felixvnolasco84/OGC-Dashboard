@@ -1,0 +1,22 @@
+{
+  "widths": [
+    1440,
+    390
+  ],
+  "levels": [
+    "partida",
+    "familia",
+    "subpartida"
+  ],
+  "roles": [
+    "admin",
+    "finance",
+    "viewer",
+    "almacenista",
+    "loading",
+    "null"
+  ],
+  "errors": [],
+  "realWrites": 0,
+  "passed": true
+}

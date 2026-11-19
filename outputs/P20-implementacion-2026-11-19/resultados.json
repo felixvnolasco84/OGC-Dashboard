@@ -1,0 +1,27 @@
+{
+  "results": [
+    "1440 permisos: menus, capacidades, historial, teclado/Escape/foco, cancelación, sin escrituras al abrir",
+    "1440 permisos: lector, sin archivo, sin historial",
+    "1440 contratos: menus, capacidades, historial, teclado/Escape/foco, cancelación, sin escrituras al abrir",
+    "1440 contratos: lector, sin archivo, sin historial",
+    "1440 imss: menus, capacidades, historial, teclado/Escape/foco, cancelación, sin escrituras al abrir",
+    "1440 imss: lector, sin archivo, sin historial",
+    "1440: responsable conserva callback y sección destinataria",
+    "1440 permisos: reemplazos con picker real, carga bloqueada y destinatarios correctos (mock)",
+    "1440 contratos: reemplazos con picker real, carga bloqueada y destinatarios correctos (mock)",
+    "1440 imss: reemplazos con picker real, carga bloqueada y destinatarios correctos (mock)",
+    "1440: quitar archivo usa sólo removePresupuesto/removeContrato/removeComprobante/removeSoporte, nunca delete de entidad",
+    "390 permisos: menus, capacidades, historial, teclado/Escape/foco, cancelación, sin escrituras al abrir",
+    "390 permisos: lector, sin archivo, sin historial",
+    "390 contratos: menus, capacidades, historial, teclado/Escape/foco, cancelación, sin escrituras al abrir",
+    "390 contratos: lector, sin archivo, sin historial",
+    "390 imss: menus, capacidades, historial, teclado/Escape/foco, cancelación, sin escrituras al abrir",
+    "390 imss: lector, sin archivo, sin historial",
+    "390: responsable conserva callback y sección destinataria",
+    "390 permisos: reemplazos con picker real, carga bloqueada y destinatarios correctos (mock)",
+    "390 contratos: reemplazos con picker real, carga bloqueada y destinatarios correctos (mock)",
+    "390 imss: reemplazos con picker real, carga bloqueada y destinatarios correctos (mock)",
+    "390: quitar archivo usa sólo removePresupuesto/removeContrato/removeComprobante/removeSoporte, nunca delete de entidad"
+  ],
+  "errors": []
+}

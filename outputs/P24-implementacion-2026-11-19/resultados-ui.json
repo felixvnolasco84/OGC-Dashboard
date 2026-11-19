@@ -1,0 +1,26 @@
+{
+  "fixture": true,
+  "realSyncs": 0,
+  "checks": [
+    {
+      "width": 1440,
+      "status": "passed",
+      "checks": "closed/open/busy, keyboard and focus, no writes on open, one mock request, unchanged USD metrics, multiselect and hierarchy"
+    },
+    {
+      "width": 1024,
+      "status": "passed",
+      "checks": "closed/open/busy, keyboard and focus, no writes on open, one mock request, unchanged USD metrics, multiselect and hierarchy"
+    },
+    {
+      "width": 390,
+      "status": "passed",
+      "checks": "closed/open/busy, keyboard and focus, no writes on open, one mock request, unchanged USD metrics, multiselect and hierarchy"
+    },
+    {
+      "status": "passed",
+      "checks": "error unlocks, retry, navigation keeps request context, suppresses stale notification, admin/user only, pending/absent/denied project, empty budget"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,1 @@
+import{e as r,aB as o,j as c,bZ as n}from"./index-DBHHLVV0.js";function m(){const{proyectoId:e}=r(),[a]=o(),t=a.get("tarea")||a.get("task"),s=`/tareas?proyecto=${e||""}${t?`&tarea=${t}`:""}`;return c.jsx(n,{to:s,replace:!0})}export{m as default};

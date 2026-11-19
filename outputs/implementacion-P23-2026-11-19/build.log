@@ -1,0 +1,215 @@
+
+> epi-group-react-vite@0.0.0 build
+> tsc -b && vite build --outDir node_modules/.cache/p23-build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 3679 modules transformed.
+rendering chunks...
+computing gzip size...
+node_modules/.cache/p23-build/manifest.webmanifest                                            0.31 kB
+node_modules/.cache/p23-build/index.html                                                      1.00 kB │ gzip:   0.54 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueMediumItalic-Bl5YIAyI.woff2                57.77 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueThinItalic-DwOkg1VI.woff2                  69.27 kB
+node_modules/.cache/p23-build/.vite/manifest.json                                            73.68 kB │ gzip:   8.28 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueUltraLightItalic-IwmkWZPd.woff2            74.37 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueLightItalic-Co39Gl4B.woff2                 76.76 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueMedium-CvSkDtT4.woff2                      92.30 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueUltraLight-DznH1Su_.woff2                  96.90 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueLight-DmMSO1G8.woff2                      100.20 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueThin-_0QGwHMD.woff2                       105.81 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueItalic-B8W3LefX.woff2                     107.85 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueBoldItalic-Cu2p2s_H.woff2                 197.14 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueBold-4VTgTDj5.woff2                       200.39 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueHeavy-DEwYMjAX.woff2                      201.88 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueBlack-BQ8RHQD8.woff2                      203.70 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueRoman-ChPlQO7p.woff2                      206.04 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueHeavyItalic-ns-kvpFJ.woff2                214.62 kB
+node_modules/.cache/p23-build/assets/HelveticaNeueBlackItalic-B4CDQZJ2.woff2                215.79 kB
+node_modules/.cache/p23-build/assets/pdf.worker.min-DEtVeC4l.mjs                          1,255.07 kB
+node_modules/.cache/p23-build/assets/index-BaVtFXkj.css                                     151.47 kB │ gzip:  24.62 kB
+node_modules/.cache/p23-build/assets/providerRules-LqCrrhaq.js                                0.07 kB │ gzip:   0.09 kB
+node_modules/.cache/p23-build/assets/Legales-Bkal0qtn.js                                      0.21 kB │ gzip:   0.19 kB
+node_modules/.cache/p23-build/assets/AvisoPrivacidad-CblpDh76.js                              0.21 kB │ gzip:   0.19 kB
+node_modules/.cache/p23-build/assets/transactionConcept-DP_lcRqu.js                           0.23 kB │ gzip:   0.18 kB
+node_modules/.cache/p23-build/assets/extends-CF3RwP-h.js                                      0.23 kB │ gzip:   0.19 kB
+node_modules/.cache/p23-build/assets/ProyectoTareasPage-DRXL06uC.js                           0.25 kB │ gzip:   0.22 kB
+node_modules/.cache/p23-build/assets/design-tokens-CXc4Xkqy.js                                0.27 kB │ gzip:   0.20 kB
+node_modules/.cache/p23-build/assets/responsive-currency-DGWxcrL2.js                          0.28 kB │ gzip:   0.21 kB
+node_modules/.cache/p23-build/assets/chevron-up-BujvPz--.js                                   0.30 kB │ gzip:   0.25 kB
+node_modules/.cache/p23-build/assets/chevron-down-CzzK1dx7.js                                 0.30 kB │ gzip:   0.25 kB
+node_modules/.cache/p23-build/assets/chevron-left-DSzvPSOe.js                                 0.30 kB │ gzip:   0.25 kB
+node_modules/.cache/p23-build/assets/filter-pxGTh6Cb.js                                       0.34 kB │ gzip:   0.27 kB
+node_modules/.cache/p23-build/assets/arrow-right-DYJymNdy.js                                  0.34 kB │ gzip:   0.27 kB
+node_modules/.cache/p23-build/assets/search-CpQ0Lvb8.js                                       0.35 kB │ gzip:   0.28 kB
+node_modules/.cache/p23-build/assets/circle-check-D0NyKoMC.js                                 0.35 kB │ gzip:   0.28 kB
+node_modules/.cache/p23-build/assets/clock-3-BEJMCg5O.js                                      0.36 kB │ gzip:   0.28 kB
+node_modules/.cache/p23-build/assets/circle-check-big-D0H_-j0d.js                             0.37 kB │ gzip:   0.29 kB
+node_modules/.cache/p23-build/assets/trending-up-C80quVhD.js                                  0.38 kB │ gzip:   0.29 kB
+node_modules/.cache/p23-build/assets/info-4wMZLfGj.js                                         0.38 kB │ gzip:   0.29 kB
+node_modules/.cache/p23-build/assets/circle-x-hW2p3fDT.js                                     0.38 kB │ gzip:   0.29 kB
+node_modules/.cache/p23-build/assets/credit-card-DiTwSGR_.js                                  0.38 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/lock-DaOqSPHL.js                                         0.38 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/unsupportedIterableToArray-CJNtVYa-.js                   0.39 kB │ gzip:   0.29 kB
+node_modules/.cache/p23-build/assets/dollar-sign-CYPSzeYr.js                                  0.39 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/ellipsis-DxWrRqwg.js                                     0.40 kB │ gzip:   0.27 kB
+node_modules/.cache/p23-build/assets/ellipsis-vertical-BfxCSqUb.js                            0.41 kB │ gzip:   0.28 kB
+node_modules/.cache/p23-build/assets/pen-DU2vxrl6.js                                          0.41 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/percent-D_koPhAV.js                                      0.42 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/circle-alert-C27KEmDy.js                                 0.42 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/chart-column-BZpBYcSx.js                                 0.42 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/settings-2-D2q9r_uB.js                                   0.43 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/transactionImport-0JpW55yD.js                            0.43 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/eye-Cs87_-Em.js                                          0.43 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/calendar-dAZ_T4t6.js                                     0.43 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/download-BVBlTbDO.js                                     0.44 kB │ gzip:   0.32 kB
+node_modules/.cache/p23-build/assets/pencil-BkOBkw0K.js                                       0.45 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/list-checks-CA9sLM0W.js                                  0.45 kB │ gzip:   0.30 kB
+node_modules/.cache/p23-build/assets/receipt-Cu7sc4VQ.js                                      0.47 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/paperclip-B8xRZgQQ.js                                    0.47 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/SignInPage-BFCNy2K4.js                                   0.48 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/minimize-2-C8wNfG1W.js                                   0.48 kB │ gzip:   0.32 kB
+node_modules/.cache/p23-build/assets/folder-plus-Dq6a2Mm-.js                                  0.48 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/user-plus-90KyXFP2.js                                    0.48 kB │ gzip:   0.34 kB
+node_modules/.cache/p23-build/assets/square-pen-BkH_zmVD.js                                   0.49 kB │ gzip:   0.34 kB
+node_modules/.cache/p23-build/assets/save-B8z5GyGV.js                                         0.50 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/AdminFlujoPage-DIFKozLh.js                               0.51 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/focus-BlPSHAzR.js                                        0.51 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/AdminSalesFlujoPage-DMbwwqQj.js                          0.51 kB │ gzip:   0.31 kB
+node_modules/.cache/p23-build/assets/file-image-cFLT3O99.js                                   0.52 kB │ gzip:   0.35 kB
+node_modules/.cache/p23-build/assets/trash-2-B4T_i5YO.js                                      0.53 kB │ gzip:   0.36 kB
+node_modules/.cache/p23-build/assets/file-spreadsheet-Ulk-WNCI.js                             0.55 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/calendar-clock-8QKOQGze.js                               0.56 kB │ gzip:   0.36 kB
+node_modules/.cache/p23-build/assets/package-4Yg5vUg0.js                                      0.56 kB │ gzip:   0.36 kB
+node_modules/.cache/p23-build/assets/layers-ClskWm3j.js                                       0.60 kB │ gzip:   0.35 kB
+node_modules/.cache/p23-build/assets/building-2-B-VNUviv.js                                   0.61 kB │ gzip:   0.35 kB
+node_modules/.cache/p23-build/assets/arrow-up-Cc0Lhofz.js                                     0.62 kB │ gzip:   0.32 kB
+node_modules/.cache/p23-build/assets/play-DVEh1QKx.js                                         0.64 kB │ gzip:   0.33 kB
+node_modules/.cache/p23-build/assets/image-off-RYgfx_l7.js                                    0.64 kB │ gzip:   0.40 kB
+node_modules/.cache/p23-build/assets/edit-transaction-modal-BmKc_wBk.js                       0.65 kB │ gzip:   0.41 kB
+node_modules/.cache/p23-build/assets/label-DR2fjx_s.js                                        0.66 kB │ gzip:   0.43 kB
+node_modules/.cache/p23-build/assets/calendar-days-DfJMOHkn.js                                0.67 kB │ gzip:   0.37 kB
+node_modules/.cache/p23-build/assets/edit-payment-modal-BiTBMLAU.js                           0.68 kB │ gzip:   0.42 kB
+node_modules/.cache/p23-build/assets/copy-Bh8O6oJJ.js                                         0.71 kB │ gzip:   0.38 kB
+node_modules/.cache/p23-build/assets/user-DToGy9pI.js                                         0.77 kB │ gzip:   0.42 kB
+node_modules/.cache/p23-build/assets/money-CJzwNflU.js                                        0.92 kB │ gzip:   0.53 kB
+node_modules/.cache/p23-build/assets/alert-BQOTp-EV.js                                        0.93 kB │ gzip:   0.47 kB
+node_modules/.cache/p23-build/assets/SignUpPage-t2pWANiz.js                                   0.99 kB │ gzip:   0.52 kB
+node_modules/.cache/p23-build/assets/money-input-BUhHY_vU.js                                  1.06 kB │ gzip:   0.66 kB
+node_modules/.cache/p23-build/assets/upload-projections-modal-lx2wk6MT.js                     1.06 kB │ gzip:   0.61 kB
+node_modules/.cache/p23-build/assets/card-BAanBlUC.js                                         1.26 kB │ gzip:   0.49 kB
+node_modules/.cache/p23-build/assets/AdminProjectionUpload-C5h3xBJ7.js                        1.86 kB │ gzip:   0.89 kB
+node_modules/.cache/p23-build/assets/progress-DrGWawpm.js                                     1.90 kB │ gzip:   0.94 kB
+node_modules/.cache/p23-build/assets/feeConceptRules-r0uR18sb.js                              2.05 kB │ gzip:   0.88 kB
+node_modules/.cache/p23-build/assets/upload-transactions-modal-CMz6tWZW.js                    2.20 kB │ gzip:   1.13 kB
+node_modules/.cache/p23-build/assets/aggregated-details-modal-B-wu5wvG.js                     2.40 kB │ gzip:   1.04 kB
+node_modules/.cache/p23-build/assets/useRfiUserDirectory-BEvDWZMg.js                          2.77 kB │ gzip:   1.09 kB
+node_modules/.cache/p23-build/assets/tabs-D1Xr28OY.js                                         3.23 kB │ gzip:   1.37 kB
+node_modules/.cache/p23-build/assets/dialog-lDEvJ13k.js                                       3.41 kB │ gzip:   1.30 kB
+node_modules/.cache/p23-build/assets/edit-sales-project-modal-Be21MfIt.js                     3.62 kB │ gzip:   1.52 kB
+node_modules/.cache/p23-build/assets/ProviderFormDialog-DA8F07hV.js                           3.67 kB │ gzip:   1.40 kB
+node_modules/.cache/p23-build/assets/OfflineBitacoraApp-B5V4d6PF.js                           3.80 kB │ gzip:   1.81 kB
+node_modules/.cache/p23-build/assets/checkbox-alX068LC.js                                     3.83 kB │ gzip:   1.70 kB
+node_modules/.cache/p23-build/assets/sale-transaction-documentos-modal-OKgxk9uu.js            4.05 kB │ gzip:   1.46 kB
+node_modules/.cache/p23-build/assets/transaction-documentos-modal-sNhcikEX.js                 4.29 kB │ gzip:   1.71 kB
+node_modules/.cache/p23-build/assets/Dashboard-CyhfL3Te.js                                    4.40 kB │ gzip:   1.82 kB
+node_modules/.cache/p23-build/assets/AcceptInvitationPage-CYtTrFcK.js                         4.58 kB │ gzip:   1.85 kB
+node_modules/.cache/p23-build/assets/transaction-conceptos-modal-DC4bAtk3.js                  4.91 kB │ gzip:   1.55 kB
+node_modules/.cache/p23-build/assets/alert-dialog-Bn2GI0Ta.js                                 5.03 kB │ gzip:   1.89 kB
+node_modules/.cache/p23-build/assets/ogc-invoice-evidence-dialog-Bq1hdRfr.js                  5.13 kB │ gzip:   2.24 kB
+node_modules/.cache/p23-build/assets/sale-transaction-conceptos-modal-B3ZgktxR.js             5.34 kB │ gzip:   1.53 kB
+node_modules/.cache/p23-build/assets/NewUserPage-0wlzeMs5.js                                  5.53 kB │ gzip:   2.21 kB
+node_modules/.cache/p23-build/assets/SalesUserManagementPage-CexZxRYx.js                      5.58 kB │ gzip:   2.01 kB
+node_modules/.cache/p23-build/assets/ProyectoProveedoresTablePage-Bqb1tMbj.js                 5.65 kB │ gzip:   1.52 kB
+node_modules/.cache/p23-build/assets/SalesProyectosTablePage-D_Sa_G_F.js                      5.66 kB │ gzip:   1.99 kB
+node_modules/.cache/p23-build/assets/workbox-window.prod.es5-BBnX5xw4.js                      5.75 kB │ gzip:   2.36 kB
+node_modules/.cache/p23-build/assets/table-DoDX513k.js                                        5.78 kB │ gzip:   2.02 kB
+node_modules/.cache/p23-build/assets/es-CaTItOeX.js                                           5.99 kB │ gzip:   2.06 kB
+node_modules/.cache/p23-build/assets/sale-transaction-details-modal-DxnVmYdk.js               6.49 kB │ gzip:   1.77 kB
+node_modules/.cache/p23-build/assets/SalesProyectoDocumentosPage-BzzsMlOx.js                  6.50 kB │ gzip:   2.09 kB
+node_modules/.cache/p23-build/assets/popover-DY-EmUed.js                                      7.04 kB │ gzip:   2.64 kB
+node_modules/.cache/p23-build/assets/ProjectionImportForm-CwmLP_Wl.js                         7.26 kB │ gzip:   2.91 kB
+node_modules/.cache/p23-build/assets/SalesDocumentosPage-7BL-m-g-.js                          7.37 kB │ gzip:   2.34 kB
+node_modules/.cache/p23-build/assets/SalesProjectManagementPage-B8eVWPXc.js                   7.66 kB │ gzip:   2.62 kB
+node_modules/.cache/p23-build/assets/upload-documents-modal-BiWy8ER1.js                       7.72 kB │ gzip:   2.88 kB
+node_modules/.cache/p23-build/assets/add-sales-project-modal-BPHSDJqs.js                      7.76 kB │ gzip:   3.05 kB
+node_modules/.cache/p23-build/assets/upload-sales-proyecto-documents-modal-Ck-DRVRA.js        7.82 kB │ gzip:   2.92 kB
+node_modules/.cache/p23-build/assets/see-sales-transactions-details-modal-D0EvDI0e.js         8.16 kB │ gzip:   2.43 kB
+node_modules/.cache/p23-build/assets/App-D99CYWAS.js                                          8.17 kB │ gzip:   2.76 kB
+node_modules/.cache/p23-build/assets/AdminPage-CrXc_EEJ.js                                    8.27 kB │ gzip:   2.78 kB
+node_modules/.cache/p23-build/assets/upload-proyecto-documents-modal-yvc5Y_NP.js              8.39 kB │ gzip:   3.30 kB
+node_modules/.cache/p23-build/assets/AddTransactionMenu-CjUoiA7p.js                           8.59 kB │ gzip:   3.21 kB
+node_modules/.cache/p23-build/assets/ProviderPaymentAccountPicker-CzxPdYJQ.js                 8.69 kB │ gzip:   2.93 kB
+node_modules/.cache/p23-build/assets/DashboardTable-DxDicZr0.js                               8.96 kB │ gzip:   2.85 kB
+node_modules/.cache/p23-build/assets/add-proyecto-modal-CJQkgvnL.js                           9.07 kB │ gzip:   3.41 kB
+node_modules/.cache/p23-build/assets/ProyectoFlujoPage-Cc99ak47.js                            9.23 kB │ gzip:   2.46 kB
+node_modules/.cache/p23-build/assets/SalesProyectoFlujoPage-CFYjvoj_.js                       9.28 kB │ gzip:   2.47 kB
+node_modules/.cache/p23-build/assets/LaborImportHistory-BX8A35bv.js                           9.64 kB │ gzip:   3.28 kB
+node_modules/.cache/p23-build/assets/SalesTransaccionesTablePage-CHbMyHWf.js                 10.42 kB │ gzip:   2.98 kB
+node_modules/.cache/p23-build/assets/SalesProyectoTransaccionesPage-DzH8E9jz.js              10.91 kB │ gzip:   3.17 kB
+node_modules/.cache/p23-build/assets/BudgetOriginal-CsHq6oXj.js                              11.06 kB │ gzip:   4.07 kB
+node_modules/.cache/p23-build/assets/UserManagementPage-D2hoZTFr.js                          11.22 kB │ gzip:   3.70 kB
+node_modules/.cache/p23-build/assets/laborPaymentImport-KLh-x22m.js                          11.97 kB │ gzip:   4.84 kB
+node_modules/.cache/p23-build/assets/ProjectionImportHistory-wpIkJVkk.js                     12.10 kB │ gzip:   4.38 kB
+node_modules/.cache/p23-build/assets/scroll-area-CLInK9aZ.js                                 12.72 kB │ gzip:   3.99 kB
+node_modules/.cache/p23-build/assets/InvoiceAnalysisPanel-C8-RHhwv.js                        12.87 kB │ gzip:   4.36 kB
+node_modules/.cache/p23-build/assets/PartidaDetails-C8WxKKZU.js                              13.08 kB │ gzip:   3.60 kB
+node_modules/.cache/p23-build/assets/transaction-details-modal-CoGu9jrY.js                   13.64 kB │ gzip:   4.07 kB
+node_modules/.cache/p23-build/assets/ProyectosTablePage-D0MO46IL.js                          14.06 kB │ gzip:   4.53 kB
+node_modules/.cache/p23-build/assets/add-sale-payment-modal-DuU9l8Zw.js                      14.49 kB │ gzip:   4.13 kB
+node_modules/.cache/p23-build/assets/ControlSalePage-DZEShFWt.js                             16.23 kB │ gzip:   4.11 kB
+node_modules/.cache/p23-build/assets/CommentThread-ClLBoW3_.js                               16.31 kB │ gzip:   6.03 kB
+node_modules/.cache/p23-build/assets/see-transactions-details-modal-CUac-S85.js              16.38 kB │ gzip:   3.72 kB
+node_modules/.cache/p23-build/assets/add-partida-modal-WOpyzIFp.js                           16.67 kB │ gzip:   4.74 kB
+node_modules/.cache/p23-build/assets/DocumentHeaderControls-CkjcX0b_.js                      17.43 kB │ gzip:   5.32 kB
+node_modules/.cache/p23-build/assets/RFIListPage-Dq6Pw1QW.js                                 17.53 kB │ gzip:   5.46 kB
+node_modules/.cache/p23-build/assets/TransaccionesTablePage-BUIhDGLP.js                      18.02 kB │ gzip:   5.28 kB
+node_modules/.cache/p23-build/assets/upload-project-transactions-modal-Cu4cU4-C.js           18.72 kB │ gzip:   5.87 kB
+node_modules/.cache/p23-build/assets/TopVariancePartidasTable-DvY9ipgo.js                    19.01 kB │ gzip:   6.40 kB
+node_modules/.cache/p23-build/assets/add-payment-modal-zN1h4PRY.js                           19.17 kB │ gzip:   5.84 kB
+node_modules/.cache/p23-build/assets/PaymentEditSheet-bgcoPgN_.js                            19.74 kB │ gzip:   6.43 kB
+node_modules/.cache/p23-build/assets/InvoiceIntakeDialog-C_WA75dB.js                         20.61 kB │ gzip:   6.81 kB
+node_modules/.cache/p23-build/assets/ControlPage-DOSkIPWg.js                                 21.08 kB │ gzip:   6.37 kB
+node_modules/.cache/p23-build/assets/BitacoraModal-BVhszC-a.js                               21.81 kB │ gzip:   6.84 kB
+node_modules/.cache/p23-build/assets/purify.es-CFh60W_8.js                                   22.77 kB │ gzip:   8.79 kB
+node_modules/.cache/p23-build/assets/select-BDoyw6kS.js                                      22.98 kB │ gzip:   8.03 kB
+node_modules/.cache/p23-build/assets/upload-sales-project-transactions-modal-qmiAAUlT.js     23.44 kB │ gzip:   5.69 kB
+node_modules/.cache/p23-build/assets/ReportesPage-BHgsWyLu.js                                24.39 kB │ gzip:   7.69 kB
+node_modules/.cache/p23-build/assets/ProyectoDocumentosPage-C_AGaX4E.js                      26.20 kB │ gzip:   7.15 kB
+node_modules/.cache/p23-build/assets/DocumentosPage-CS9bN1th.js                              26.33 kB │ gzip:   7.16 kB
+node_modules/.cache/p23-build/assets/SalesPresupuestoTable-BM7pgCXM.js                       26.73 kB │ gzip:   6.63 kB
+node_modules/.cache/p23-build/assets/edit-proyecto-modal-CBgh5CCl.js                         31.62 kB │ gzip:   9.35 kB
+node_modules/.cache/p23-build/assets/RFINewPage-B4dcA76M.js                                  34.45 kB │ gzip:  10.23 kB
+node_modules/.cache/p23-build/assets/BitacoraPage-BImpR_FX.js                                34.95 kB │ gzip:  10.05 kB
+node_modules/.cache/p23-build/assets/command-CtEAV-ip.js                                     35.97 kB │ gzip:  12.36 kB
+node_modules/.cache/p23-build/assets/RFIDetailPage-Vhtg9z8o.js                               37.95 kB │ gzip:  11.41 kB
+node_modules/.cache/p23-build/assets/ProyectoTransaccionesTablePage-D0cn7m2g.js              38.26 kB │ gzip:  11.25 kB
+node_modules/.cache/p23-build/assets/ProveedoresTablePage-C_s1C9rb.js                        41.88 kB │ gzip:  11.77 kB
+node_modules/.cache/p23-build/assets/PlanosPage-nst4ORXZ.js                                  67.20 kB │ gzip:  17.96 kB
+node_modules/.cache/p23-build/assets/calendar-KPZkkXr7.js                                    71.61 kB │ gzip:  20.87 kB
+node_modules/.cache/p23-build/assets/form-D5uhffWg.js                                        86.74 kB │ gzip:  23.91 kB
+node_modules/.cache/p23-build/assets/AutorizacionesObraPage-CNj8zEhy.js                      95.24 kB │ gzip:  18.99 kB
+node_modules/.cache/p23-build/assets/PresupuestoPage-H5A90Yuc.js                             96.21 kB │ gzip:  25.85 kB
+node_modules/.cache/p23-build/assets/TareasPage-B_wRG6XJ.js                                  99.13 kB │ gzip:  22.36 kB
+node_modules/.cache/p23-build/assets/ProfitAndLossPage-CcQe6-ZY.js                          113.14 kB │ gzip:  28.04 kB
+node_modules/.cache/p23-build/assets/Chart-BzovLWWJ.js                                      123.39 kB │ gzip:  39.67 kB
+node_modules/.cache/p23-build/assets/ProyectoRequisicionesPage-CdnX-4sS.js                  131.47 kB │ gzip:  32.03 kB
+node_modules/.cache/p23-build/assets/index.es-BGDHyn2p.js                                   160.40 kB │ gzip:  53.93 kB
+node_modules/.cache/p23-build/assets/ProgramaObra-BKJziXIj.js                               185.55 kB │ gzip:  48.27 kB
+node_modules/.cache/p23-build/assets/PlanCanvas-BL1GDAm9.js                                 482.73 kB │ gzip: 144.09 kB
+node_modules/.cache/p23-build/assets/xlsx-BGhuli8m.js                                       500.06 kB │ gzip: 163.12 kB
+node_modules/.cache/p23-build/assets/ProgramaObraPdfExport-DDAE6MhN.js                      600.29 kB │ gzip: 179.53 kB
+node_modules/.cache/p23-build/assets/index-DnV2q_Py.js                                      802.05 kB │ gzip: 242.35 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 18.20s
+
+PWA v1.3.0
+mode      generateSW
+precache  48 entries (3289.17 KiB)
+files generated
+  node_modules/.cache/p23-build/sw.js
+  node_modules/.cache/p23-build/workbox-cb62cf87.js

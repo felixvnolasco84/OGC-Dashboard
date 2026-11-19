@@ -1,0 +1,5 @@
+
+> epi-group-react-vite@0.0.0 test:pnl-ui
+> node scripts/test-pnl-ui.mjs
+
+P&L UI passed: report navigation/loading, financial regression, tools menu, keyboard/focus, immediate settings, reset, location-scoped ledger and original upload, mobile and desktop. Synthetic fixtures only; no mutations.

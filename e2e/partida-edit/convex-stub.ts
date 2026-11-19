@@ -81,6 +81,7 @@ const client = { async query(ref: any, args: any) {
   throw new Error(`Unexpected client query: ${name}`);
 } };
 export function useConvex() { return client; }
+export function useAction() { return async () => { throw new Error("Unexpected partida edit fixture action"); }; }
 export function useMutation(ref: any) { return async (args: any) => {
   if (getFunctionName(ref) === "partida:createPartida") {
     recorded.mutations.push({ args });

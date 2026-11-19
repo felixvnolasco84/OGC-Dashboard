@@ -1,0 +1,44 @@
+{
+  "punto": "P22 · Ventas · Documentos · Cabecera",
+  "fecha": "2026-11-19",
+  "archivoProduccion": "src/pages/Documentos/SalesDocumentosPage.tsx",
+  "cambios": [
+    "Retirado Agregar Documento y su toast de próximamente.",
+    "Retirado el import del icono Plus.",
+    "Conservado Subir documentos, su Button, estilos y handleUploadClick original."
+  ],
+  "validacion": {
+    "build": {
+      "comando": "npm run build -- --outDir output/p22-validation-2026-11-19/build",
+      "resultado": "Correcto: tsc -b, Vite y generación PWA, exit 0.",
+      "advertencias": "Aviso de Vite sobre chunks mayores de 500 kB."
+    },
+    "diffCheck": "git diff --check -- src/pages/Documentos/SalesDocumentosPage.tsx: correcto",
+    "ui": {
+      "metodo": "Chrome con el componente real SalesDocumentosPage, CSS y store originales; consultas sustituidas por datos ficticios y mutaciones bloqueadas. No es la maqueta de auditoría ni una sesión autenticada.",
+      "viewportsCss": ["1440 × 1000", "390 × 844"],
+      "comprobaciones": [
+        "Una única acción de carga en la cabecera.",
+        "Enter y Espacio activan el store original y conservan el foco en el botón.",
+        "Búsqueda por nombre, búsqueda sin coincidencias y filtro por proyecto funcionales.",
+        "Listado, carga y vacío conservan la cabecera sin el botón pendiente.",
+        "Sin desbordamiento horizontal en los viewports comprobados."
+      ],
+      "capturas": [
+        "desktop-listado-1440.jpg",
+        "desktop-sin-resultados-1440.jpg",
+        "movil-listado-390.jpg",
+        "movil-cargando-390.jpg",
+        "movil-vacio-390.jpg"
+      ],
+      "zoom": "Se compensó el zoom existente del navegador al establecer el viewport; innerWidth/innerHeight confirmaron las dimensiones CSS indicadas. Se restableció el override al terminar."
+    },
+    "permisos": "La ruta /sales-documentos sigue protegida por requiredRole=admin en src/main.tsx. No se modificaron rutas, permisos ni consultas/mutaciones de backend; no se validaron sesiones con otros roles."
+  },
+  "limitacionesPrevias": [
+    "La app de desarrollo presentó Failed to resolve import virtual:pwa-register/react desde PwaUpdatePrompt.tsx; no se corrigió código ajeno a P22.",
+    "useUploadSalesDocumentsModal aparece únicamente en su hook y en SalesDocumentosPage. ModalProvider monta UploadSalesProyectoDocumentsModal, asociado a otro store. El acceso global original activa su store pero no tiene un modal conectado; no se afirma haber validado apertura/cancelación de un diálogo real.",
+    "No se comprobó el contenido actual de la base de datos ni se describe la página real como vacía."
+  ],
+  "datosRealesModificados": false
+}

@@ -1,0 +1,1 @@
+import{G as a,j as s}from"./index-w72ZyzBN.js";function t({amount:e,currency:r="MXN",compact:i}){const n=a(e,r);return s.jsxs("span",{title:n,children:[s.jsx("span",{className:"hidden lg:inline",children:i}),s.jsx("span",{className:"lg:hidden",children:n})]})}export{t as R};

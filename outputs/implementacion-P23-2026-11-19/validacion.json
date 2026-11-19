@@ -1,0 +1,27 @@
+{
+  "punto": "P23",
+  "fecha": "2026-11-19",
+  "resultado": "Implementado y validado",
+  "archivos": [
+    "src/components/Forms/EditPartidaForm.tsx",
+    "src/pages/Documentos/DocumentosPage.tsx (solo pie de Nueva carpeta)",
+    "src/components/providers/ProviderFormDialog.tsx",
+    "src/components/modals/add-proyecto-modal.tsx (solo pies)",
+    "scripts/test-partida-edit-ui.mjs",
+    "e2e/dialog-footers"
+  ],
+  "etiquetas": ["Guardar cambios", "Crear carpeta", "Crear proveedor", "Guardar proveedor", "Crear proyecto y guardar Excel"],
+  "escala": { "escritorio_px": 36, "movil_px": 44 },
+  "checks": [
+    { "comando": "npm run build -- --outDir node_modules/.cache/p23-build", "estado": "passed", "detalle": "tsc -b y Vite; salida aislada; build.log" },
+    { "comando": "npm run test:partida-edit", "estado": "passed", "tests": 58 },
+    { "comando": "npm run test:partida-edit-ui", "estado": "passed", "puerto": 4235, "anchos": [1440, 390, 320], "detalle": "Sin cambios, canSave, expectedReview, ocupado, descarte y foco, errores, conflictos, permisos y revisión asíncrona" },
+    { "comando": "node e2e/dialog-footers/check.mjs", "estado": "passed", "puerto": 4236, "anchos": [1440, 390], "detalle": "Pies visibles, escala, etiquetas alta/edición/ocupado, teclado, permisos admin, Excel original byte por byte e intentos incompletos/fallidos recuperables; formularios/resultados.json" },
+    { "comando": "git diff --check (archivos de P23)", "estado": "passed" }
+  ],
+  "conservado": ["canSave y currentReview", "Guardas y callbacks de proveedor", "Validación de carpeta", "Recuperación de creación con Excel", "Cancelar y acción principal visibles", "Identidad y componentes existentes", "Cambios concurrentes de otros puntos"],
+  "capturas": { "partida": "partida/", "otros_formularios": "formularios/", "tipo": "Componentes de producción con fixtures; sin copiar la maqueta de auditoría" },
+  "limites": ["Las operaciones de guardado y creación se probaron únicamente en fixtures en memoria; no se modificaron datos reales", "El build conserva su aviso de bundles mayores de 500 kB", "La inspección manual del fixture de partida mostró avisos de claves React repetidas en la tabla fuera del alcance del pie; las pruebas no registraron errores de ejecución"],
+  "estilos_globales_o_dependencias_nuevas": false,
+  "movimiento_nuevo": false
+}

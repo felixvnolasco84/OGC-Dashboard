@@ -1,0 +1,108 @@
+{
+  "date": "2026-11-19",
+  "source": "Páginas y modales reales con Convex/Clerk simulados; sin operaciones de red",
+  "checks": [
+    {
+      "check": "Global: cancelar carga devuelve foco",
+      "ok": true
+    },
+    {
+      "check": "Global: cuadrícula seleccionada y lista deseleccionada",
+      "ok": true
+    },
+    {
+      "check": "Global: filtro proyecto/tipo sobrevive a cambio de vista",
+      "observed": "{\"proyecto\":\"obra\",\"type\":\"Contrato\",\"search\":\"\",\"page\":1,\"pageSize\":25}",
+      "ok": true
+    },
+    {
+      "check": "Global móvil: viewport y ausencia de desbordamiento",
+      "observed": {
+        "clientWidth": 376,
+        "height": 844,
+        "scrollWidth": 376,
+        "width": 390
+      },
+      "ok": true
+    },
+    {
+      "check": "Global anidado: Nueva carpeta conserva padre y no ejecuta mutaciones",
+      "observed": {
+        "description": "Crea una carpeta dentro de Contratos de prueba.",
+        "menuOpen": false
+      },
+      "ok": true
+    },
+    {
+      "check": "Obra móvil: sin desbordamiento",
+      "ok": true
+    },
+    {
+      "check": "Obra raíz: carga con projectId correcto, sin carpeta global",
+      "observed": "{\"global\":false,\"proyectoId\":\"obra\"}",
+      "ok": true
+    },
+    {
+      "check": "Obra: cancelar carga devuelve foco a Agregar",
+      "ok": true
+    },
+    {
+      "check": "Obra anidada: proyecto y folderId de carga",
+      "observed": "{\"global\":false,\"proyectoId\":\"obra\",\"folderId\":\"folder-parent\"}",
+      "ok": true
+    },
+    {
+      "check": "Obra anidada: createFolder simulado conserva proyecto y padre",
+      "observed": "[{\"name\":\"documentos:createFolder\",\"args\":{\"nombre\":\"Carpeta ficticia P16\",\"parent_folder_id\":\"folder-parent\",\"proyecto\":\"obra\"}}]",
+      "ok": true
+    },
+    {
+      "check": "Obra móvil anidada: cuadrícula conserva carpeta y total",
+      "observed": "{\"folder_id\":\"folder-parent\",\"proyecto\":\"obra\",\"search\":\"\",\"page\":1,\"pageSize\":25}",
+      "ok": true
+    },
+    {
+      "check": "Obra: lector sin acceso no puede abrir Agregar",
+      "ok": true
+    },
+    {
+      "check": "Global: rol user no obtiene acceso admin",
+      "ok": true
+    },
+    {
+      "check": "Obra: alcance de proyecto denegado bloquea la página",
+      "ok": true
+    },
+    {
+      "check": "Global anidado: createFolder simulado conserva padre sin proyecto ajeno",
+      "observed": "[{\"name\":\"documentos:createFolder\",\"args\":{\"nombre\":\"Carpeta ficticia global P16\",\"parent_folder_id\":\"folder-parent\"}}]",
+      "ok": true
+    },
+    {
+      "check": "Global: conserva estado de carga",
+      "ok": true
+    },
+    {
+      "check": "Obra: conserva estado de carga",
+      "ok": true
+    },
+    {
+      "check": "Obra: user autorizado, total cero y estado vacío conservados",
+      "ok": true
+    },
+    {
+      "check": "Global: estado vacío y entrada Crear carpeta conservados",
+      "ok": true
+    },
+    {
+      "check": "Global escritorio: viewport 1440×1000 sin desbordamiento",
+      "observed": {
+        "height": 1000,
+        "scrollWidth": 1440,
+        "width": 1440
+      },
+      "ok": true
+    }
+  ],
+  "consoleErrors": []
+}

@@ -1,4 +1,5 @@
 import { useWorkAccess, useWorkMutation } from "./useWorkAccess";
+import { DocumentActions } from "./DocumentActions";
 import { ResponsiveFields } from "@/components/ui/responsive-fields";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery } from "convex/react";
@@ -36,9 +37,6 @@ import {
   MoreHorizontal,
   Download,
   Trash2,
-  RefreshCw,
-  History,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusDot, ResponsableSelector } from "./PermisosYLegalTab";
@@ -112,6 +110,7 @@ function FileCell({
   onDelete,
   uploading,
   placeholder,
+  documentLabel,
   parentType,
   parentId,
 }: {
@@ -122,6 +121,7 @@ function FileCell({
   onDelete?: () => void;
   uploading: boolean;
   placeholder?: string;
+  documentLabel: string;
   parentType: string;
   parentId: string;
 }) {
@@ -138,30 +138,30 @@ function FileCell({
   return (
     <div>
       <input
-        disabled={!canManage}
+        disabled={!canManage || uploading}
         ref={fileInputRef}
         type="file"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) onUpload(f);
+          if (f && canManage && !uploading) onUpload(f);
           if (fileInputRef.current) fileInputRef.current.value = "";
         }}
       />
       <input
-        disabled={!canManage}
+        disabled={!canManage || uploading}
         ref={replaceInputRef}
         type="file"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) onUpload(f);
+          if (f && canManage && !uploading) onUpload(f);
           if (replaceInputRef.current) replaceInputRef.current.value = "";
         }}
       />
       {nombre ? (
         <div className="flex flex-col">
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1 min-w-0">
             <a
               href={url || "#"}
               target="_blank"
@@ -171,37 +171,15 @@ function FileCell({
               <FileText className="w-4 h-4 text-disabled-foreground shrink-0" />
               <span className="font-medium truncate max-w-[150px]">{nombre}</span>
             </a>
-            <button
-              className="text-disabled-foreground hover:text-muted-foreground p-0.5"
-              onClick={() => replaceInputRef.current?.click()}
-              disabled={!canManage || uploading}
-              title="Reemplazar archivo"
-            >
-              {uploading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-            </button>
-            {historial && historial.length > 0 && (
-              <button
-                className="text-disabled-foreground hover:text-muted-foreground p-0.5"
-                onClick={() => setShowHistory(!showHistory)}
-                title="Ver historial de archivos"
-              >
-                <History className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                disabled={!canManage}
-                className="text-disabled-foreground hover:text-red-500 p-0.5"
-                onClick={onDelete}
-                title="Eliminar archivo"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <DocumentActions
+              nombre={nombre}
+              context={`${documentLabel}: ${nombre}`}
+              uploading={uploading}
+              onChooseFile={() => replaceInputRef.current?.click()}
+              onDelete={onDelete}
+              onToggleHistory={historial?.length ? () => setShowHistory((open) => !open) : undefined}
+              historyOpen={showHistory}
+            />
           </div>
           {uploadedAt && (
             <span className="text-xs text-disabled-foreground mt-0.5 ml-5.5">
@@ -212,7 +190,7 @@ function FileCell({
             <div className="mt-2 border border-border rounded p-2 bg-background">
               <div className="text-xs font-medium text-muted-foreground mb-1">Historial de archivos</div>
               {historial.map((h: HistorialEntry) => (
-                <div key={h._id} className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
+                <div key={h._id} className="flex flex-wrap items-center gap-2 py-1 text-xs text-muted-foreground">
                   <FileText className="w-3 h-3 shrink-0" />
                   <a
                     href={h.url || "#"}
@@ -234,17 +212,14 @@ function FileCell({
           )}
         </div>
       ) : (
-        <button
-          className="text-sm text-disabled-foreground hover:text-muted-foreground "
-          onClick={() => fileInputRef.current?.click()}
-          disabled={!canManage || uploading}
-        >
-          {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            placeholder || "Por confirmar"
-          )}
-        </button>
+        <div className="flex flex-wrap items-center gap-1">
+          {!canManage && <span className="text-sm text-disabled-foreground">{placeholder || "Por confirmar"}</span>}
+          <DocumentActions
+            context={documentLabel}
+            uploading={uploading}
+            onChooseFile={() => fileInputRef.current?.click()}
+          />
+        </div>
       )}
     </div>
   );
@@ -392,6 +367,7 @@ function SubcontratistaTableRow({
         onUpload={onUploadPresupuesto}
         onDelete={sub.presupuesto_nombre ? onDeletePresupuesto : undefined}
         uploading={uploadingField === "presupuesto"}
+        documentLabel="Presupuesto"
         parentType="subcontratista_presupuesto"
         parentId={sub._id}
       />
@@ -404,6 +380,7 @@ function SubcontratistaTableRow({
         onUpload={onUploadContrato}
         onDelete={sub.contrato_nombre ? onDeleteContrato : undefined}
         uploading={uploadingField === "contrato"}
+        documentLabel="Contrato"
         parentType="subcontratista_contrato"
         parentId={sub._id}
       />

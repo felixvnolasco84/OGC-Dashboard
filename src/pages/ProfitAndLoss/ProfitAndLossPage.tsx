@@ -1,7 +1,7 @@
 import { useBackgroundReady } from "@/hooks/use-background-ready";
 import { Table } from "@/components/ui/table";
 import { ResponsiveCurrency } from "@/components/ui/responsive-currency";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -15,8 +15,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -32,7 +39,7 @@ import { OgcInvoiceEvidenceDialog } from "@/components/modals/ogc-invoice-eviden
 import type { OgcInvoiceProof } from "@/lib/ogcInvoiceEvidence";
 import { getOgcTypeLabel, isDispHonorarios, normalizeOgcClassification } from "../../../convex/ogcClassificationRules";
 import { cn, formatPercentage } from "@/lib/utils";
-import { Ban, CalendarDays, Check, Copy, Info, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
+import { Ban, CalendarDays, Check, Copy, Info, MoreHorizontal, Pencil, Percent, RefreshCcw, Save, ScrollText, Settings2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   ALL_PROJECT_LOCATIONS,
@@ -1473,11 +1480,13 @@ function OgcLedgerDialog({
   proyectos,
   open,
   onOpenChange,
+  onCloseAutoFocus,
 }: {
   movements: OgcLedgerMovement[] | undefined;
   proyectos: DesarrolloOption[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus: (event: Event) => void;
 }) {
   const movements = useMemo(() => loadedMovements ?? [], [loadedMovements]);
   const updateMovement = useMutation(api.ogc_movimientos.update);
@@ -1635,20 +1644,7 @@ function OgcLedgerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          title="Ledger movimientos OGC"
-          aria-label="Ledger movimientos OGC"
-          className="mb-3 h-10 w-10 shrink-0 self-start bg-card text-foreground md:self-auto"
-        >
-          <ScrollText className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden">
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus} className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-2xl font-normal">LEDGER MOVIMIENTOS OGC</DialogTitle>
           <DialogDescription>
@@ -2004,20 +2000,25 @@ function SettingsGroup({
 
 function SettingField({
   label,
+  htmlFor,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   children: ReactNode;
 }) {
   return (
     <div className="min-w-0 space-y-1.5">
-      <Label className="text-xs font-normal text-muted-foreground">{label}</Label>
+      <Label htmlFor={htmlFor} className="text-xs font-normal text-muted-foreground">{label}</Label>
       {children}
     </div>
   );
 }
 
 function PnlSettingsDialog({
+  open,
+  onOpenChange,
+  onCloseAutoFocus,
   periodLabel,
   periodYear,
   cutoffMonth,
@@ -2031,6 +2032,9 @@ function PnlSettingsDialog({
   onTaxSettingChange,
   onReset,
 }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus: (event: Event) => void;
   periodLabel: string;
   periodYear: number;
   cutoffMonth: number;
@@ -2045,20 +2049,8 @@ function PnlSettingsDialog({
   onReset: () => void;
 }) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          title="Configuracion P&L"
-          aria-label="Configuracion P&L"
-          className="mb-3 h-10 w-10 shrink-0 self-start bg-card text-foreground md:self-auto"
-        >
-          <Settings2 className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent onCloseAutoFocus={onCloseAutoFocus} className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl font-normal">Configuracion P&L</DialogTitle>
               <DialogDescription>
@@ -2101,8 +2093,9 @@ function PnlSettingsDialog({
                   description="Define el acumulado YTD y el mes resaltado."
                 >
                   <div className="grid grid-cols-2 gap-3">
-                    <SettingField label="Anio">
+                    <SettingField label="Anio" htmlFor="pnl-period-year">
                       <Input
+                        id="pnl-period-year"
                         type="number"
                         value={periodYear}
                         min={2020}
@@ -2110,9 +2103,9 @@ function PnlSettingsDialog({
                         onChange={(event) => onPeriodYearChange(Math.trunc(parsePositiveNumber(event.target.value, periodYear)))}
                       />
                     </SettingField>
-                    <SettingField label="Corte">
+                    <SettingField label="Corte" htmlFor="pnl-cutoff-month">
                       <Select value={String(cutoffMonth)} onValueChange={(value) => onCutoffMonthChange(Number(value))}>
-                        <SelectTrigger>
+                        <SelectTrigger id="pnl-cutoff-month">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -2133,8 +2126,9 @@ function PnlSettingsDialog({
                   description="Tipo de cambio para movimientos no MXN."
                 >
                   <div className="grid grid-cols-2 gap-3">
-                    <SettingField label="USD/MXN">
+                    <SettingField label="USD/MXN" htmlFor="pnl-usd-rate">
                       <Input
+                        id="pnl-usd-rate"
                         type="number"
                         inputMode="decimal"
                         value={usdToMxn}
@@ -2143,8 +2137,9 @@ function PnlSettingsDialog({
                         onChange={(event) => onUsdToMxnChange(parsePositiveNumber(event.target.value, usdToMxn))}
                       />
                     </SettingField>
-                    <SettingField label="EUR/MXN">
+                    <SettingField label="EUR/MXN" htmlFor="pnl-eur-rate">
                       <Input
+                        id="pnl-eur-rate"
                         type="number"
                         inputMode="decimal"
                         value={eurToMxn}
@@ -2162,8 +2157,9 @@ function PnlSettingsDialog({
                   description="Porcentajes editables para resultado e informativos."
                 >
                   <div className="grid grid-cols-2 gap-3">
-                    <SettingField label="ISR">
+                    <SettingField label="ISR" htmlFor="pnl-isr">
                       <Input
+                        id="pnl-isr"
                         type="number"
                         inputMode="decimal"
                         value={taxSettings.isr}
@@ -2172,8 +2168,9 @@ function PnlSettingsDialog({
                         onChange={(event) => onTaxSettingChange("isr", event.target.value)}
                       />
                     </SettingField>
-                    <SettingField label="PTU">
+                    <SettingField label="PTU" htmlFor="pnl-ptu">
                       <Input
+                        id="pnl-ptu"
                         type="number"
                         inputMode="decimal"
                         value={taxSettings.ptu}
@@ -2182,8 +2179,9 @@ function PnlSettingsDialog({
                         onChange={(event) => onTaxSettingChange("ptu", event.target.value)}
                       />
                     </SettingField>
-                    <SettingField label="SIROC">
+                    <SettingField label="SIROC" htmlFor="pnl-siroc">
                       <Input
+                        id="pnl-siroc"
                         type="number"
                         inputMode="decimal"
                         value={taxSettings.siroc}
@@ -2192,8 +2190,9 @@ function PnlSettingsDialog({
                         onChange={(event) => onTaxSettingChange("siroc", event.target.value)}
                       />
                     </SettingField>
-                    <SettingField label="IVA/Ret">
+                    <SettingField label="IVA/Ret" htmlFor="pnl-iva-retenciones">
                       <Input
+                        id="pnl-iva-retenciones"
                         type="number"
                         inputMode="decimal"
                         value={taxSettings.ivaRetenciones}
@@ -2221,7 +2220,9 @@ function PnlSettingsDialog({
 
 export default function ProfitAndLossPage() {
   const [activeTab, setActiveTab] = useState<PnlTab>("pnl");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  const toolsTriggerRef = useRef<HTMLButtonElement>(null);
   const [isOgcUploadOpen, setIsOgcUploadOpen] = useState(false);
   const [periodYear, setPeriodYear] = useState(() => new Date().getFullYear());
   const [cutoffMonth, setCutoffMonth] = useState(() => new Date().getMonth() + 1);
@@ -2310,6 +2311,11 @@ export default function ProfitAndLossPage() {
     setLocationFilter(DEFAULT_PROJECT_LOCATIONS[0].key);
   };
 
+  const focusToolsTrigger = (event: Event) => {
+    event.preventDefault();
+    toolsTriggerRef.current?.focus();
+  };
+
   if (
     proyectos === undefined ||
     projectLocations === undefined
@@ -2330,10 +2336,34 @@ export default function ProfitAndLossPage() {
         periodYear={periodYear}
         cutoffMonth={cutoffMonth}
       />
+      <PnlSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onCloseAutoFocus={focusToolsTrigger}
+        periodLabel={periodLabel}
+        periodYear={periodYear}
+        cutoffMonth={cutoffMonth}
+        usdToMxn={usdToMxn}
+        eurToMxn={eurToMxn}
+        taxSettings={taxSettings}
+        onPeriodYearChange={setPeriodYear}
+        onCutoffMonthChange={setCutoffMonth}
+        onUsdToMxnChange={setUsdToMxn}
+        onEurToMxnChange={setEurToMxn}
+        onTaxSettingChange={updateTaxSetting}
+        onReset={resetSettings}
+      />
+      <OgcLedgerDialog
+        movements={ledgerMovements}
+        proyectos={ledgerProjects}
+        open={ledgerOpen}
+        onOpenChange={setLedgerOpen}
+        onCloseAutoFocus={focusToolsTrigger}
+      />
       <div className="max-w-full mx-auto space-y-6">
         <div className="border-b border-border-strong">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="flex flex-wrap items-end gap-8 md:gap-20">
+          <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-2 md:gap-x-8">
               {PNL_TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -2350,11 +2380,11 @@ export default function ProfitAndLossPage() {
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 pb-3 md:w-auto">
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger
                   aria-label="Filtrar Profit & Loss por ubicación"
-                  className="mb-3 h-10 w-full min-w-52 rounded-none bg-card text-foreground md:w-60"
+                  className="h-10 w-full min-w-52 rounded-none bg-card text-foreground md:w-60"
                 >
                   <SelectValue placeholder="Todas las ubicaciones" />
                 </SelectTrigger>
@@ -2370,30 +2400,48 @@ export default function ProfitAndLossPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <PnlSettingsDialog
-                periodLabel={periodLabel}
-                periodYear={periodYear}
-                cutoffMonth={cutoffMonth}
-                usdToMxn={usdToMxn}
-                eurToMxn={eurToMxn}
-                taxSettings={taxSettings}
-                onPeriodYearChange={setPeriodYear}
-                onCutoffMonthChange={setCutoffMonth}
-                onUsdToMxnChange={setUsdToMxn}
-                onEurToMxnChange={setEurToMxn}
-                onTaxSettingChange={updateTaxSetting}
-                onReset={resetSettings}
-              />
-              <OgcLedgerDialog movements={ledgerMovements} proyectos={ledgerProjects} open={ledgerOpen} onOpenChange={setLedgerOpen} />
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => setIsOgcUploadOpen(true)}
-                className="mb-3 h-10 self-start text-foreground md:self-auto"
+                className="h-10"
               >
                 <Upload className="h-4 w-4" />
                 Cargar movimientos
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    ref={toolsTriggerRef}
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    aria-label="Herramientas de P&L"
+                    title="Herramientas de P&L"
+                  >
+                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-60"
+                  onCloseAutoFocus={(event) => {
+                    if (settingsOpen || ledgerOpen) event.preventDefault();
+                  }}
+                >
+                  <DropdownMenuLabel>Consultar</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setLedgerOpen(true)}>
+                    <ScrollText aria-hidden="true" />
+                    Movimientos OGC
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Configuración</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
+                    <Settings2 aria-hidden="true" />
+                    Configurar P&L
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

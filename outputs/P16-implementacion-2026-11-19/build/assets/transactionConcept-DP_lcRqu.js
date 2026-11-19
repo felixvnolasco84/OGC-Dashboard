@@ -1,0 +1,1 @@
+function i(o){return[...new Set(o.map(n=>n==null?void 0:n.trim()).filter(n=>!!n))].join(" · ")}function t(o,n=[]){return o.concepto_adicional!==void 0?o.concepto_adicional:i(n.map(c=>c.concepto_adicional))}export{i as c,t as g};

@@ -1,0 +1,42 @@
+
+  VITE v6.4.3  ready in 385 ms
+
+  ➜  Local:   http://127.0.0.1:5192/
+  ➜  press h + enter to show help
+2:24:57 p.m. [vite] (client) page reload src/pages/Tareas/TareasPage.tsx
+2:25:06 p.m. [vite] (client) page reload src/pages/ProyectoRequisiciones/ProyectoRequisicionesPage.tsx
+2:25:06 p.m. [vite] (client) page reload src/pages/ProyectoRequisiciones/RequisicionContextMenu.tsx
+2:25:08 p.m. [vite] (client) page reload src/pages/AutorizacionesObra/PermisosYLegalTab.tsx
+2:25:09 p.m. [vite] (client) page reload src/pages/SalesProyectoTransacciones/SalesProyectoTransaccionesPage.tsx
+2:25:09 p.m. [vite] (client) page reload src/pages/AutorizacionesObra/PermisosYLegalTab.tsx
+2:25:19 p.m. [vite] (client) page reload e2e/sales-budget-header/preview.html
+2:25:33 p.m. [vite] (client) page reload e2e/document-header/preview.html
+2:25:46 p.m. [vite] (client) page reload output/p22-validation-2026-11-19/build/index.html
+2:25:48 p.m. [vite] (client) page reload src/pages/Tareas/TareasPage.tsx
+2:25:49 p.m. [vite] (client) page reload src/pages/Tareas/TareasPage.tsx
+2:25:59 p.m. [vite] (client) hmr update /src/pages/Presupuesto/PresupuestoPage.tsx, /src/index.css
+3:33:07 p.m. [vite] (client) page reload src/pages/AutorizacionesObra/ImssYSirocTab.tsx
+3:33:07 p.m. [vite] (client) page reload src/pages/AutorizacionesObra/PresupuestosContratosTab.tsx
+3:33:10 p.m. [vite] (client) ✨ new dependencies optimized: react-helmet-async, convex/react-clerk, @tanstack/react-query, react-router-dom, dexie, radix-ui, dexie-react-hooks, @radix-ui/react-collapsible, @radix-ui/react-separator
+3:33:10 p.m. [vite] (client) ✨ optimized dependencies changed. reloading
+3:33:22 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:33:35 p.m. [vite] (client) hmr update /src/components/Forms/EditPartidaForm.tsx, /src/index.css
+3:33:35 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:33:36 p.m. [vite] (client) hmr update /src/components/providers/ProviderFormDialog.tsx, /src/index.css
+3:33:36 p.m. [vite] (client) hmr update /src/index.css, /src/components/providers/modal-provider.tsx
+3:33:36 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:33:38 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:33:45 p.m. [vite] (client) hmr update /src/pages/Presupuesto/PresupuestoPage.tsx, /src/index.css
+3:33:51 p.m. [vite] (client) hmr update /src/index.css, /src/components/providers/modal-provider.tsx
+3:33:55 p.m. [vite] (client) page reload e2e/partida-menu/preview.html
+3:33:58 p.m. [vite] (client) page reload e2e/authorization-documents/preview.html
+3:34:04 p.m. [vite] (client) page reload src/pages/AutorizacionesObra/PermisosYLegalTab.tsx
+3:34:26 p.m. [vite] (client) hmr update /src/index.css, /src/components/providers/modal-provider.tsx
+3:34:32 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:34:34 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:34:35 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:34:55 p.m. [vite] (client) hmr update /src/index.css, /src/main.tsx
+3:34:55 p.m. [vite] (client) page reload output/p22-validation-2026-11-19/fixture-dist/index.html
+3:34:55 p.m. [vite] (client) page reload output/p22-validation-2026-11-19/fixture-dist/index.html
+3:34:56 p.m. [vite] outputs/P02-implementacion-2026-11-19/verificacion/vite.config.ts changed, restarting server...
+3:34:56 p.m. [vite] server restarted.

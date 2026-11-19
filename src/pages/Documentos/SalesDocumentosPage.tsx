@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   FileText, Search,
   //  Trash2, Download,
-  Plus, Upload
+  Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -135,16 +135,7 @@ export default function SalesDocumentosPage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Button onClick={handleUploadClick} className="w-full sm:w-auto">
                 <Upload className="mr-2 h-4 w-4" />
-                Subir Documentos
-              </Button>
-              <Button
-                onClick={() => toast.info("Funcionalidad de agregar documento próximamente")}
-                variant="outline"
-                size="lg"
-                className="flex w-full items-center justify-center gap-2 rounded-none py-6 text-muted-foreground sm:w-auto"
-              >
-                Agregar Documento
-                <Plus className="h-6 w-6 rounded-full shadow-none" />
+                Subir documentos
               </Button>
             </div>
           </div>

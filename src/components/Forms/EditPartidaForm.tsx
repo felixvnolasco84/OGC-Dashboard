@@ -47,7 +47,7 @@ export default function EditPartidaForm({ partida, level = 2, onClose, closeRequ
   if (!context) return <div className="space-y-4">
     {error ? <div role="alert" className="space-y-3"><p className="text-sm text-destructive">{error}</p><Button type="button" variant="outline" onClick={() => setAttempt(n => n + 1)}>Reintentar</Button></div>
       : <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Cargando datos actuales…</p>}
-    <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button></DialogFooter>
+    <DialogFooter><Button type="button" variant="outline" size="field" className="h-11 sm:h-9" onClick={onClose}>Cancelar</Button></DialogFooter>
   </div>;
   return <PartidaEditor key={context.target._id} initial={context} partida={partida} onClose={onClose} closeRequestRef={closeRequestRef} />;
 }
@@ -195,8 +195,8 @@ function PartidaEditor({ initial, partida, onClose, closeRequestRef }: {
       {discard ? <div className="shrink-0 border border-border p-3 space-y-3" role="region" aria-label="Cambios pendientes">
         <h3 ref={discardHeading} tabIndex={-1} className="text-sm font-medium">Hay cambios sin guardar</h3>
         <p className="text-sm text-muted-foreground">Al descartarlos, el presupuesto se conserva como está.</p>
-        <DialogFooter><Button type="button" variant="outline" onClick={() => { setDiscard(false); form.setFocus("presupuesto_aprobado"); }}>Seguir editando</Button><Button type="button" onClick={onClose}>Descartar cambios</Button></DialogFooter>
-      </div> : <DialogFooter className="shrink-0"><Button type="button" variant="outline" disabled={saving} onClick={requestClose}>Cancelar</Button><Button type="submit" disabled={!canSave} aria-busy={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{saving ? "Guardando…" : "Actualizar"}</Button></DialogFooter>}
+        <DialogFooter className="gap-2 sm:gap-0"><Button type="button" variant="outline" size="field" className="h-11 sm:h-9" onClick={() => { setDiscard(false); form.setFocus("presupuesto_aprobado"); }}>Seguir editando</Button><Button type="button" size="field" className="h-11 sm:h-9" onClick={onClose}>Descartar cambios</Button></DialogFooter>
+      </div> : <DialogFooter className="shrink-0 gap-2 sm:gap-0"><Button type="button" variant="outline" size="field" className="h-11 sm:h-9" disabled={saving} onClick={requestClose}>Cancelar</Button><Button type="submit" size="field" className="h-11 sm:h-9" disabled={!canSave} aria-busy={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{saving ? "Guardando…" : "Guardar cambios"}</Button></DialogFooter>}
     </form>
   </Form>;
 }

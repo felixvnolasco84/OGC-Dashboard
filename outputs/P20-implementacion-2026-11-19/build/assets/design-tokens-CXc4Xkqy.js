@@ -1,0 +1,1 @@
+const r={surface:"#FFFFFF",background:"#FAFAF8",mutedSurface:"#F5F5F3",border:"#DDDCD8",borderStrong:"#B9B9B4",disabledForeground:"#A3A39E",subtleForeground:"#74746E",mutedForeground:"#63635E",bodyText:"#3D3D3A",foreground:"#282822",inverse:"#181816"};export{r as S};

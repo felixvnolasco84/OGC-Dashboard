@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { mutation } from "./functions";
 import { v } from "convex/values";
+import { getCurrentUserOrThrow, hasAdminAccess, hasGlobalAdminAccess } from "./permissions";
 
 // Helper to calculate pagado for sales_partidas from sales_pagos (only "Pagado" transactions)
 async function calculateSalesPagadoForPartidas(ctx: { db: any }, partidaIds: any[]): Promise<Map<string, number>> {
@@ -277,6 +278,16 @@ export const syncSalesPartidasFromTransactions = mutation({
         salesProjectId: v.id("sales_projects"),
     },
     handler: async (ctx, args) => {
+        const user = await getCurrentUserOrThrow(ctx);
+        if (user.role !== "admin" && user.role !== "user") {
+            throw new Error("No tienes permisos para sincronizar el presupuesto de ventas.");
+        }
+        const project = await ctx.db.get(args.salesProjectId);
+        if (!project) throw new Error("Proyecto de ventas no encontrado.");
+        const hasAccess = hasAdminAccess(user)
+            ? hasGlobalAdminAccess(user) || project.organization_id === user.organization_id
+            : (user.allowed_sales_projects || []).includes(args.salesProjectId);
+        if (!hasAccess) throw new Error("No tienes acceso a este proyecto de ventas.");
         return await syncSalesPartidasInternal(ctx, args.salesProjectId);
     },
 });

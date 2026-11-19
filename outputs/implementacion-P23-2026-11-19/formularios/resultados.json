@@ -1,0 +1,125 @@
+{
+  "errors": [],
+  "checks": [
+    {
+      "width": 1440,
+      "primary": "Crear carpeta",
+      "secondary": "Cancelar",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Crear proveedor",
+      "secondary": "Cancelar",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Guardar proveedor",
+      "secondary": "Cancelar",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cancelar",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Guardando y creando…",
+      "secondary": "Cerrar y conservar intento",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cancelar",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Guardando y creando…",
+      "secondary": "Cerrar y conservar intento",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cancelar",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Guardando y creando…",
+      "secondary": "Cerrar y conservar intento",
+      "height": 36
+    },
+    {
+      "width": 1440,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cerrar y conservar intento",
+      "height": 36
+    },
+    {
+      "width": 390,
+      "primary": "Crear carpeta",
+      "secondary": "Cancelar",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Crear proveedor",
+      "secondary": "Cancelar",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Guardar proveedor",
+      "secondary": "Cancelar",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cancelar",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Guardando y creando…",
+      "secondary": "Cerrar y conservar intento",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cancelar",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Guardando y creando…",
+      "secondary": "Cerrar y conservar intento",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cancelar",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Guardando y creando…",
+      "secondary": "Cerrar y conservar intento",
+      "height": 44
+    },
+    {
+      "width": 390,
+      "primary": "Crear proyecto y guardar Excel",
+      "secondary": "Cerrar y conservar intento",
+      "height": 44
+    }
+  ]
+}

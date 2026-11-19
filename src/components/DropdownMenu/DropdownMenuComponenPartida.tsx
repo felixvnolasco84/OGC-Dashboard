@@ -11,6 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -175,33 +176,13 @@ export default function DropdownMenuComponentPartida({
               size="iconSm"
               data-viewer-readonly-allow="true"
             >
-              <span className="sr-only">Abrir menú</span>
+              <span className="sr-only">Acciones de {level === 1 ? "la familia" : level === 2 ? "la subpartida" : "la partida"}: {rowData.displayName}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={6}>
-            {canEdit && (
-              <>
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={handleOpenEdit}>
-                    <Pencil className="h-4 w-4" />
-                    Editar {labels.title.toLowerCase()}
-                  </DropdownMenuItem>
-                  {currentUser?.role === "admin" && partida.proyecto && (
-                    <DropdownMenuItem onSelect={handleOpenDelete} variant="destructive">
-                      <Trash2 className="h-4 w-4" />
-                      Eliminar {level === 0 ? "partida" : level === 1 ? "familia" : "subpartida"}
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-              </>
-            )}
             <DropdownMenuGroup>
-              <DropdownMenuItem data-viewer-readonly-allow="true" onSelect={() => { setIsMenuOpen(false); window.setTimeout(() => setSourceOpen(true), 100); }}>Excel de origen</DropdownMenuItem>
-              {isRealPartida && <DropdownMenuItem asChild data-viewer-readonly-allow="true">
-                <Link to={`/proyecto/${partida.proyecto}/partidas/${partida._id}`}>Detalle de partida</Link>
-              </DropdownMenuItem>}
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Consultar</DropdownMenuLabel>
               <DropdownMenuItem
                 onSelect={handleViewTransactions}
                 disabled={isLoadingPayments}
@@ -215,7 +196,35 @@ export default function DropdownMenuComponentPartida({
                 )}
                 {isLoadingPayments ? "Cargando..." : level === 2 ? "Ver pagos" : "Ver transacciones"}
               </DropdownMenuItem>
+              <DropdownMenuItem data-viewer-readonly-allow="true" onSelect={() => { setIsMenuOpen(false); window.setTimeout(() => setSourceOpen(true), 100); }}>Excel de origen</DropdownMenuItem>
+              {isRealPartida && <DropdownMenuItem asChild data-viewer-readonly-allow="true">
+                <Link to={`/proyecto/${partida.proyecto}/partidas/${partida._id}`}>Detalle de partida</Link>
+              </DropdownMenuItem>}
             </DropdownMenuGroup>
+            {canEdit && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Editar</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={handleOpenEdit}>
+                    <Pencil className="h-4 w-4" />
+                    Editar {labels.title.toLowerCase()}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                {currentUser?.role === "admin" && partida.proyecto && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Acción destructiva</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={handleOpenDelete} variant="destructive">
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar {level === 0 ? "partida" : level === 1 ? "familia" : "subpartida"}
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>
+                )}
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <DialogContent className="max-w-3xl flex flex-col overflow-hidden">

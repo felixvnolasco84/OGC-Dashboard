@@ -5,7 +5,8 @@ import { createServer } from "vite";
 import { chromium, expect } from "@playwright/test";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const server = await createServer({ configFile: `${root}/e2e/partida-edit/vite.config.ts` });
+const port = Number(process.env.PARTIDA_EDIT_UI_PORT || 4207);
+const server = await createServer({ configFile: `${root}/e2e/partida-edit/vite.config.ts`, cacheDir: `${root}/node_modules/.vite-partida-edit-${port}`, server: { port } });
 await server.listen();
 let browser;
 const errors = [];
@@ -14,12 +15,12 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   await mkdir(output, { recursive: true });
   const open = async (page, scenario = "", level = "leaf") => {
-    await page.goto(`http://127.0.0.1:4207/e2e/partida-edit/preview.html${scenario ? `?case=${scenario}` : ""}`);
+    await page.goto(`http://127.0.0.1:${port}/e2e/partida-edit/preview.html${scenario ? `?case=${scenario}` : ""}`);
     if (["leaf", "family", "empty"].includes(level)) await page.getByRole("button", { name: "Expandir OBRA", exact: true }).click();
     if (level === "leaf") await page.getByRole("button", { name: "Expandir ACERO", exact: true }).click();
     const name = level === "root" ? "OBRA" : level === "family" ? "ACERO" : level === "empty" ? "OTROS" : "VARILLA";
     const row = page.getByRole("row").filter({ has: page.getByText(name, { exact: true }) });
-    await row.getByRole("button", { name: "Abrir menú", exact: true }).click();
+    await row.getByRole("button", { name: /^Acciones de la / }).click();
     await page.getByRole("menuitem", { name: /^Editar / }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     if (scenario !== "denied") await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toBeVisible();
@@ -33,7 +34,7 @@ try {
   };
   const edit = async (page, value = "500") => {
     await fillApproved(page, value);
-    await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
   };
   const discard = async page => {
     await page.getByRole("button", { name: "Cancelar", exact: true }).click();
@@ -46,8 +47,8 @@ try {
     const page = await browser.newPage({ viewport: { width, height } });
     page.on("pageerror", error => errors.push(error.message));
     await open(page, "usd");
-    await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeDisabled();
-    await page.screenshot({ path: `${output}/form-${width}.png`, fullPage: false });
+    await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeDisabled();
+    await page.screenshot({ path: `${output}/form-${width}.png`, fullPage: false, animations: "disabled" });
     await edit(page);
     const review = page.getByRole("region", { name: "Comparación de impacto" });
     await expect(review).toContainText("USD");
@@ -58,8 +59,11 @@ try {
     await review.getByRole("heading", { name: "Total del proyecto", exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/totals-${width}.png`, fullPage: false });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `Horizontal overflow at ${width}`);
-    const footer = await page.getByRole("button", { name: "Actualizar", exact: true }).boundingBox();
+    const footer = await page.getByRole("button", { name: "Guardar cambios", exact: true }).boundingBox();
     assert.ok(footer && footer.y + footer.height <= height, `Footer visible at ${width}`);
+    assert.equal(footer.height, width < 640 ? 44 : 36, `Responsive save target at ${width}`);
+    const cancel = await page.getByRole("button", { name: "Cancelar", exact: true }).boundingBox();
+    assert.equal(cancel.height, footer.height, `Consistent footer controls at ${width}`);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("heading", { name: "Hay cambios sin guardar", exact: true })).toBeFocused();
     await page.getByRole("button", { name: "Seguir editando", exact: true }).click();
@@ -67,7 +71,7 @@ try {
     await discard(page);
     assert.equal(await page.evaluate(() => window.partidaEditRecorded.writes), 0);
     // Reopen through the actual table/dropdown without reloading the fixture.
-    await page.getByRole("row").filter({ has: page.getByText("VARILLA", { exact: true }) }).getByRole("button", { name: "Abrir menú", exact: true }).click();
+    await page.getByRole("row").filter({ has: page.getByText("VARILLA", { exact: true }) }).getByRole("button", { name: /^Acciones de la / }).click();
     await page.getByRole("menuitem", { name: /^Editar / }).click();
     await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue("400.00");
     await page.getByRole("button", { name: "Cancelar", exact: true }).click();
@@ -75,8 +79,9 @@ try {
 
     await open(page, "", "leaf"); await edit(page, "0");
     await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("queda negativo");
-    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+    await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
     await expect(page.getByRole("button", { name: "Guardando…", exact: true })).toBeDisabled();
+    await page.screenshot({ path: `${output}/saving-${width}.png`, fullPage: false });
     await page.keyboard.press("Enter"); await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -88,16 +93,16 @@ try {
     await page.screenshot({ path: `${output}/success-${width}.png`, fullPage: false });
 
     await open(page, "conflict"); await edit(page);
-    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+    await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("cambió después");
     await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue(/500(?:\.00)?/);
     await page.getByRole("alert").scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/conflict-${width}.png`, fullPage: false });
-    await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeDisabled();
     assert.equal(await page.evaluate(() => window.partidaEditRecorded.writes), 0);
     await page.getByRole("button", { name: "Actualizar revisión", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
-    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await page.close();
   }
@@ -106,7 +111,7 @@ try {
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 320, height: 640 });
   await open(page); await edit(page);
-  const smallFooter = await page.getByRole("button", { name: "Actualizar", exact: true }).boundingBox();
+  const smallFooter = await page.getByRole("button", { name: "Guardar cambios", exact: true }).boundingBox();
   assert.ok(smallFooter && smallFooter.y + smallFooter.height <= 640, "Footer visible on a short mobile viewport");
   await discard(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -124,9 +129,9 @@ try {
     await original.focus();
     await original.press("ControlOrMeta+A");
     await original.fill("0");
-    await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
     await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue(approved);
-    await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+    await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     const changes = await page.evaluate(() => window.partidaEditRecorded.mutations[0].args.changes);
     assert.deepEqual(changes, { presupuesto_original: 0 });
@@ -134,7 +139,7 @@ try {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width < 500 ? 844 : 1000 });
     for (const withChildren of [false, true]) {
-      await page.goto("http://127.0.0.1:4207/e2e/partida-edit/preview.html");
+      await page.goto(`http://127.0.0.1:${port}/e2e/partida-edit/preview.html`);
       await page.getByRole("button", { name: "Nueva partida de prueba", exact: true }).click();
       const dialog = page.getByRole("dialog");
       await dialog.getByRole("button", { name: "Agregar Partida", exact: true }).click();
@@ -173,16 +178,16 @@ try {
   await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("Los filtros de la tabla no limitan");
   await discard(page);
   await open(page); await page.getByLabel("Subpartida", { exact: true }).fill("VARILLA NUEVA");
-  await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
   await expect(page.getByRole("region", { name: "Comparación de impacto" })).toContainText("1 detalle de Programa cambiará");
   await page.getByLabel("Subpartida", { exact: true }).fill(" MÁLLA ");
   await expect(page.getByRole("alert")).toContainText("equivalente");
-  await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeDisabled();
   await discard(page);
   await open(page); await page.getByLabel("Cantidad", { exact: true }).fill("");
-  await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeDisabled();
   await page.getByLabel("Cantidad", { exact: true }).fill("3.14");
-  await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
   await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue("400.00");
   await discard(page);
   for (const kind of ["preview-error", "save-error"]) {
@@ -191,9 +196,9 @@ try {
       await fillApproved(page, "500");
       await expect(page.getByRole("alert")).toContainText("consultar");
       await page.getByRole("button", { name: "Reintentar revisión", exact: true }).click();
-      await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+      await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
     } else {
-      await edit(page); await page.getByRole("button", { name: "Actualizar", exact: true }).click();
+      await edit(page); await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
       await expect(page.getByRole("alert")).toContainText("No se pudo guardar");
       await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue(/500(?:\.00)?/);
       await page.getByRole("alert").scrollIntoViewIfNeeded();
@@ -205,7 +210,7 @@ try {
   await page.evaluate(() => window.dispatchEvent(new Event("partida-edit-change")));
   await expect(page.getByRole("alert")).toContainText("cambió mientras");
   await page.getByRole("button", { name: "Actualizar revisión", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Actualizar", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Guardar cambios", exact: true })).toBeEnabled();
   await expect(page.getByLabel("Presupuesto aprobado", { exact: true })).toHaveValue(/500(?:\.00)?/);
   await expect(page.getByLabel("Cantidad", { exact: true })).toHaveValue("7");
   await expect(page.getByLabel("Subpartida", { exact: true })).toHaveValue("RENOMBRE EXTERNO");
@@ -219,11 +224,11 @@ try {
   await discard(page);
   await open(page, "denied");
   await expect(page.getByRole("alert")).toContainText("No tienes permiso");
-  assert.equal(await page.getByRole("button", { name: "Actualizar", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Guardar cambios", exact: true }).count(), 0);
   await page.getByRole("button", { name: "Cancelar", exact: true }).click();
   for (const role of ["viewer", "almacenista"]) {
-    await page.goto(`http://127.0.0.1:4207/e2e/partida-edit/preview.html?case=${role}`);
-    await page.getByRole("button", { name: "Abrir menú", exact: true }).first().click();
+    await page.goto(`http://127.0.0.1:${port}/e2e/partida-edit/preview.html?case=${role}`);
+    await page.getByRole("button", { name: /^Acciones de la / }).first().click();
     await expect(page.getByRole("menuitem", { name: /^Editar / })).toHaveCount(0);
   }
   await page.close();
