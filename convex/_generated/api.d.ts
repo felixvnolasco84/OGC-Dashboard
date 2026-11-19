@@ -39,6 +39,7 @@ import type * as desarrollos from "../desarrollos.js";
 import type * as documentos from "../documentos.js";
 import type * as feeConceptRules from "../feeConceptRules.js";
 import type * as feeConceptValidators from "../feeConceptValidators.js";
+import type * as fileStorageUtils from "../fileStorageUtils.js";
 import type * as files from "../files.js";
 import type * as functions from "../functions.js";
 import type * as honorariosRules from "../honorariosRules.js";
@@ -183,6 +184,7 @@ declare const fullApi: ApiFromModules<{
   documentos: typeof documentos;
   feeConceptRules: typeof feeConceptRules;
   feeConceptValidators: typeof feeConceptValidators;
+  fileStorageUtils: typeof fileStorageUtils;
   files: typeof files;
   functions: typeof functions;
   honorariosRules: typeof honorariosRules;

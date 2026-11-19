@@ -189,6 +189,10 @@ function applyVisibilityProfile(
   }
 
   if (profile === "contractor") {
+    for (const row of result.program.activities ?? []) {
+      row.approved_budget = null;
+      row.financial_progress_percent = null;
+    }
     result.financial = {
       original_budget: 0,
       approved_budget: 0,

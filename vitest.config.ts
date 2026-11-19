@@ -27,6 +27,7 @@ export default defineConfig({
       "convex/programaObraImportHistory.test.mjs",
       "convex/reportLogbook.test.mjs",
       "convex/reportingRules.test.mjs",
+      "convex/reportProgram.test.mjs",
       "convex/pnl.test.mjs",
       "convex/projectFeeImpact.test.mjs",
       "convex/presupuesto.test.mjs",

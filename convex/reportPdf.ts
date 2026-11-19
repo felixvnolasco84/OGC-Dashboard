@@ -234,7 +234,6 @@ export function getProgramDisplayWindow(asOf: string) {
 function selectProgramActivities(
   activities: ReportProgramActivity[],
   asOf: string,
-  limit = 12,
 ) {
   const { start, endExclusive } = getProgramDisplayWindow(asOf);
   return activities
@@ -244,10 +243,10 @@ function selectProgramActivities(
       const activityEnd = Date.parse(`${activity.end}T00:00:00Z`);
       return Number.isFinite(activityStart)
         && Number.isFinite(activityEnd)
+        && activityEnd >= activityStart
         && activityStart < endExclusive
         && activityEnd >= start;
-    })
-    .slice(0, limit);
+    });
 }
 
 function drawGantt(
@@ -1503,19 +1502,73 @@ function normalizedLabel(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
+const PROGRAM_MATRIX_Y = 40.5;
+const PROGRAM_HEADER_HEIGHT = 9.5;
+const PROGRAM_ROW_HEIGHT = 5.2;
+const PROGRAM_NARRATIVE_GAP = 7;
+const PROGRAM_PAGE_BOTTOM = PAGE_HEIGHT - MARGIN;
+const programMatrixHeight = (rows: ReportProgramActivity[]) =>
+  Math.max(72, PROGRAM_HEADER_HEIGHT + rows.length * PROGRAM_ROW_HEIGHT);
+
+/** Fill the available sheet while retaining the imported hierarchy and order. */
+export function paginateProgramActivities(doc: jsPDF, activities: ReportProgramActivity[], asOf: string) {
+  const visible = new Set(selectProgramActivities(activities, asOf));
+  const groups: Array<{ parent: ReportProgramActivity | null; children: ReportProgramActivity[] }> = [];
+  for (const activity of activities) {
+    if (activity.level === 1) groups.push({ parent: activity, children: [] });
+    else {
+      if (!groups.length) groups.push({ parent: null, children: [] });
+      if (visible.has(activity)) groups[groups.length - 1].children.push(activity);
+    }
+  }
+  const pages: Array<{ rows: ReportProgramActivity[]; matrixHeight: number; bullets: string[]; narrativeHeight: number }> = [];
+  const layout = (rows: ReportProgramActivity[]) => {
+    const bullets = programNarrative(rows);
+    return { rows, bullets, matrixHeight: programMatrixHeight(rows), narrativeHeight: measureBulletedNarrativeCard(doc, bullets).height };
+  };
+  const fits = (rows: ReportProgramActivity[]) => {
+    const measured = layout(rows);
+    return PROGRAM_MATRIX_Y + measured.matrixHeight + PROGRAM_NARRATIVE_GAP + measured.narrativeHeight <= PROGRAM_PAGE_BOTTOM;
+  };
+  let current: ReportProgramActivity[] = [];
+  const flush = () => {
+    if (current.length) pages.push(layout(current));
+    current = [];
+  };
+  for (const group of groups) {
+    if (!group.children.length && (!group.parent || !visible.has(group.parent))) continue;
+    if (group.parent) {
+      // A parent must fit together with at least its first visible child.
+      const firstRows = [group.parent, ...group.children.slice(0, 1)];
+      if (!fits([...current, ...firstRows])) flush();
+      current.push(group.parent);
+    }
+    for (const child of group.children) {
+      if (!fits([...current, child])) {
+        flush();
+        // Repeat the partida when its families continue on the next sheet.
+        if (group.parent) current.push(group.parent);
+      }
+      current.push(child);
+    }
+  }
+  flush();
+  if (!pages.length) pages.push(layout([]));
+  return pages;
+}
+
 function drawProgramMatrix(
   doc: jsPDF,
   snapshot: ReportSnapshotV1,
-  activities: ReportProgramActivity[],
+  rows: ReportProgramActivity[],
   y: number,
 ) {
-  const rows = selectProgramActivities(activities, snapshot.period.end);
-  const height = 72;
+  const height = programMatrixHeight(rows);
   const tableWidth = 50;
   const valueWidth = 14;
   const chartX = MARGIN + tableWidth;
   const chartWidth = CONTENT_WIDTH - tableWidth;
-  const headerHeight = 9.5;
+  const headerHeight = PROGRAM_HEADER_HEIGHT;
   const rowHeight = (height - headerHeight) / Math.max(1, rows.length);
 
   doc.setFillColor(...COLORS.white);
@@ -1620,8 +1673,12 @@ function drawProgramMatrix(
     doc.setTextColor(...COLORS.text);
     doc.text(value, MARGIN + tableWidth - 1.5, rowY + rowHeight * 0.63, { align: "right" });
 
-    const clippedStart = Math.max(minTime, Date.parse(`${activity.start}T00:00:00Z`));
-    const clippedEnd = Math.min(maxTime, Date.parse(`${activity.end}T00:00:00Z`));
+    const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
+    const activityEnd = Date.parse(`${activity.end}T00:00:00Z`);
+    // A repeated context parent can have dates outside the displayed window.
+    if (!Number.isFinite(activityStart) || !Number.isFinite(activityEnd) || activityEnd < activityStart || activityStart >= maxTime || activityEnd < minTime) return;
+    const clippedStart = Math.max(minTime, activityStart);
+    const clippedEnd = Math.min(maxTime, activityEnd);
     const barX = dateToX(clippedStart);
     const endX = dateToX(clippedEnd);
     const barWidth = Math.max(0.9, endX - barX);
@@ -1699,13 +1756,18 @@ function programNarrative(activities: ReportProgramActivity[]) {
   });
 }
 
-function drawBulletedNarrativeCard(doc: jsPDF, y: number, bullets: string[]) {
+function measureBulletedNarrativeCard(doc: jsPDF, bullets: string[]) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.2);
-  const wrapped = bullets.map((bullet) => doc.splitTextToSize(bullet, CONTENT_WIDTH - 19).slice(0, 3));
+  const wrapped: string[][] = bullets.map((bullet) => doc.splitTextToSize(bullet, CONTENT_WIDTH - 19).slice(0, 3));
   const lineHeight = 3.9;
   const contentHeight = wrapped.reduce((sum, lines) => sum + Math.max(1, lines.length) * lineHeight + 1.4, 0);
   const height = Math.min(72, Math.max(30, contentHeight + 7));
+  return { wrapped, lineHeight, height };
+}
+
+function drawBulletedNarrativeCard(doc: jsPDF, y: number, bullets: string[]) {
+  const { wrapped, lineHeight, height } = measureBulletedNarrativeCard(doc, bullets);
   outlineCard(doc, MARGIN, y, CONTENT_WIDTH, height);
   let textY = y + 7.2;
   wrapped.forEach((lines) => {
@@ -1718,12 +1780,14 @@ function drawBulletedNarrativeCard(doc: jsPDF, y: number, bullets: string[]) {
   return height;
 }
 
-function drawProgramPage(doc: jsPDF, snapshot: ReportSnapshotV1, activities: ReportProgramActivity[]) {
-  paintWhitePage(doc, true);
-  portraitSectionTitle(doc, "Programa de obra - avance por concepto", 31.5);
-  const visibleActivities = selectProgramActivities(activities, snapshot.period.end);
-  const matrixHeight = drawProgramMatrix(doc, snapshot, activities, 40.5);
-  drawBulletedNarrativeCard(doc, 40.5 + matrixHeight + 7, programNarrative(visibleActivities));
+function drawProgramPages(doc: jsPDF, snapshot: ReportSnapshotV1, activities: ReportProgramActivity[]) {
+  const pages = paginateProgramActivities(doc, activities, snapshot.period.end);
+  pages.forEach((page, index) => {
+    paintWhitePage(doc, true);
+    portraitSectionTitle(doc, `Programa de obra - avance por concepto${index ? ` - continuación ${index + 1}` : ""}`, 31.5);
+    const matrixHeight = drawProgramMatrix(doc, snapshot, page.rows, PROGRAM_MATRIX_Y);
+    drawBulletedNarrativeCard(doc, PROGRAM_MATRIX_Y + matrixHeight + PROGRAM_NARRATIVE_GAP, page.bullets);
+  });
 }
 
 function drawImageCover(
@@ -2064,7 +2128,7 @@ export async function renderReportPdf(
   }
 
   if (selected(sections, "program")) {
-    drawProgramPage(doc, snapshot, activities);
+    drawProgramPages(doc, snapshot, activities);
   }
 
   if (selected(sections, "logbook")) {
