@@ -6,6 +6,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { assertCanWrite, checkDesarrolloAccess, getCurrentUserOrThrow } from "./permissions";
 import { LABOR_IMPORT_ATTEMPT_TIMEOUT, LABOR_IMPORT_MAX_BYTES, laborImportSourceValidator } from "./laborImportValidators";
+import { storageHashMatches } from "./fileStorageUtils";
 
 async function assertProjectAccess(ctx: QueryCtx | MutationCtx, proyecto: Id<"desarrollos">) {
   await getCurrentUserOrThrow(ctx);
@@ -29,7 +30,7 @@ export async function writableAttempt(ctx: MutationCtx, id: Id<"labor_payment_im
 export async function assertAttemptFile(ctx: QueryCtx | MutationCtx, attempt: Doc<"labor_payment_import_attempts">) {
   const metadata = attempt.storage_id ? await ctx.db.system.get(attempt.storage_id) : null;
   if (!metadata) throw new Error("Archivo original no disponible. Guarda el Excel antes de importar.");
-  if (metadata.sha256.toLowerCase() !== attempt.source.file_hash || metadata.size !== attempt.size) {
+  if (!storageHashMatches(metadata.sha256, attempt.source.file_hash) || metadata.size !== attempt.size) {
     throw new Error("El archivo guardado no coincide con el Excel validado.");
   }
   return metadata;
@@ -75,7 +76,7 @@ export const startAttempt = mutation({
       for await (const candidate of candidates) {
         if (!candidate.storage_id || candidate.size !== args.size) continue;
         const metadata = await ctx.db.system.get(candidate.storage_id);
-        if (metadata?.sha256.toLowerCase() === source.file_hash && metadata.size === args.size) {
+        if (metadata && storageHashMatches(metadata.sha256, source.file_hash) && metadata.size === args.size) {
           storageId = candidate.storage_id;
           break;
         }

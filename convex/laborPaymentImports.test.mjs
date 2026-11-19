@@ -14,11 +14,10 @@ const rowCounts = [5, 5, 4, 4, 1, 2, 6, 1, 6, 1, 9, 16];
 const transactionCounts = [1, 1, 1, 1, 1, 2, 3, 1, 3, 1, 3, 4];
 
 async function storeFile(test, file) {
-  const hash = createHash("sha256").update(new Uint8Array(await file.arrayBuffer())).digest("hex");
   return test.run(async ctx => {
     const id = await ctx.storage.store(file);
-    // convex-test 0.0.41 uses base64 and omits MIME; the real _storage API returns hex.
-    await ctx.db.patch(id, { sha256: hash, contentType: file.type });
+    // Preserve Storage's checksum encoding; only supply MIME omitted by convex-test.
+    await ctx.db.patch(id, { contentType: file.type });
     return id;
   });
 }
@@ -358,6 +357,22 @@ describe("original Excel backups and import audit", () => {
     expect(sources.page[0].file_available).toBe(true);
   });
 
+  it.each(["hex", "uppercase hex"])("attaches, confirms, downloads and reuses originals with %s Storage checksums", async encoding => {
+    const f = await fixture();
+    const input = f.args("a", [1]);
+    const prepared = await f.prepare(input, { attach: false });
+    const storageId = await storeFile(f.test, prepared.file);
+    const hash = prepared.startArgs.source.file_hash;
+    await f.test.run(ctx => ctx.db.patch(storageId, { sha256: encoding === "hex" ? hash : hash.toUpperCase() }));
+    await f.writer.mutation(api.laborImportHistory.attachFile, { attempt_id: prepared.attempt_id, storage_id: storageId });
+    expect(await confirm(f, prepared)).toMatchObject({ status: "created" });
+    expect((await f.writer.query(api.laborImportHistory.getDownloadUrl, { attempt_id: prepared.attempt_id })).url).toBeTruthy();
+    const repeated = await f.prepare(input);
+    expect(repeated.started.upload_url).toBeNull();
+    expect((await getAttempt(f, repeated.attempt_id)).storage_id).toBe(storageId);
+    expect(await confirm(f, repeated)).toMatchObject({ status: "unchanged" });
+  });
+
   it("reuses the request and its committed result without duplicating audit items or financial data", async () => {
     const f = await fixture();
     const request_id = randomUUID();
@@ -442,12 +457,18 @@ describe("original Excel backups and import audit", () => {
     expect(history.page[0].file_available).toBe(false);
   });
 
-  it.each(["hash", "size"])("rejects a stored file with the wrong %s before any financial write", async mismatch => {
+  it.each(["hash", "size", "Base64 case", "invalid hash"])("rejects a stored file with the wrong %s before any financial write", async mismatch => {
     const f = await fixture();
     const prepared = await f.prepare(f.args("a", [1]), { attach: false });
     const file = mismatch === "hash" ? new Blob([new Uint8Array(prepared.file.size)]) : prepared.file;
     const storageId = await storeFile(f.test, file);
     if (mismatch === "size") await f.test.run(ctx => ctx.db.patch(prepared.attempt_id, { size: prepared.file.size + 1 }));
+    if (mismatch === "Base64 case") {
+      const hash = createHash("sha256").update(new Uint8Array(await file.arrayBuffer())).digest("base64");
+      await f.test.run(ctx => ctx.db.patch(storageId, { sha256: hash.replace(/[A-Za-z]/, letter =>
+        letter === letter.toUpperCase() ? letter.toLowerCase() : letter.toUpperCase()) }));
+    }
+    if (mismatch === "invalid hash") await f.test.run(ctx => ctx.db.patch(storageId, { sha256: "!".repeat(43) + "=" }));
     const before = await f.snapshot();
     await expect(f.writer.mutation(api.laborImportHistory.attachFile, { attempt_id: prepared.attempt_id, storage_id: storageId })).rejects.toThrow(/no coincide/);
     expect((await getAttempt(f, prepared.attempt_id)).storage_id).toBeUndefined();
