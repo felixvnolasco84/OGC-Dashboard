@@ -1,0 +1,68 @@
+[
+  {
+    "case": "Menú por teclado, Escape y navegación standalone",
+    "result": "Abre con flecha, cierra con Escape, devuelve foco al trigger, navega a /proyecto/project/rfis/rfi/editar sin mutations."
+  },
+  {
+    "case": "Revisión y pestañas",
+    "result": "El diálogo se abre sin mutations; edición deshabilitada durante revisión; estado visible en General, Respuestas e Historial."
+  },
+  {
+    "case": "Revisión desactualizada y confirmación única",
+    "requests": 1,
+    "name": "rfis:openRfi",
+    "id": "rfi",
+    "expectedReviewMatches": true
+  },
+  {
+    "case": "Precondiciones y foco",
+    "result": "Sin asignados o sin fecha: confirmar deshabilitado y ninguna mutation. Cancelar devuelve foco a Cambiar a abierta; confirmar devuelve foco a cabecera si desaparece el trigger."
+  },
+  {
+    "case": "Busy y error embedded",
+    "result": "Escape no cierra durante la mutation; confirmar, cancelar y edición quedan deshabilitados. Error mantiene revisión, enfoca alerta y registra una sola llamada. Cancelar conserva Sheet y estado pendiente."
+  },
+  {
+    "case": "Integración con listado real",
+    "result": "El Sheet de RFIListPage abre detalle y el menú invoca el editor embedded real; menú desmontado, ruta conservada y cero mutations. RFIListPage y fixtures de P12 no se modificaron."
+  },
+  {
+    "case": "Permisos y estados",
+    "result": "Sin permisos: sin menú ni transición. Borrador: Enviar a revisión y Eliminar borrador con confirmación conservados; cancelar no escribe. Abierta vencida: muestra Abierta + Seguimiento Vencida; conserva Marcar oficial y Publicar respuesta. Cerrada: conserva Reabrir, sin Cambiar a abierta ni menú de edición."
+  },
+  {
+    "case": "Permisos independientes",
+    "result": "Al revocar únicamente can_edit desaparece el menú completo y Cambiar a abierta sigue visible; ninguna mutation."
+  },
+  {
+    "case": "Responsive",
+    "result": "Cabecera sin desbordamiento en 1440×1000, 1024×1000 y 390×844 CSS. Se compensó la escala de pantalla de 1.1 al configurar el viewport; tamaños comprobados mediante DOM.",
+    "sizes": [
+      {
+        "headerScrollWidth": 535,
+        "headerWidth": 535,
+        "height": 1000,
+        "pageScrollWidth": 1440,
+        "width": 1440
+      },
+      {
+        "headerScrollWidth": 535,
+        "headerWidth": 535,
+        "height": 1000,
+        "pageScrollWidth": 1024,
+        "width": 1024
+      },
+      {
+        "headerScrollWidth": 327,
+        "headerWidth": 327,
+        "height": 844,
+        "pageScrollWidth": 390,
+        "width": 390
+      }
+    ]
+  },
+  {
+    "case": "Aplicación autenticada",
+    "result": "Detalle RFI-003 de Lote 77 inspeccionado en sesión real: etiqueta Cambiar a abierta, menú Editar RFI y estado persistente en Historial. No se ejecutaron transiciones, edición, respuestas, cargas ni borrado; sólo consulta y navegación (se conserva el marcado de lectura existente)."
+  }
+]

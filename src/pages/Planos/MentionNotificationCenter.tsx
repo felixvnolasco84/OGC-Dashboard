@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "react-router";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -35,19 +35,40 @@ function formatDateTime(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
-export default function MentionNotificationCenter({
-  projectId,
-  compact,
-  iconOnly,
-}: {
+export type MentionNotificationTrigger = {
+  onOpen: () => void;
+  unreadCount: number | undefined;
+  triggerRef: RefObject<HTMLButtonElement>;
+};
+
+type MentionNotificationCenterProps = {
   projectId?: Id<"desarrollos">;
   compact?: boolean;
   iconOnly?: boolean;
-}) {
+  renderTrigger?: (trigger: MentionNotificationTrigger) => ReactNode;
+};
+
+export default function MentionNotificationCenter(props: MentionNotificationCenterProps) {
+  // Scope changes close the old sheet and reset its read attempts and trigger.
+  return <ScopedMentionNotificationCenter key={props.projectId ?? "global"} {...props} />;
+}
+
+function ScopedMentionNotificationCenter({
+  projectId,
+  compact,
+  iconOnly,
+  renderTrigger,
+}: MentionNotificationCenterProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
   const markAttemptedRef = useRef(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const scopeActiveRef = useRef(false);
+  useEffect(() => {
+    scopeActiveRef.current = true;
+    return () => { scopeActiveRef.current = false; };
+  }, []);
   const prepareList = useBackgroundReady();
   const notifications = useQuery(
     api.planos.getMentionNotifications,
@@ -74,18 +95,19 @@ export default function MentionNotificationCenter({
     void (async () => {
       let hasMore = true;
       let batches = 0;
-      while (hasMore && batches < 20) {
+      while (hasMore && batches < 20 && scopeActiveRef.current) {
         const result = await markRead(projectId ? { proyecto: projectId } : {});
         hasMore = result.has_more;
         batches += 1;
       }
-      if (hasMore) {
+      if (hasMore && scopeActiveRef.current) {
         toast.info(
           "Se marcaron las menciones más recientes; todavía existe historial pendiente.",
         );
       }
     })()
       .catch((error: unknown) => {
+        if (!scopeActiveRef.current) return;
         markAttemptedRef.current = false;
         toast.error(
           error instanceof Error
@@ -93,7 +115,7 @@ export default function MentionNotificationCenter({
             : "No fue posible marcar las menciones como leídas",
         );
       })
-      .finally(() => setMarkingRead(false));
+      .finally(() => { if (scopeActiveRef.current) setMarkingRead(false); });
   }, [markRead, open, projectId, unreadCount]);
 
   const openNotification = (notification: PlanoMentionNotification) => {
@@ -121,7 +143,8 @@ export default function MentionNotificationCenter({
 
   return (
     <>
-      <Button
+      {renderTrigger ? renderTrigger({ onOpen: () => setOpen(true), unreadCount, triggerRef }) : <Button
+        ref={triggerRef}
         type="button"
         variant="outline"
         onClick={() => setOpen(true)}
@@ -148,10 +171,17 @@ export default function MentionNotificationCenter({
             {(unreadCount || 0) > 9 ? "9+" : unreadCount}
           </span>
         )}
-      </Button>
+      </Button>}
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+        <SheetContent
+          className="w-full overflow-y-auto sm:max-w-md"
+          onCloseAutoFocus={(event) => {
+            if (!triggerRef.current) return;
+            event.preventDefault();
+            triggerRef.current.focus();
+          }}
+        >
           <SheetHeader>
             <div className="flex items-start justify-between gap-4 pr-8">
               <div>

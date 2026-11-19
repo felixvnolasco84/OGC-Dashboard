@@ -1,11 +1,9 @@
 import { useEffect, useRef } from "react";
-import { NEXT_STATE, RFI_ACTION_LABELS, rfiActionBlocked, type RfiAction, type RfiConfirmation, type RfiDetail } from "./rfiActionReviewModel";
+import { NEXT_STATE, RFI_ACTION_LABELS, RFI_WORKFLOW_LABELS, rfiActionBlocked, type RfiAction, type RfiConfirmation, type RfiDetail } from "./rfiActionReviewModel";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { formatRfiDate, formatRfiDateTime, formatRfiDueDistance } from "./rfiUi";
-
-const STATES: Record<string, string> = { draft: "Borrador", pending_manager_review: "Pendiente de revisión", open: "Abierta", closed: "Cerrada (Resuelto)" };
 
 export function RfiReviewSummary({ detail, action }: { detail: RfiDetail; action: RfiAction }) {
   const rfi = detail.rfi;
@@ -13,7 +11,7 @@ export function RfiReviewSummary({ detail, action }: { detail: RfiDetail; action
   return (
     <div className="space-y-3 rounded-[4px] border border-border bg-background p-4 text-sm [overflow-wrap:anywhere]">
       <p className="font-medium">{rfi.code} · {rfi.subject}</p>
-      <p><span className="text-muted-foreground">Estado: </span>{STATES[rfi.status]} → <strong className="font-medium">{STATES[NEXT_STATE[action]]}</strong>{action === "official" && " · Se conserva"}</p>
+      <p><span className="text-muted-foreground">Estado: </span>{RFI_WORKFLOW_LABELS[rfi.status]} → <strong className="font-medium">{RFI_WORKFLOW_LABELS[NEXT_STATE[action]]}</strong>{action === "official" && " · Se conserva"}</p>
       {action === "submit" && <p>Quedará pendiente de revisión de {rfi.manager?.name || "una persona responsable por seleccionar"}. Podrá seguir editándose con los permisos actuales; ya no podrá eliminarse como borrador.</p>}
       {action === "open" && <>
         <dl className="grid gap-3 sm:grid-cols-2">

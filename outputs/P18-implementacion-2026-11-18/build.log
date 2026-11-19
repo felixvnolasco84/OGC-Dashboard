@@ -1,0 +1,215 @@
+
+> epi-group-react-vite@0.0.0 build
+> tsc -b && vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 3675 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/manifest.webmanifest                                            0.31 kB
+dist/index.html                                                      1.00 kB │ gzip:   0.54 kB
+dist/assets/HelveticaNeueMediumItalic-Bl5YIAyI.woff2                57.77 kB
+dist/assets/HelveticaNeueThinItalic-DwOkg1VI.woff2                  69.27 kB
+dist/.vite/manifest.json                                            73.52 kB │ gzip:   8.27 kB
+dist/assets/HelveticaNeueUltraLightItalic-IwmkWZPd.woff2            74.37 kB
+dist/assets/HelveticaNeueLightItalic-Co39Gl4B.woff2                 76.76 kB
+dist/assets/HelveticaNeueMedium-CvSkDtT4.woff2                      92.30 kB
+dist/assets/HelveticaNeueUltraLight-DznH1Su_.woff2                  96.90 kB
+dist/assets/HelveticaNeueLight-DmMSO1G8.woff2                      100.20 kB
+dist/assets/HelveticaNeueThin-_0QGwHMD.woff2                       105.81 kB
+dist/assets/HelveticaNeueItalic-B8W3LefX.woff2                     107.85 kB
+dist/assets/HelveticaNeueBoldItalic-Cu2p2s_H.woff2                 197.14 kB
+dist/assets/HelveticaNeueBold-4VTgTDj5.woff2                       200.39 kB
+dist/assets/HelveticaNeueHeavy-DEwYMjAX.woff2                      201.88 kB
+dist/assets/HelveticaNeueBlack-BQ8RHQD8.woff2                      203.70 kB
+dist/assets/HelveticaNeueRoman-ChPlQO7p.woff2                      206.04 kB
+dist/assets/HelveticaNeueHeavyItalic-ns-kvpFJ.woff2                214.62 kB
+dist/assets/HelveticaNeueBlackItalic-B4CDQZJ2.woff2                215.79 kB
+dist/assets/pdf.worker.min-DEtVeC4l.mjs                          1,255.07 kB
+dist/assets/index-Dllf6ja_.css                                     151.05 kB │ gzip:  24.57 kB
+dist/assets/providerRules-LqCrrhaq.js                                0.07 kB │ gzip:   0.09 kB
+dist/assets/Legales-CX_M0Jt7.js                                      0.21 kB │ gzip:   0.19 kB
+dist/assets/AvisoPrivacidad-Bu_2I-TJ.js                              0.21 kB │ gzip:   0.19 kB
+dist/assets/transactionConcept-DP_lcRqu.js                           0.23 kB │ gzip:   0.18 kB
+dist/assets/extends-CF3RwP-h.js                                      0.23 kB │ gzip:   0.19 kB
+dist/assets/ProyectoTareasPage-DqmoBcVw.js                           0.25 kB │ gzip:   0.22 kB
+dist/assets/design-tokens-CXc4Xkqy.js                                0.27 kB │ gzip:   0.20 kB
+dist/assets/responsive-currency-DK1K32NI.js                          0.28 kB │ gzip:   0.21 kB
+dist/assets/chevron-up-DqgQoJ8L.js                                   0.30 kB │ gzip:   0.25 kB
+dist/assets/chevron-down-CyzZKd0E.js                                 0.30 kB │ gzip:   0.25 kB
+dist/assets/chevron-left-CYU0-bKT.js                                 0.30 kB │ gzip:   0.25 kB
+dist/assets/filter-DMP5M17G.js                                       0.34 kB │ gzip:   0.27 kB
+dist/assets/arrow-right-BBLpVyVz.js                                  0.34 kB │ gzip:   0.27 kB
+dist/assets/search-D5rClmUa.js                                       0.35 kB │ gzip:   0.28 kB
+dist/assets/circle-check-DLH4MFwZ.js                                 0.35 kB │ gzip:   0.28 kB
+dist/assets/clock-3-DjmSuZg3.js                                      0.36 kB │ gzip:   0.28 kB
+dist/assets/circle-check-big-BvNhQ9KS.js                             0.37 kB │ gzip:   0.29 kB
+dist/assets/trending-up-DfliDPId.js                                  0.38 kB │ gzip:   0.29 kB
+dist/assets/info-DEXmsFQJ.js                                         0.38 kB │ gzip:   0.29 kB
+dist/assets/circle-x-BjuzL9sY.js                                     0.38 kB │ gzip:   0.29 kB
+dist/assets/credit-card-DNzzQEml.js                                  0.38 kB │ gzip:   0.30 kB
+dist/assets/lock-D5IaW0Ed.js                                         0.38 kB │ gzip:   0.30 kB
+dist/assets/unsupportedIterableToArray-CJNtVYa-.js                   0.39 kB │ gzip:   0.29 kB
+dist/assets/dollar-sign-BPnsoLNW.js                                  0.39 kB │ gzip:   0.30 kB
+dist/assets/ellipsis-CFr3OYK0.js                                     0.40 kB │ gzip:   0.27 kB
+dist/assets/ellipsis-vertical-BahUspON.js                            0.41 kB │ gzip:   0.28 kB
+dist/assets/pen-CFTujrSZ.js                                          0.41 kB │ gzip:   0.31 kB
+dist/assets/percent-pQRUi2m8.js                                      0.42 kB │ gzip:   0.30 kB
+dist/assets/circle-alert-dG_QXHgN.js                                 0.42 kB │ gzip:   0.30 kB
+dist/assets/chart-column-D7R5C06D.js                                 0.42 kB │ gzip:   0.30 kB
+dist/assets/settings-2-BKViJLaF.js                                   0.43 kB │ gzip:   0.30 kB
+dist/assets/transactionImport-0JpW55yD.js                            0.43 kB │ gzip:   0.31 kB
+dist/assets/eye-BM1wLcU6.js                                          0.43 kB │ gzip:   0.31 kB
+dist/assets/calendar-CkYvVLzs.js                                     0.43 kB │ gzip:   0.31 kB
+dist/assets/download-h1Q0Dxwg.js                                     0.44 kB │ gzip:   0.33 kB
+dist/assets/pencil-D9U2EZz5.js                                       0.45 kB │ gzip:   0.33 kB
+dist/assets/list-checks-DuXfcd-1.js                                  0.45 kB │ gzip:   0.30 kB
+dist/assets/receipt-pLnTPXVG.js                                      0.47 kB │ gzip:   0.31 kB
+dist/assets/paperclip-C0ZQ3DPI.js                                    0.47 kB │ gzip:   0.33 kB
+dist/assets/SignInPage-az0-QCA0.js                                   0.48 kB │ gzip:   0.30 kB
+dist/assets/minimize-2-CSyL6S_V.js                                   0.48 kB │ gzip:   0.32 kB
+dist/assets/folder-plus-89pXV1Ws.js                                  0.48 kB │ gzip:   0.33 kB
+dist/assets/user-plus-Du19ESSk.js                                    0.48 kB │ gzip:   0.34 kB
+dist/assets/square-pen-CyT07yKn.js                                   0.49 kB │ gzip:   0.34 kB
+dist/assets/save-ByStea85.js                                         0.50 kB │ gzip:   0.33 kB
+dist/assets/AdminFlujoPage-D8B4WLhj.js                               0.51 kB │ gzip:   0.31 kB
+dist/assets/focus-B4N2l6vv.js                                        0.51 kB │ gzip:   0.33 kB
+dist/assets/AdminSalesFlujoPage-DPcEOFaR.js                          0.51 kB │ gzip:   0.31 kB
+dist/assets/file-image-ClgwKeGe.js                                   0.52 kB │ gzip:   0.35 kB
+dist/assets/trash-2-DvVgYtJG.js                                      0.53 kB │ gzip:   0.36 kB
+dist/assets/file-spreadsheet-BpCvqb4-.js                             0.55 kB │ gzip:   0.33 kB
+dist/assets/calendar-clock-B6Lepu41.js                               0.56 kB │ gzip:   0.36 kB
+dist/assets/package-LfM_dsTH.js                                      0.56 kB │ gzip:   0.36 kB
+dist/assets/layers-rKjLSMNU.js                                       0.60 kB │ gzip:   0.35 kB
+dist/assets/building-2-B-zCKKb_.js                                   0.61 kB │ gzip:   0.35 kB
+dist/assets/arrow-up-fbfSIolo.js                                     0.62 kB │ gzip:   0.32 kB
+dist/assets/play-BHcKcomM.js                                         0.64 kB │ gzip:   0.33 kB
+dist/assets/image-off-wtB6Ebqj.js                                    0.64 kB │ gzip:   0.40 kB
+dist/assets/edit-transaction-modal-efn7DYKX.js                       0.65 kB │ gzip:   0.41 kB
+dist/assets/label-DPSK_18k.js                                        0.66 kB │ gzip:   0.43 kB
+dist/assets/calendar-days-E40YhuY1.js                                0.67 kB │ gzip:   0.37 kB
+dist/assets/edit-payment-modal-hi4b4eCe.js                           0.68 kB │ gzip:   0.42 kB
+dist/assets/copy-DwfroApS.js                                         0.71 kB │ gzip:   0.38 kB
+dist/assets/user-BiiFHAO5.js                                         0.77 kB │ gzip:   0.42 kB
+dist/assets/money-CJzwNflU.js                                        0.92 kB │ gzip:   0.53 kB
+dist/assets/alert-08KGt2qa.js                                        0.93 kB │ gzip:   0.48 kB
+dist/assets/SignUpPage-BvZMkAwl.js                                   0.99 kB │ gzip:   0.52 kB
+dist/assets/money-input-HxE00-97.js                                  1.06 kB │ gzip:   0.66 kB
+dist/assets/upload-projections-modal-BrJk5Vlv.js                     1.06 kB │ gzip:   0.61 kB
+dist/assets/card-DG54vWcx.js                                         1.26 kB │ gzip:   0.49 kB
+dist/assets/AdminProjectionUpload-DmfpFxyn.js                        1.86 kB │ gzip:   0.89 kB
+dist/assets/progress-Cve9qrfI.js                                     1.90 kB │ gzip:   0.94 kB
+dist/assets/feeConceptRules-r0uR18sb.js                              2.05 kB │ gzip:   0.88 kB
+dist/assets/upload-transactions-modal-B9edItM-.js                    2.20 kB │ gzip:   1.13 kB
+dist/assets/aggregated-details-modal-D4YId3RA.js                     2.40 kB │ gzip:   1.04 kB
+dist/assets/useRfiUserDirectory-B7Kt818N.js                          2.77 kB │ gzip:   1.09 kB
+dist/assets/tabs-bTlHt1WH.js                                         3.23 kB │ gzip:   1.37 kB
+dist/assets/dialog-BegPwqKk.js                                       3.41 kB │ gzip:   1.30 kB
+dist/assets/ProviderFormDialog-dwosKLt1.js                           3.48 kB │ gzip:   1.34 kB
+dist/assets/edit-sales-project-modal-CqCOYrWx.js                     3.62 kB │ gzip:   1.52 kB
+dist/assets/OfflineBitacoraApp-Ci0Z5zGS.js                           3.80 kB │ gzip:   1.81 kB
+dist/assets/checkbox-Cjs8fHLS.js                                     3.83 kB │ gzip:   1.70 kB
+dist/assets/sale-transaction-documentos-modal-CqnLfbkD.js            4.05 kB │ gzip:   1.46 kB
+dist/assets/transaction-documentos-modal-06vdWfWB.js                 4.29 kB │ gzip:   1.71 kB
+dist/assets/Dashboard-DF4O06CY.js                                    4.40 kB │ gzip:   1.82 kB
+dist/assets/AcceptInvitationPage-DYk182WU.js                         4.58 kB │ gzip:   1.85 kB
+dist/assets/transaction-conceptos-modal-BOMGsHLV.js                  4.91 kB │ gzip:   1.55 kB
+dist/assets/alert-dialog-BpZMpa9N.js                                 5.03 kB │ gzip:   1.89 kB
+dist/assets/ogc-invoice-evidence-dialog-DqhvWvZa.js                  5.13 kB │ gzip:   2.25 kB
+dist/assets/sale-transaction-conceptos-modal-Cd2rRJCN.js             5.34 kB │ gzip:   1.53 kB
+dist/assets/NewUserPage-BAn2N_8l.js                                  5.53 kB │ gzip:   2.22 kB
+dist/assets/SalesUserManagementPage-CQa_ub_0.js                      5.58 kB │ gzip:   2.02 kB
+dist/assets/ProyectoProveedoresTablePage-CZPk613W.js                 5.65 kB │ gzip:   1.52 kB
+dist/assets/SalesProyectosTablePage-Cxbav3d9.js                      5.66 kB │ gzip:   1.99 kB
+dist/assets/workbox-window.prod.es5-BBnX5xw4.js                      5.75 kB │ gzip:   2.36 kB
+dist/assets/table-B8oy0c5x.js                                        5.78 kB │ gzip:   2.02 kB
+dist/assets/es-CYzKHauu.js                                           5.99 kB │ gzip:   2.06 kB
+dist/assets/sale-transaction-details-modal-BFwb7KdX.js               6.49 kB │ gzip:   1.77 kB
+dist/assets/SalesProyectoDocumentosPage-cXoqtPV-.js                  6.50 kB │ gzip:   2.09 kB
+dist/assets/popover-Bja3-CjN.js                                      7.04 kB │ gzip:   2.64 kB
+dist/assets/ProjectionImportForm-DqG6maOd.js                         7.26 kB │ gzip:   2.91 kB
+dist/assets/SalesProjectManagementPage-DmZm_J5O.js                   7.66 kB │ gzip:   2.62 kB
+dist/assets/SalesDocumentosPage-BpRhhX7v.js                          7.68 kB │ gzip:   2.45 kB
+dist/assets/upload-documents-modal-nbCe-1So.js                       7.72 kB │ gzip:   2.89 kB
+dist/assets/add-sales-project-modal-39KQ6HK3.js                      7.76 kB │ gzip:   3.05 kB
+dist/assets/upload-sales-proyecto-documents-modal-6N8O8R5X.js        7.82 kB │ gzip:   2.92 kB
+dist/assets/see-sales-transactions-details-modal-DyzaZXJJ.js         8.16 kB │ gzip:   2.43 kB
+dist/assets/App-C4JxOkoH.js                                          8.17 kB │ gzip:   2.77 kB
+dist/assets/AdminPage-CnlW7Mh4.js                                    8.27 kB │ gzip:   2.78 kB
+dist/assets/upload-proyecto-documents-modal-sfcdOXXa.js              8.39 kB │ gzip:   3.30 kB
+dist/assets/AddTransactionMenu-DpN3AwWL.js                           8.59 kB │ gzip:   3.21 kB
+dist/assets/ProviderPaymentAccountPicker-BJlRJD_7.js                 8.69 kB │ gzip:   2.93 kB
+dist/assets/add-proyecto-modal-Bf89Cuzv.js                           8.93 kB │ gzip:   3.36 kB
+dist/assets/DashboardTable-DcLZWwk_.js                               8.96 kB │ gzip:   2.85 kB
+dist/assets/ProyectoFlujoPage-C52CJjrd.js                            9.23 kB │ gzip:   2.46 kB
+dist/assets/SalesProyectoFlujoPage-zK34yd2N.js                       9.28 kB │ gzip:   2.47 kB
+dist/assets/LaborImportHistory-CXPGKc5_.js                           9.64 kB │ gzip:   3.28 kB
+dist/assets/SalesProyectoTransaccionesPage-CFYPEz-d.js              10.38 kB │ gzip:   3.00 kB
+dist/assets/SalesTransaccionesTablePage-BmtO6DEF.js                 10.42 kB │ gzip:   2.98 kB
+dist/assets/BudgetOriginal-FrRgmpYJ.js                              11.06 kB │ gzip:   4.07 kB
+dist/assets/UserManagementPage-BXSg5Hza.js                          11.22 kB │ gzip:   3.71 kB
+dist/assets/laborPaymentImport-C1V4lsSJ.js                          11.97 kB │ gzip:   4.84 kB
+dist/assets/ProjectionImportHistory-DgzOOq-S.js                     12.10 kB │ gzip:   4.38 kB
+dist/assets/scroll-area-CptXDwCE.js                                 12.72 kB │ gzip:   3.99 kB
+dist/assets/InvoiceAnalysisPanel-C68lRzEz.js                        12.87 kB │ gzip:   4.36 kB
+dist/assets/PartidaDetails-I2lOZTKI.js                              13.08 kB │ gzip:   3.60 kB
+dist/assets/transaction-details-modal-DBT-0tVG.js                   13.64 kB │ gzip:   4.07 kB
+dist/assets/ProyectosTablePage-_JHP9qpo.js                          14.06 kB │ gzip:   4.53 kB
+dist/assets/add-sale-payment-modal-BlKvKYpp.js                      14.49 kB │ gzip:   4.13 kB
+dist/assets/DocumentFolderNavigation-C-KkOlUr.js                    15.43 kB │ gzip:   4.73 kB
+dist/assets/ControlSalePage-DvMv_Yij.js                             16.23 kB │ gzip:   4.12 kB
+dist/assets/CommentThread-CZpNYSZ6.js                               16.30 kB │ gzip:   6.03 kB
+dist/assets/see-transactions-details-modal-BrFPtHRl.js              16.38 kB │ gzip:   3.72 kB
+dist/assets/add-partida-modal-Df_3y4LL.js                           16.67 kB │ gzip:   4.74 kB
+dist/assets/RFIListPage-CSTgZB8J.js                                 17.53 kB │ gzip:   5.46 kB
+dist/assets/TransaccionesTablePage-DvVUNjyP.js                      18.02 kB │ gzip:   5.27 kB
+dist/assets/upload-project-transactions-modal-CpIt7BeR.js           18.72 kB │ gzip:   5.87 kB
+dist/assets/TopVariancePartidasTable-CB3SlXnJ.js                    19.01 kB │ gzip:   6.40 kB
+dist/assets/add-payment-modal-Dm9KgRyN.js                           19.23 kB │ gzip:   5.82 kB
+dist/assets/PaymentEditSheet-BvRCZ5NX.js                            19.74 kB │ gzip:   6.44 kB
+dist/assets/InvoiceIntakeDialog-MZH7gr9z.js                         20.61 kB │ gzip:   6.81 kB
+dist/assets/ControlPage-DE42pchX.js                                 21.08 kB │ gzip:   6.37 kB
+dist/assets/BitacoraModal-DYaNhz_R.js                               21.81 kB │ gzip:   6.84 kB
+dist/assets/purify.es-CFh60W_8.js                                   22.77 kB │ gzip:   8.79 kB
+dist/assets/select-DEG0uZYi.js                                      22.98 kB │ gzip:   8.03 kB
+dist/assets/upload-sales-project-transactions-modal-CSKDRi63.js     23.44 kB │ gzip:   5.70 kB
+dist/assets/ReportesPage-D9FuAZSs.js                                24.34 kB │ gzip:   7.66 kB
+dist/assets/SalesPresupuestoTable-Z3Bw8DPN.js                       25.74 kB │ gzip:   6.32 kB
+dist/assets/DocumentosPage-BwDKWb2F.js                              26.97 kB │ gzip:   7.18 kB
+dist/assets/ProyectoDocumentosPage-BvrrUj0K.js                      27.04 kB │ gzip:   7.26 kB
+dist/assets/edit-proyecto-modal-1rIyim5M.js                         31.62 kB │ gzip:   9.35 kB
+dist/assets/RFINewPage-eSuvv9p2.js                                  34.45 kB │ gzip:  10.23 kB
+dist/assets/BitacoraPage-TGrn3sM0.js                                34.95 kB │ gzip:  10.06 kB
+dist/assets/command-CakrBxxK.js                                     35.97 kB │ gzip:  12.36 kB
+dist/assets/RFIDetailPage-Du9Pu27o.js                               37.95 kB │ gzip:  11.41 kB
+dist/assets/ProyectoTransaccionesTablePage-DNSkzG4c.js              38.26 kB │ gzip:  11.24 kB
+dist/assets/ProveedoresTablePage-vF6i8Mdd.js                        41.88 kB │ gzip:  11.77 kB
+dist/assets/PlanosPage-CKVkWIO6.js                                  67.20 kB │ gzip:  17.95 kB
+dist/assets/calendar-CWsikPKD.js                                    71.61 kB │ gzip:  20.87 kB
+dist/assets/form-MEHBT0-N.js                                        86.74 kB │ gzip:  23.91 kB
+dist/assets/PresupuestoPage-B7_thFif.js                             93.44 kB │ gzip:  25.45 kB
+dist/assets/AutorizacionesObraPage-Bpwynym4.js                      95.31 kB │ gzip:  18.60 kB
+dist/assets/TareasPage-CiHkbhFo.js                                  96.30 kB │ gzip:  21.48 kB
+dist/assets/ProfitAndLossPage-Dt04vW_9.js                          112.36 kB │ gzip:  27.70 kB
+dist/assets/Chart-T6XD1yTR.js                                      123.39 kB │ gzip:  39.67 kB
+dist/assets/ProyectoRequisicionesPage-CG4E0dnu.js                  131.52 kB │ gzip:  32.05 kB
+dist/assets/index.es-BmUO33oo.js                                   160.40 kB │ gzip:  53.93 kB
+dist/assets/ProgramaObra-CZXYR0mp.js                               184.81 kB │ gzip:  47.95 kB
+dist/assets/PlanCanvas-D4divSf0.js                                 482.73 kB │ gzip: 144.09 kB
+dist/assets/xlsx-BGhuli8m.js                                       500.06 kB │ gzip: 163.12 kB
+dist/assets/ProgramaObraPdfExport-B6WO6qii.js                      600.29 kB │ gzip: 179.53 kB
+dist/assets/index-PINYV8Sl.js                                      802.04 kB │ gzip: 242.33 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 24.35s
+
+PWA v1.3.0
+mode      generateSW
+precache  48 entries (3288.75 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-cb62cf87.js

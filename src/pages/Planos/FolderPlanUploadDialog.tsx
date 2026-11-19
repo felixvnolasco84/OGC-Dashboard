@@ -176,11 +176,13 @@ export default function FolderPlanUploadDialog({
   onOpenChange,
   open,
   projectId,
+  onCloseAutoFocus,
 }: {
   initialEntries: IncomingPlanFile[];
   onOpenChange: (open: boolean) => void;
   open: boolean;
   projectId: Id<"desarrollos">;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<PreparedPlanFile[]>([]);
@@ -397,7 +399,7 @@ export default function FolderPlanUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="flex max-h-[92vh] max-w-6xl flex-col overflow-hidden rounded-sm">
+      <DialogContent className="flex max-h-[92vh] max-w-6xl flex-col overflow-hidden rounded-sm" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>Cargar carpeta de planos</DialogTitle>
           <DialogDescription>

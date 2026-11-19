@@ -6,8 +6,9 @@ export type RfiAction = "submit" | "open" | "official" | "close" | "reopen";
 export type RfiConfirmation = "open" | "official" | "close";
 
 export const RFI_ACTION_LABELS: Record<RfiAction, string> = {
-  submit: "Enviar a revisión", open: "Abrir RFI", official: "Marcar como oficial", close: "Cerrar RFI", reopen: "Reabrir RFI",
+  submit: "Enviar a revisión", open: "Cambiar a abierta", official: "Marcar como oficial", close: "Cerrar RFI", reopen: "Reabrir RFI",
 };
+export const RFI_WORKFLOW_LABELS: Record<string, string> = { draft: "Borrador", pending_manager_review: "Pendiente de revisión", open: "Abierta", closed: "Cerrada (Resuelto)" };
 export const NEXT_STATE: Record<RfiAction, string> = { submit: "pending_manager_review", open: "open", official: "open", close: "closed", reopen: "open" };
 
 export function rfiActionBlocked(detail: RfiDetail, action: RfiAction, responseId?: string) {

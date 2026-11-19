@@ -21,6 +21,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -29,12 +37,14 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleMinus,
+  Ellipsis,
   FileQuestion,
   History,
   Images,
   Loader2,
   MessageSquareText,
   Paperclip,
+  Pencil,
   RotateCcw,
   Send,
   Trash2,
@@ -52,7 +62,7 @@ import {
 import { useRfiUserDirectory } from "./useRfiUserDirectory";
 import { RfiHistoryTimeline } from "./RfiHistoryTimeline";
 import { RfiActionReviewDialog, RfiReviewSummary } from "./RfiActionReview";
-import { rfiActionBlocked, type RfiAction, type RfiConfirmation, type RfiDetail } from "./rfiActionReviewModel";
+import { RFI_ACTION_LABELS, RFI_WORKFLOW_LABELS, rfiActionBlocked, type RfiAction, type RfiConfirmation, type RfiDetail } from "./rfiActionReviewModel";
 
 type RfiDetailProps = {
   embedded?: boolean;
@@ -111,6 +121,9 @@ export default function RFIDetailPage({
   const [responseFiles, setResponseFiles] = useState<File[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
+  const editRequested = useRef(false);
+  const editMenuTrigger = useRef<HTMLButtonElement>(null);
   const actionLock = useRef(false);
   const headingRef = useRef<HTMLElement>(null);
   const [review, setReview] = useState<{ action: RfiConfirmation; detail: RfiDetail; responseId?: Id<"rfi_responses">; trigger: HTMLButtonElement | null } | null>(null);
@@ -280,6 +293,12 @@ export default function RFIDetailPage({
   const { rfi, permissions } = detail;
   const displayStatus = rfi.derived_status as RfiDisplayStatus;
   const status = RFI_STATUS[displayStatus] || RFI_STATUS.open;
+  const workflowStatus = RFI_STATUS[rfi.status as RfiDisplayStatus] || RFI_STATUS.open;
+  const followUpLabel = displayStatus === "awaiting_response"
+    ? "En espera de respuesta"
+    : displayStatus === "awaiting_official_response"
+      ? "En espera de respuesta oficial"
+      : status.label;
   const creatorName = rfi.creator
     ? usersById.get(rfi.creator._id)?.name ?? rfi.creator.name
     : "Usuario sin nombre";
@@ -343,25 +362,6 @@ export default function RFIDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-2 sm:justify-end">
-              {permissions.can_edit && (
-                embedded ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 min-w-[118px] rounded-[4px] border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-background"
-                    onClick={onEdit}
-                    disabled={busyAction !== null || review !== null}
-                  >
-                    Editar
-                  </Button>
-                ) : (
-                  <Button asChild variant="outline" className="h-11 min-w-[118px] rounded-[4px] border-border bg-card font-normal text-muted-foreground shadow-none">
-                    <Link to={`/proyecto/${projectId}/rfis/${id}/editar`} aria-disabled={busyAction !== null || review !== null} onClick={(event) => { if (actionLock.current || review) event.preventDefault(); }}>
-                      Editar
-                    </Link>
-                  </Button>
-                )
-              )}
               {permissions.can_delete && (
                 <Button
                   type="button"
@@ -393,7 +393,7 @@ export default function RFIDetailPage({
                   busyAction={busyAction}
                   onClick={(event) => startReview("open", event.currentTarget)}
                   icon={CheckCircle2}
-                  label="Abrir RFI"
+                  label={RFI_ACTION_LABELS.open}
                 />
               )}
               {permissions.can_close && (
@@ -415,7 +415,72 @@ export default function RFIDetailPage({
                   label="Reabrir"
                 />
               )}
+              {permissions.can_edit && (
+                <DropdownMenu
+                  open={editMenuOpen && busyAction === null && review === null}
+                  onOpenChange={setEditMenuOpen}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      ref={editMenuTrigger}
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-11 shrink-0 rounded-[4px] border-border bg-card p-0 text-muted-foreground shadow-none"
+                      aria-label={`Más acciones de ${rfi.code}`}
+                      disabled={busyAction !== null || review !== null}
+                    >
+                      <Ellipsis className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56 max-w-[calc(100vw-2rem)] rounded-[4px]"
+                    onCloseAutoFocus={(event) => {
+                      if (editRequested.current) {
+                        editRequested.current = false;
+                        event.preventDefault();
+                        // Wait for the menu to close before replacing the detail.
+                        if (actionLock.current || review || !permissions.can_edit) {
+                          headingRef.current?.focus();
+                          return;
+                        }
+                        if (embedded) onEdit?.();
+                        else navigate(`/proyecto/${projectId}/rfis/${id}/editar`);
+                      } else if (!editMenuTrigger.current?.isConnected) {
+                        event.preventDefault();
+                        headingRef.current?.focus();
+                      }
+                    }}
+                  >
+                    <DropdownMenuLabel className="text-xs font-normal uppercase text-muted-foreground">Editar</DropdownMenuLabel>
+                    <DropdownMenuGroup aria-label="Editar">
+                      <DropdownMenuItem
+                        className="min-h-11"
+                        disabled={busyAction !== null || review !== null}
+                        onSelect={() => {
+                          if (actionLock.current || review || !permissions.can_edit) return;
+                          editRequested.current = true;
+                          setEditMenuOpen(false);
+                        }}
+                      >
+                        <Pencil aria-hidden="true" />
+                        Editar RFI
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
+          </div>
+          <div role="status" aria-label={`Estado actual de ${rfi.code}`} className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Estado actual:</span>
+            <DetailStatus label={RFI_WORKFLOW_LABELS[rfi.status]} color={workflowStatus.color} />
+            {displayStatus !== rfi.status && (
+              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                Seguimiento:
+                <Badge variant="outline" className={cn("rounded-[4px] font-normal", status.className, "text-muted-foreground")}>{followUpLabel}</Badge>
+              </span>
+            )}
           </div>
           {permissions.can_submit && <div id="rfi-submit-impact" className="mt-4"><RfiReviewSummary detail={detail} action="submit" />{rfiActionBlocked(detail, "submit") && <p className="mt-2 text-sm" role="status">{rfiActionBlocked(detail, "submit")}</p>}</div>}
           {permissions.can_reopen && <div id="rfi-reopen-impact" className="mt-4"><RfiReviewSummary detail={detail} action="reopen" /></div>}
@@ -458,7 +523,6 @@ export default function RFIDetailPage({
                       {formatRfiDueDistance(rfi.due_date)}
                     </p>
                   </div>
-                  <DetailStatus label={status.label} color={status.color} />
                 </div>
               </div>
 
@@ -708,14 +772,14 @@ export default function RFIDetailPage({
 
 function DetailStatus({ label, color }: { label: string; color: string }) {
   const positive = color === "#50AC66";
-  const borderColor = color === "hsl(var(--disabled-foreground))" || color === "hsl(var(--disabled-foreground))" ? "hsl(var(--border))" : color;
+  const borderColor = color === "hsl(var(--disabled-foreground))" ? "hsl(var(--border))" : color;
   return (
     <span
-      className="inline-flex h-11 min-w-[118px] items-center justify-center gap-2 rounded-[4px] border bg-card px-3 text-sm"
-      style={{ borderColor, color: positive ? color : "hsl(var(--muted-foreground))" }}
+      className="inline-flex h-11 min-w-[118px] items-center justify-center gap-2 rounded-[4px] border bg-card px-3 text-sm text-muted-foreground"
+      style={{ borderColor }}
     >
       {positive ? (
-        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+        <CheckCircle2 className="h-4 w-4" style={{ color }} aria-hidden="true" />
       ) : (
         <CircleMinus className="h-4 w-4 text-disabled-foreground" aria-hidden="true" />
       )}

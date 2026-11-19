@@ -1,0 +1,25 @@
+{
+  "checks": [
+    {
+      "width": 1440,
+      "status": "passed",
+      "checks": "layout, grouped menu, keyboard, focus return, real dialogs, global/project scope, preview without mutation, file reset, empty create after edit, contextual actions"
+    },
+    {
+      "width": 1024,
+      "status": "passed",
+      "checks": "layout, grouped menu, keyboard, focus return, real dialogs, global/project scope, preview without mutation, file reset, empty create after edit, contextual actions"
+    },
+    {
+      "width": 390,
+      "status": "passed",
+      "checks": "layout, grouped menu, keyboard, focus return, real dialogs, global/project scope, preview without mutation, file reset, empty create after edit, contextual actions"
+    },
+    {
+      "status": "passed",
+      "checks": "analysis busy/cancel guards, filters, sorting, relevance, empty/loading list, page size and load-more, preserved showing count"
+    }
+  ],
+  "errors": [],
+  "mutationCalls": 0
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -57,7 +57,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -147,6 +149,7 @@ export default function DocumentosPage() {
   const [folderDialogParentId, setFolderDialogParentId] = useState<FolderId | undefined>();
   const [targetFolderId, setTargetFolderId] = useState<string>(ROOT_VALUE);
   const [page, setPage] = useState(1);
+  const actionTriggerRef = useRef<HTMLElement | null>(null);
 
   const uploadModal = useUploadDocumentsModal();
   const metadata = useQuery(api.documentos.getFileManagerMetadata);
@@ -260,6 +263,7 @@ export default function DocumentosPage() {
 
   const totalSize = documentsPage?.totalSize || 0;
   const selectedTargetLabel = selectedTarget?.item.nombre || "";
+  const deleteDialogTarget = deleteTarget ?? selectedTarget;
   const isLoading = !metadata || !documentsPage;
   const hasFilters = Boolean(searchTerm || selectedProject !== ROOT_VALUE || selectedType !== ROOT_VALUE);
 
@@ -270,12 +274,16 @@ export default function DocumentosPage() {
   };
 
   const startRename = (target: MenuTarget) => {
+    actionTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setContextMenu(null);
     setSelectedTarget(target);
     setDraftName(target.item.nombre);
     setRenameDialogOpen(true);
   };
 
   const startMove = (target: MenuTarget) => {
+    actionTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setContextMenu(null);
     setSelectedTarget(target);
     const folderId = target.kind === "document" ? target.item.folder_id : target.item.parent_folder_id;
     setTargetFolderId(folderId || ROOT_VALUE);
@@ -356,9 +364,18 @@ export default function DocumentosPage() {
   };
 
   const requestDelete = (target: MenuTarget) => {
+    actionTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedTarget(target);
     setDeleteTarget(target);
     setContextMenu(null);
+  };
+
+  const restoreActionFocus = (event: Event) => {
+    if (actionTriggerRef.current?.isConnected) {
+      event.preventDefault();
+      actionTriggerRef.current.focus();
+    }
+    actionTriggerRef.current = null;
   };
 
   const handleDelete = async () => {
@@ -654,7 +671,7 @@ export default function DocumentosPage() {
                 if (contextMenu.target.kind === "folder") {
                   setCurrentFolderId(contextMenu.target.item._id);
                 } else if (contextMenu.target.item.url) {
-                  window.open(contextMenu.target.item.url, "_blank");
+                  window.open(contextMenu.target.item.url, "_blank", "noopener,noreferrer");
                 }
               }}
               onRename={() => startRename(contextMenu.target)}
@@ -696,7 +713,7 @@ export default function DocumentosPage() {
         </Dialog>
 
         <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-          <DialogContent>
+          <DialogContent onCloseAutoFocus={restoreActionFocus}>
             <DialogHeader>
               <DialogTitle className="font-normal">Renombrar</DialogTitle>
               <DialogDescription>{selectedTargetLabel}</DialogDescription>
@@ -725,6 +742,8 @@ export default function DocumentosPage() {
         <MoveLocationDialog
           open={moveDialogOpen}
           onOpenChange={setMoveDialogOpen}
+          onCloseAutoFocus={restoreActionFocus}
+          footerClassName="flex-col items-stretch gap-3 px-4 sm:flex-row sm:items-center sm:gap-0 sm:px-9"
           itemName={selectedTargetLabel}
           currentLocationId={
             selectedTarget?.kind === "document"
@@ -745,15 +764,15 @@ export default function DocumentosPage() {
             if (!open) setDeleteTarget(null);
           }}
         >
-          <AlertDialogContent>
+          <AlertDialogContent onCloseAutoFocus={restoreActionFocus}>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {deleteTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"}
+                {deleteDialogTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {deleteTarget?.kind === "folder"
-                  ? `Se eliminará la carpeta "${deleteTarget.item.nombre}". La carpeta debe estar vacía para poder eliminarla.`
-                  : `Se eliminará el documento "${deleteTarget?.item.nombre}". Esta acción no se puede deshacer.`}
+                {deleteDialogTarget?.kind === "folder"
+                  ? `Se eliminará la carpeta "${deleteDialogTarget.item.nombre}". La carpeta debe estar vacía para poder eliminarla.`
+                  : `Se eliminará el documento "${deleteDialogTarget?.item.nombre}". Esta acción no se puede deshacer.`}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -795,8 +814,8 @@ function DocumentList({
 }) {
   return (
     <div className="overflow-hidden border border-border">
-      <table className="w-full table-fixed border-collapse text-sm">
-        <colgroup>
+      <table className="block w-full table-fixed border-collapse text-sm lg:table">
+        <colgroup className="hidden lg:table-column-group">
           <col className="w-[32%]" />
           <col className="w-[20%]" />
           <col className="w-[14%]" />
@@ -882,7 +901,7 @@ function DocumentList({
                   <div className="min-w-0">
                     <button
                       className="break-words text-left text-sm font-medium text-foreground hover:underline lg:line-clamp-2"
-                      onClick={() => doc.url && window.open(doc.url, "_blank")}
+                      onClick={() => doc.url && window.open(doc.url, "_blank", "noopener,noreferrer")}
                     >
                       {doc.nombre}
                     </button>
@@ -1023,7 +1042,7 @@ function DocumentGrid({
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {folders.map((folder) => (
-        <button
+        <div
           key={folder._id}
           className="min-h-32 border border-border p-4 text-left hover:bg-background"
           onDoubleClick={() => onOpenFolder(folder._id)}
@@ -1039,9 +1058,18 @@ function DocumentGrid({
               onDelete={onDelete}
             />
           </div>
-          <p className="truncate font-medium text-foreground">{folder.nombre}</p>
+          <button
+            type="button"
+            className="max-w-full truncate text-left font-medium text-foreground hover:underline"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenFolder(folder._id);
+            }}
+          >
+            {folder.nombre}
+          </button>
           <p className="mt-1 text-xs text-muted-foreground">{formatDate(folder.updated_at || folder.created_at)}</p>
-        </button>
+        </div>
       ))}
 
       {documents.map((doc) => (
@@ -1061,7 +1089,7 @@ function DocumentGrid({
           </div>
           <button
             className="line-clamp-2 text-left font-medium text-foreground hover:underline"
-            onClick={() => doc.url && window.open(doc.url, "_blank")}
+            onClick={() => doc.url && window.open(doc.url, "_blank", "noopener,noreferrer")}
           >
             {doc.nombre}
           </button>
@@ -1103,12 +1131,12 @@ function ActionCommand({
           </CommandItem>
           <CommandItem onSelect={onRename}>
             <Edit3 />
-            Cambiar nombre
+            Renombrar
             <CommandShortcut>Ctrl+E</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={onMove}>
             <FolderInput />
-            Mover ubicacion
+            Mover
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />
@@ -1134,53 +1162,62 @@ function InlineActions({
   onMove: (target: MenuTarget) => void;
   onDelete: (target: MenuTarget) => void;
 }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const pendingAction = useRef<(() => void) | null>(null);
+  const label = `Acciones ${target.kind === "folder" ? "de la carpeta" : "del archivo"} ${target.item.nombre}`;
+
   return (
-    <div className="flex flex-wrap items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+    <div
+      className="flex items-center justify-end"
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onRename(target)}>
-            <Edit3 className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Renombrar</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onMove(target)}>
-            <FolderInput className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Mover</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={(open) => { if (open) pendingAction.current = null; }}>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
-                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+              <Button ref={triggerRef} type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-none" aria-label={label}>
+                <MoreVertical className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <DropdownMenuContent align="end" className="rounded-none">
-            <DropdownMenuItem onClick={() => onRename(target)}>
-              <Edit3 className="h-4 w-4" />
-              Renombrar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onMove(target)}>
-              <FolderInput className="h-4 w-4" />
-              Mover ubicacion
-            </DropdownMenuItem>
+          <DropdownMenuContent
+            align="end"
+            className="w-56 max-w-[calc(100vw-2rem)] rounded-none"
+            aria-label={label}
+            onCloseAutoFocus={(event) => {
+              const action = pendingAction.current;
+              pendingAction.current = null;
+              if (!action || !triggerRef.current?.isConnected) return;
+              // Let the menu release its overlay before mounting a dialog.
+              event.preventDefault();
+              triggerRef.current.focus();
+              action();
+            }}
+          >
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Organizar</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuItem className="min-h-11" onSelect={() => { pendingAction.current = () => onRename(target); }}>
+                <Edit3 className="h-4 w-4" aria-hidden="true" />
+                Renombrar
+              </DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11" onSelect={() => { pendingAction.current = () => onMove(target); }}>
+                <FolderInput className="h-4 w-4" aria-hidden="true" />
+                Mover
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => onDelete(target)}
-              className="text-red-600 focus:text-red-700"
+              onSelect={() => { pendingAction.current = () => onDelete(target); }}
+              variant="destructive"
+              className="min-h-11"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
               Eliminar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <TooltipContent>Mas acciones</TooltipContent>
+        <TooltipContent>{label}</TooltipContent>
       </Tooltip>
     </div>
   );

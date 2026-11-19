@@ -1,0 +1,1382 @@
+[
+  {
+    "name": "Mover carpeta raíz: sin mutación y destinos bloqueados",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "dialog": "Mover \"Crest - CDS\"Ubicacion actual:BibliotecaVacíaMoverSelecciona una ubicacion para ver la ruta de la carpetaNueva carpetaCancelarMoverClose",
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Cancelar Mover devuelve foco al menú de carpeta",
+    "passed": true,
+    "details": "Acciones de la carpeta Crest - CDS"
+  },
+  {
+    "name": "Lista 1440: 1 disparador por fila, nombre y área 44 px, sin anidados/desbordamiento",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Renombrar ventas: nombre, target y foco sin menú abierto",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "dialog": "RenombrarContrato ventas.pdfNombreCancelarGuardarClose",
+      "focus": null,
+      "height": 1000,
+      "input": "Contrato ventas.pdf",
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Guardar ventas usa renameDocument con id/nombre correctos",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        }
+      ],
+      "focus": "Acciones del archivo Contrato ventas.pdf",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Renombrar carpeta reinicia nombre anterior",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        }
+      ],
+      "dialog": "RenombrarVacíaNombreCancelarGuardarClose",
+      "focus": null,
+      "height": 1000,
+      "input": "Vacía",
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Guardar carpeta usa renameFolder e id de carpeta",
+    "passed": true,
+    "details": [
+      {
+        "args": {
+          "id": "doc-ventas",
+          "nombre": "Contrato ventas revisado.pdf"
+        },
+        "name": "documentos:renameDocument"
+      },
+      {
+        "args": {
+          "id": "folder-empty",
+          "nombre": "Vacía revisada"
+        },
+        "name": "documentos:renameFolder"
+      }
+    ]
+  },
+  {
+    "name": "Eliminar carpeta vacía sólo abre confirmación",
+    "passed": true,
+    "details": {
+      "alert": "Eliminar carpetaSe eliminará la carpeta \"Vacía\". La carpeta debe estar vacía para poder eliminarla.CancelarEliminar",
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        }
+      ],
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Cancelar Eliminar carpeta devuelve foco sin mutación",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        }
+      ],
+      "focus": "Acciones de la carpeta Vacía",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Eliminar carpeta con contenido no ejecuta mutation al elegir menú",
+    "passed": true,
+    "details": {
+      "alert": "Eliminar carpetaSe eliminará la carpeta \"Crest - CDS\". La carpeta debe estar vacía para poder eliminarla.CancelarEliminar",
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        }
+      ],
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Confirmación simulada usa deleteFolder con id de carpeta con contenido",
+    "passed": true,
+    "details": [
+      {
+        "args": {
+          "id": "doc-ventas",
+          "nombre": "Contrato ventas revisado.pdf"
+        },
+        "name": "documentos:renameDocument"
+      },
+      {
+        "args": {
+          "id": "folder-empty",
+          "nombre": "Vacía revisada"
+        },
+        "name": "documentos:renameFolder"
+      },
+      {
+        "args": {
+          "id": "folder-crest"
+        },
+        "name": "documentos:deleteFolder"
+      }
+    ]
+  },
+  {
+    "name": "Teclado ArrowDown/End/Enter abre confirmación de archivo sin mutation",
+    "passed": true,
+    "details": {
+      "alert": "Eliminar documentoSe eliminará el documento \"Acta de obra.pdf\". Esta acción no se puede deshacer.CancelarEliminar",
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        }
+      ],
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Cancelar confirmación de archivo devuelve foco",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        }
+      ],
+      "focus": "Acciones del archivo Acta de obra.pdf",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Navegación por nombre conserva carpeta y documento anidados",
+    "passed": true
+  },
+  {
+    "name": "Mover documento anidado preselecciona su carpeta y bloquea mismo destino",
+    "passed": true
+  },
+  {
+    "name": "Mover documento mantiene id y usa folder_id",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        }
+      ],
+      "focus": "Acciones del archivo Plano dentro.pdf",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Subcarpeta",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Plano dentro.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Mover subcarpeta comienza en su padre y deshabilita confirmar",
+    "passed": true
+  },
+  {
+    "name": "Mover carpeta mantiene id y usa parent_folder_id",
+    "passed": true,
+    "details": [
+      {
+        "args": {
+          "id": "doc-ventas",
+          "nombre": "Contrato ventas revisado.pdf"
+        },
+        "name": "documentos:renameDocument"
+      },
+      {
+        "args": {
+          "id": "folder-empty",
+          "nombre": "Vacía revisada"
+        },
+        "name": "documentos:renameFolder"
+      },
+      {
+        "args": {
+          "id": "folder-crest"
+        },
+        "name": "documentos:deleteFolder"
+      },
+      {
+        "args": {
+          "folder_id": "folder-empty",
+          "id": "doc-nested"
+        },
+        "name": "documentos:moveDocument"
+      },
+      {
+        "args": {
+          "id": "folder-child",
+          "parent_folder_id": "folder-empty"
+        },
+        "name": "documentos:moveFolder"
+      }
+    ]
+  },
+  {
+    "name": "Cuadrícula 1440: controles únicos y HTML válido sin desbordamiento",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        },
+        {
+          "args": {
+            "id": "folder-child",
+            "parent_folder_id": "folder-empty"
+          },
+          "name": "documentos:moveFolder"
+        }
+      ],
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Doble clic en menú de tarjeta conserva biblioteca",
+    "passed": true
+  },
+  {
+    "name": "Escape cierra menú y devuelve foco a tarjeta",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        },
+        {
+          "args": {
+            "id": "folder-child",
+            "parent_folder_id": "folder-empty"
+          },
+          "name": "documentos:moveFolder"
+        }
+      ],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1440
+    }
+  },
+  {
+    "name": "Cuadrícula 390: único disparador por tarjeta y sin desbordamiento",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        },
+        {
+          "args": {
+            "id": "folder-child",
+            "parent_folder_id": "folder-empty"
+          },
+          "name": "documentos:moveFolder"
+        }
+      ],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 844,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 390
+    }
+  },
+  {
+    "name": "Renombrar desde cuadrícula móvil conserva carpeta y no navega",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        },
+        {
+          "args": {
+            "id": "folder-child",
+            "parent_folder_id": "folder-empty"
+          },
+          "name": "documentos:moveFolder"
+        }
+      ],
+      "dialog": "RenombrarCrest - CDSNombreCancelarGuardarClose",
+      "focus": null,
+      "height": 844,
+      "input": "Crest - CDS",
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 390
+    }
+  },
+  {
+    "name": "Cancelar Renombrar móvil devuelve foco al mismo registro",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        },
+        {
+          "args": {
+            "id": "folder-child",
+            "parent_folder_id": "folder-empty"
+          },
+          "name": "documentos:moveFolder"
+        }
+      ],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 844,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 390
+    }
+  },
+  {
+    "name": "Lista 390: controles únicos, accesibles y sin desbordamiento",
+    "passed": true,
+    "details": {
+      "calls": [
+        {
+          "args": {
+            "id": "doc-ventas",
+            "nombre": "Contrato ventas revisado.pdf"
+          },
+          "name": "documentos:renameDocument"
+        },
+        {
+          "args": {
+            "id": "folder-empty",
+            "nombre": "Vacía revisada"
+          },
+          "name": "documentos:renameFolder"
+        },
+        {
+          "args": {
+            "id": "folder-crest"
+          },
+          "name": "documentos:deleteFolder"
+        },
+        {
+          "args": {
+            "folder_id": "folder-empty",
+            "id": "doc-nested"
+          },
+          "name": "documentos:moveDocument"
+        },
+        {
+          "args": {
+            "id": "folder-child",
+            "parent_folder_id": "folder-empty"
+          },
+          "name": "documentos:moveFolder"
+        }
+      ],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 844,
+      "menus": 1,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 390
+    }
+  },
+  {
+    "name": "Lista móvil final usa ancho completo y mantiene textos legibles",
+    "passed": true,
+    "details": {
+      "overflow": false,
+      "row": 342.2016906738281,
+      "table": 342.2016906738281
+    }
+  },
+  {
+    "name": "Mover móvil: acciones completas dentro del diálogo",
+    "passed": true,
+    "details": {
+      "buttons": [
+        {
+          "left": 215.46163940429688,
+          "right": 296.2002716064453,
+          "text": "Mover",
+          "within": true
+        },
+        {
+          "left": 32.90482711791992,
+          "right": 357.09516525268555,
+          "text": "Nueva carpeta",
+          "within": true
+        },
+        {
+          "left": 32.90482711791992,
+          "right": 146.4843711853027,
+          "text": "Cancelar",
+          "within": true
+        },
+        {
+          "left": 166.484375,
+          "right": 279.2116470336914,
+          "text": "Mover",
+          "within": true
+        }
+      ],
+      "overflow": false,
+      "width": 390
+    }
+  },
+  {
+    "name": "Cancelar Mover móvil devuelve foco al registro",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 844,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 390
+    }
+  },
+  {
+    "name": "Lista 1024: un menú por fila sin desbordamiento",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "focus": "Acciones de la carpeta Crest - CDS",
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1024
+    }
+  },
+  {
+    "name": "Clic derecho conserva Renombrar y cierra menú contextual al abrir diálogo",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "dialog": "RenombrarCrest - CDSNombreCancelarGuardarClose",
+      "focus": null,
+      "height": 1000,
+      "input": "Crest - CDS",
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "triggers": [
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Crest - CDS",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones de la carpeta Vacía",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Acta de obra.pdf",
+          "width": 43.99147415161133
+        },
+        {
+          "height": 43.99147415161133,
+          "name": "Acciones del archivo Contrato ventas.pdf",
+          "width": 43.99147415161133
+        }
+      ],
+      "width": 1024
+    }
+  },
+  {
+    "name": "Nombre de archivo abre URL ficticia en pestaña separada",
+    "passed": true,
+    "details": "about:blank#p17-obra observado en inventario de pestañas; no se inspecciona su contenido"
+  },
+  {
+    "name": "Vacío 1024: sin acciones huérfanas ni overflow",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [],
+      "width": 1024
+    }
+  },
+  {
+    "name": "Carga 1024: mensaje y sin menús huérfanos",
+    "passed": true,
+    "details": {
+      "calls": [],
+      "focus": null,
+      "height": 1000,
+      "menus": 0,
+      "nested": 0,
+      "overflow": false,
+      "rowButtons": [],
+      "triggers": [],
+      "width": 1024
+    }
+  },
+  {
+    "name": "Integración autenticada /documentos: menú único por carpeta real, sin overflow",
+    "passed": true,
+    "details": {
+      "height": 733,
+      "overflow": false,
+      "rows": [
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Crest - CDS"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - Acceso"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - General"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - Torre G"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - Torre H"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - Torre I"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - Torre J"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Larena - Urbanización 01"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Lote 77"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Proyecto sin nombre"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta Sunrise"
+        },
+        {
+          "actions": 1,
+          "name": "Acciones de la carpeta VILLA4 (test)"
+        }
+      ],
+      "width": 751
+    }
+  }
+]

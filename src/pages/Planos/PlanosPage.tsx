@@ -54,7 +54,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Cloud,
-  Download,
   FileImage,
   FileText,
   Focus,
@@ -65,7 +64,6 @@ import {
   MessageSquare,
   MousePointer2,
   Pencil,
-  Plus,
   Search,
   Trash2,
   Upload,
@@ -88,6 +86,8 @@ import FolderPlanUploadDialog from "./FolderPlanUploadDialog";
 import { collectDroppedPlanFiles, type IncomingPlanFile } from "./folderPlanFiles";
 import MentionCommentComposer from "./MentionCommentComposer";
 import MentionNotificationCenter from "./MentionNotificationCenter";
+import PlanLibraryActions from "./PlanLibraryActions";
+import PlanViewerActions from "./PlanViewerActions";
 import MentionText from "./MentionText";
 
 const PlanCanvas = lazy(() => import("./PlanCanvas"));
@@ -253,6 +253,8 @@ export default function PlanosPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const planActionReturnFocusRef = useRef<HTMLButtonElement | null>(null);
+  const uploadReturnFocusRef = useRef<HTMLElement | null>(null);
   const folderDragDepthRef = useRef(0);
   const planNavigationProjectId = useProjectPlanNavigation((state) => state.projectId);
   const planNavigationFolderId = useProjectPlanNavigation((state) => state.folderId);
@@ -463,14 +465,23 @@ export default function PlanosPage() {
   const handlePageCountChange = useCallback((count: number) => setPageCount(Math.max(1, count)), []);
 
   const openUploadDialog = () => {
+    uploadReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setUploadFile(undefined);
     setUploadForm({ titulo: "", numero: "", disciplina: "", revision: "", status: "Vigente" });
     if (fileInputRef.current) fileInputRef.current.value = "";
     setUploadOpen(true);
   };
   const openFolderUploadDialog = () => {
+    uploadReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setFolderUploadEntries([]);
     setFolderUploadOpen(true);
+  };
+  const restoreUploadFocus = (event: Event) => {
+    const trigger = uploadReturnFocusRef.current;
+    uploadReturnFocusRef.current = null;
+    if (!trigger?.isConnected) return;
+    event.preventDefault();
+    trigger.focus();
   };
   const handleFolderDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
     if (!canWrite || folderUploadOpen || uploadOpen || !Array.from(event.dataTransfer.types).includes("Files")) return;
@@ -651,6 +662,13 @@ export default function PlanosPage() {
     return <div className="flex min-h-screen items-center justify-center bg-card"><Loader2 className="h-8 w-8 animate-spin text-disabled-foreground" /></div>;
   }
 
+  const restorePlanActionFocus = (event: Event) => {
+    const trigger = planActionReturnFocusRef.current;
+    planActionReturnFocusRef.current = null;
+    if (!trigger?.isConnected) return;
+    event.preventDefault();
+    trigger.focus();
+  };
   const sharedDialogs = (
     <>
       <Dialog open={Boolean(annotationDraft)} onOpenChange={(open) => {
@@ -700,7 +718,7 @@ export default function PlanosPage() {
       </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl rounded-sm">
+        <DialogContent className="max-w-2xl rounded-sm" onCloseAutoFocus={restorePlanActionFocus}>
           <DialogHeader><DialogTitle>Editar datos del plano</DialogTitle><DialogDescription>Actualiza la identificación y el estado documental.</DialogDescription></DialogHeader>
           <PlanFormFields form={editForm} setForm={setEditForm} includeArchived prefix="edit-plan" />
           <DialogFooter>
@@ -711,7 +729,7 @@ export default function PlanosPage() {
       </Dialog>
 
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(undefined)}>
-        <AlertDialogContent className="max-w-md rounded-sm">
+        <AlertDialogContent className="max-w-md rounded-sm" onCloseAutoFocus={restorePlanActionFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{deleteTarget?.type === "plan" ? "Eliminar plano" : "Eliminar anotación"}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -751,15 +769,16 @@ export default function PlanosPage() {
             </div>
             <div className="flex flex-wrap gap-2 self-start lg:self-auto">
               <MentionNotificationCenter projectId={projectId} compact />
-              <Button type="button" variant="outline" className="h-11 gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }} asChild>
-                <a href={planDetail.url || "#"} download={planDetail.nombre_archivo} target="_blank" rel="noreferrer"><Download className="h-4 w-4" />Descargar</a>
-              </Button>
-              {canManagePlan && (
-                <>
-                  <Button type="button" variant="outline" onClick={() => setEditOpen(true)} className="h-11 gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}><Pencil className="h-4 w-4" />Editar datos</Button>
-                  <Button type="button" variant="outline" onClick={() => setDeleteTarget({ type: "plan", id: planDetail._id, name: planDetail.titulo })} className="h-11 gap-2 rounded-sm bg-card shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.danger }}><Trash2 className="h-4 w-4" />Eliminar</Button>
-                </>
-              )}
+              <PlanViewerActions
+                key={planDetail._id}
+                title={planDetail.titulo}
+                url={planDetail.url}
+                fileName={planDetail.nombre_archivo}
+                canManage={canManagePlan}
+                busy={editing || deleting}
+                onEdit={(trigger) => { planActionReturnFocusRef.current = trigger; setEditOpen(true); }}
+                onDelete={(trigger) => { planActionReturnFocusRef.current = trigger; setDeleteTarget({ type: "plan", id: planDetail._id, name: planDetail.titulo }); }}
+              />
             </div>
           </div>
         </div>
@@ -957,15 +976,14 @@ export default function PlanosPage() {
                 : "Revisa documentos, marca observaciones y concentra la conversación técnica."}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 self-start lg:self-auto">
-            <MentionNotificationCenter projectId={projectId} />
-            {canWrite && (
-              <>
-                <Button type="button" variant="outline" onClick={openUploadDialog} className="h-14 gap-3 rounded-sm bg-card px-6 text-base font-normal shadow-none" style={{ borderColor: UI_COLORS.borderStrong, color: UI_COLORS.textSoft }}><Plus className="h-5 w-5" />Cargar plano</Button>
-                <Button type="button" onClick={openFolderUploadDialog} className="h-14 gap-3 rounded-sm px-6 text-base font-normal shadow-none"><FolderUp className="h-5 w-5" />Cargar carpeta</Button>
-              </>
-            )}
-          </div>
+          <PlanLibraryActions
+            key={projectId}
+            projectId={projectId}
+            canWrite={canWrite}
+            busy={uploadOpen || folderUploadOpen || uploading}
+            onUploadPlan={openUploadDialog}
+            onUploadFolder={openFolderUploadDialog}
+          />
         </div>
       </div>
       <div className="space-y-8 px-6 py-8 lg:px-16">
@@ -1019,9 +1037,9 @@ export default function PlanosPage() {
         </div>
       </div>
 
-      <FolderPlanUploadDialog open={folderUploadOpen} onOpenChange={setFolderUploadOpen} projectId={projectId} initialEntries={folderUploadEntries} />
+      <FolderPlanUploadDialog open={folderUploadOpen} onOpenChange={setFolderUploadOpen} projectId={projectId} initialEntries={folderUploadEntries} onCloseAutoFocus={restoreUploadFocus} />
       <Dialog open={uploadOpen} onOpenChange={(open) => !uploading && setUploadOpen(open)}>
-        <DialogContent className="max-w-2xl rounded-sm">
+        <DialogContent className="max-w-2xl rounded-sm" onCloseAutoFocus={restoreUploadFocus}>
           <DialogHeader><DialogTitle>Cargar plano</DialogTitle><DialogDescription>{currentFolderId ? `Se cargará en ${currentLocationName}. Las carpetas admiten archivos PDF de hasta 50 MB.` : "PDF, JPG, PNG o WebP de hasta 50 MB. Las anotaciones conservarán su posición en cada página."}</DialogDescription></DialogHeader>
           <div className="space-y-2">
             <Label>Archivo</Label>

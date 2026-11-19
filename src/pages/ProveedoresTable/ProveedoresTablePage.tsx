@@ -1,8 +1,8 @@
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useRef, useState } from "react";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { Archive, ArrowDown, ArrowUp, ArrowUpDown, Edit2, FileSpreadsheet, Merge, MoreVertical, Plus, ReceiptText, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, ArrowUpDown, Edit2, FileSpreadsheet, Merge, MoreHorizontal, MoreVertical, Plus, ReceiptText, RefreshCw, RotateCcw, Search } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,10 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -60,6 +63,8 @@ export default function ProveedoresTablePage() {
   const [mergeTarget, setMergeTarget] = useState<Id<"proveedores"> | "">("");
   const [syncOpen, setSyncOpen] = useState(false);
   const [excelBackfillOpen, setExcelBackfillOpen] = useState(false);
+  const catalogTriggerRef = useRef<HTMLButtonElement>(null);
+  const pendingCatalogAction = useRef<"excel" | "sync" | null>(null);
 
   const deferredSearchTerm = useDeferredValue(searchTerm.trim());
   const {
@@ -209,24 +214,57 @@ export default function ProveedoresTablePage() {
             <h1 className="mb-2 text-3xl font-normal text-foreground">Proveedores</h1>
             <p className="text-sm text-muted-foreground">Catálogo global vinculado directamente a transacciones y requisiciones.</p>
           </div>
-          <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
+          <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center lg:w-auto lg:shrink-0 lg:justify-end">
             <Badge variant="outline" className="rounded-none px-4 py-2">
               Mostrando: {providers.length}{canLoadMore ? "+" : ""}
             </Badge>
-            <Button variant="outline" onClick={() => setExcelBackfillOpen(true)}>
-              <FileSpreadsheet className="mr-2 h-4 w-4" /> Actualizar desde Excel
-            </Button>
-            <Button variant="outline" onClick={() => setSyncOpen(true)}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Sincronizar transacciones
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingProvider(null);
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Nuevo proveedor
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => {
+                  setEditingProvider(null);
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Nuevo proveedor
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button ref={catalogTriggerRef} variant="outline" size="icon" className="h-12 w-12 shrink-0" aria-label="Herramientas del catálogo de proveedores">
+                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  collisionPadding={16}
+                  className="w-72 max-w-[calc(100vw-2rem)]"
+                  aria-label="Herramientas del catálogo de proveedores"
+                  onCloseAutoFocus={(event) => {
+                    const action = pendingCatalogAction.current;
+                    pendingCatalogAction.current = null;
+                    if (!action) return;
+                    // Release the menu first and give the dialog a persistent focus return target.
+                    event.preventDefault();
+                    catalogTriggerRef.current?.focus();
+                    if (action === "excel") setExcelBackfillOpen(true);
+                    else setSyncOpen(true);
+                  }}
+                >
+                  <DropdownMenuGroup aria-label="Importación">
+                    <DropdownMenuLabel>Importación</DropdownMenuLabel>
+                    <DropdownMenuItem className="min-h-11" onSelect={() => { pendingCatalogAction.current = "excel"; }}>
+                      <FileSpreadsheet aria-hidden="true" /> Actualizar desde Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup aria-label="Mantenimiento">
+                    <DropdownMenuLabel>Mantenimiento</DropdownMenuLabel>
+                    <DropdownMenuItem className="min-h-11" onSelect={() => { pendingCatalogAction.current = "sync"; }}>
+                      <RefreshCw aria-hidden="true" /> Sincronizar transacciones
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
@@ -414,7 +452,10 @@ export default function ProveedoresTablePage() {
 
       <ProviderTransactionSyncDialog
         open={syncOpen}
-        onOpenChange={setSyncOpen}
+        onOpenChange={(open) => {
+          setSyncOpen(open);
+          if (!open) requestAnimationFrame(() => catalogTriggerRef.current?.focus());
+        }}
         projects={(proyectos || []).map((project) => ({
           _id: project._id,
           nombre: project.nombre,
@@ -423,7 +464,10 @@ export default function ProveedoresTablePage() {
       />
       <ProviderExcelBackfillDialog
         open={excelBackfillOpen}
-        onOpenChange={setExcelBackfillOpen}
+        onOpenChange={(open) => {
+          setExcelBackfillOpen(open);
+          if (!open) requestAnimationFrame(() => catalogTriggerRef.current?.focus());
+        }}
         projects={(proyectos || []).map((project) => ({
           _id: project._id,
           nombre: project.nombre,

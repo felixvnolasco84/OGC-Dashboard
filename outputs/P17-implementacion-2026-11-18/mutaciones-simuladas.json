@@ -1,0 +1,36 @@
+[
+  {
+    "args": {
+      "id": "doc-ventas",
+      "nombre": "Contrato ventas revisado.pdf"
+    },
+    "name": "documentos:renameDocument"
+  },
+  {
+    "args": {
+      "id": "folder-empty",
+      "nombre": "Vacía revisada"
+    },
+    "name": "documentos:renameFolder"
+  },
+  {
+    "args": {
+      "id": "folder-crest"
+    },
+    "name": "documentos:deleteFolder"
+  },
+  {
+    "args": {
+      "folder_id": "folder-empty",
+      "id": "doc-nested"
+    },
+    "name": "documentos:moveDocument"
+  },
+  {
+    "args": {
+      "id": "folder-child",
+      "parent_folder_id": "folder-empty"
+    },
+    "name": "documentos:moveFolder"
+  }
+]

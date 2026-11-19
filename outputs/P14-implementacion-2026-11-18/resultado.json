@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "1440: layout, teclado, foco, diálogos, reset, selección/validación/revisión de carpeta, cero cargas y alcances de menciones",
+    "390: layout, teclado, foco, diálogos, reset, selección/validación/revisión de carpeta, cero cargas y alcances de menciones",
+    "1024: layout, teclado, foco, diálogos, reset, selección/validación/revisión de carpeta, cero cargas y alcances de menciones",
+    "Lector: sin modalidades de carga, acceso a menciones a través de la protección de lectura",
+    "Estado vacío conserva llamadas contextuales; revocar escritura retira los items del portal",
+    "Ubicación actual conserva destino PDF y validación; menciones dentro de carpeta siguen abarcando el proyecto",
+    "Arrastrar conserva initialEntries y rutas relativas; el menú Cargar carpeta vuelve a abrir sin archivos residuales",
+    "Contador cargando/cero/9+ accesible y cambio de proyecto con menú abierto sin marcar otro alcance",
+    "Cambio de proyecto cierra Sheet y detiene lotes pendientes del alcance anterior",
+    "Visor conserva botón compacto de menciones y alcance por proyecto"
+  ],
+  "pageErrors": [],
+  "backend": "simulado; se rechazan todas las mutaciones salvo marcar menciones ficticias"
+}

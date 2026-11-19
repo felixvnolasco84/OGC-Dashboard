@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "1440: composición, menú, enlace/descarga, teclado/foco, edición precargada/validación/cancelación, confirmación sin borrar, herramientas y menciones por proyecto",
+    "390: composición, menú, enlace/descarga, teclado/foco, edición precargada/validación/cancelación, confirmación sin borrar, herramientas y menciones por proyecto",
+    "1024: composición, menú, enlace/descarga, teclado/foco, edición precargada/validación/cancelación, confirmación sin borrar, herramientas y menciones por proyecto",
+    "Permisos admin: opciones y herramientas correctas, apertura sin mutaciones",
+    "Permisos autor: opciones y herramientas correctas, apertura sin mutaciones",
+    "Permisos otro-usuario: opciones y herramientas correctas, apertura sin mutaciones",
+    "Permisos lector: opciones y herramientas correctas, apertura sin mutaciones",
+    "Permisos lector-sin-url: opciones y herramientas correctas, apertura sin mutaciones",
+    "Permisos admin-sin-url: opciones y herramientas correctas, apertura sin mutaciones",
+    "Cambio de plano: edición y confirmación usan metadatos/identidad actuales sin arrastrar el borrador anterior",
+    "Revocar gestión retira opciones; loading desmonta el menú sin ejecutar acciones",
+    "Guardado simulado en memoria conserva validación, payload y busy; ningún backend conectado",
+    "Convivencia P14: vuelta a biblioteca, carga/cancelación/foco y reapertura del visor intactas"
+  ],
+  "pageErrors": [],
+  "backend": "No conectado. Datos y descarga ficticios; única escritura de metadatos interceptada en memoria; sin borrados, anotaciones ni comentarios."
+}

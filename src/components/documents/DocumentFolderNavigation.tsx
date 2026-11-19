@@ -300,12 +300,14 @@ export function DocumentFolderSidebar<TId extends string = string>({
 
 type MoveLocationDialogProps<TId extends string = string> = {
   currentLocationId?: TId;
+  footerClassName?: string;
   folders: DocumentFolderTreeItem<TId>[];
   folderOptions: DocumentFolderOption<TId>[];
   itemName: string;
   onCreateFolder?: (name: string, parentFolderId?: TId) => Promise<TId | void> | TId | void;
   onMove: () => void;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
   onTargetFolderChange: (id: string) => void;
   open: boolean;
   rootLabel?: string;
@@ -314,12 +316,14 @@ type MoveLocationDialogProps<TId extends string = string> = {
 
 export function MoveLocationDialog<TId extends string = string>({
   currentLocationId,
+  footerClassName,
   folders,
   folderOptions,
   itemName,
   onCreateFolder,
   onMove,
   onOpenChange,
+  onCloseAutoFocus,
   onTargetFolderChange,
   open,
   rootLabel = "Biblioteca",
@@ -397,7 +401,7 @@ export function MoveLocationDialog<TId extends string = string>({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden rounded-lg p-0">
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus} className="flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden rounded-lg p-0">
         <DialogHeader className="shrink-0 px-9 pb-4 pt-8">
           <DialogTitle className="text-3xl font-normal text-foreground">Mover "{itemName}"</DialogTitle>
           <div className="mt-4 flex items-center gap-3 text-base text-foreground">
@@ -593,7 +597,7 @@ export function MoveLocationDialog<TId extends string = string>({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-row items-center justify-between border-t border-border px-9 pb-8 pt-3 sm:justify-between">
+        <DialogFooter className={cn("shrink-0 flex-row items-center justify-between border-t border-border px-9 pb-8 pt-3 sm:justify-between", footerClassName)}>
           <Button
             variant="outline"
             className="h-12 rounded-full px-7 text-blue-600"
