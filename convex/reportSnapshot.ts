@@ -20,8 +20,10 @@ import {
 
 import { executionContext } from "./programaObraExecution";
 import { buildReportLogbook } from "./reportLogbook";
-import type { Id } from "./_generated/dataModel";
-import { projectProgramDates, summarizeProgram } from "../src/lib/programa-obra-rules";
+import type { Doc, Id } from "./_generated/dataModel";
+import { programDate, projectProgramDates, summarizeProgram } from "../src/lib/programa-obra-rules";
+import { aggregateExecutionTiming, getExecutionTiming, getProgramBarDates, type ProgramExecutionTiming } from "../src/lib/programa-obra-delay";
+import { getRecordedProgressTiming } from "../src/lib/programa-obra-progress";
 
 const numberValue = (value: unknown) => {
   const parsed = Number(value);
@@ -43,22 +45,6 @@ const isLaborLabel = (value: unknown) => {
   return ["mano de obra", "albanil", "carpinter", "fierrer", "ayudante", "cuadrilla"]
     .some((token) => normalized.includes(token));
 };
-
-function addScheduleExtension(
-  endValue: unknown,
-  amountValue: unknown,
-  unitValue: unknown,
-) {
-  const end = parseProjectDate(endValue);
-  const amount = Math.max(0, Math.floor(numberValue(amountValue)));
-  if (!end || amount <= 0) return null;
-  const date = new Date(`${end}T00:00:00Z`);
-  const unit = String(unitValue || "dias").toLocaleLowerCase("es-MX");
-  if (unit === "semanas") date.setUTCDate(date.getUTCDate() + amount * 7);
-  else if (unit === "meses") date.setUTCMonth(date.getUTCMonth() + amount);
-  else date.setUTCDate(date.getUTCDate() + amount);
-  return date.toISOString().slice(0, 10);
-}
 
 function metricIssue(
   code: string,
@@ -271,6 +257,7 @@ export async function buildReportSnapshot(
     subcontractors,
     imssConfiguration,
     imssPayments,
+    programProgressHistory,
   ] =
     await Promise.all([
       ctx.db.get(args.proyecto),
@@ -301,11 +288,12 @@ export async function buildReportSnapshot(
       ctx.db.query("subcontratistas").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
       ctx.db.query("imss_configuracion").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).first(),
       ctx.db.query("imss_pagos_cuota").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
+      ctx.db.query("programa_obra_avance_historial").withIndex("by_proyecto", (q: any) => q.eq("proyecto", args.proyecto)).collect(),
     ]);
 
   if (!project) throw new Error("Project not found");
   const execution = await executionContext(ctx, args.proyecto as Id<"desarrollos">);
-  const { schedules, details } = projectProgramDates(sourceSchedules, sourceDetails, execution.activities);
+  const { schedules, details } = projectProgramDates<Doc<"programa_obra">, Doc<"programa_obra_detalle">>(sourceSchedules, sourceDetails, execution.activities);
   const programSummary = summarizeProgram(sourceSchedules, sourceDetails, execution.activities, args.periodEnd, execution.calendar);
 
 
@@ -461,6 +449,33 @@ export async function buildReportSnapshot(
 
   const partidaById = new Map<string, any>(partidas.map((row: any) => [String(row._id), row]));
   const scheduleById = new Map<string, any>(schedules.map((row: any) => [String(row._id), row]));
+  const historyByDetail = new Map<string, any[]>();
+  for (const entry of programProgressHistory) {
+    const key = String(entry.detalle_id);
+    const list = historyByDetail.get(key) ?? [];
+    list.push(entry);
+    historyByDetail.set(key, list);
+  }
+  const timingByDetail = new Map<string, ProgramExecutionTiming>();
+  const barByDetail = new Map<string, ReturnType<typeof getProgramBarDates>>();
+  for (const detail of details) {
+    const summary = programSummary.details.find((row) => row.id === detail._id);
+    if (!summary) continue;
+    const leaves = execution.activities.filter((a) => !a.archived && a.detalle_id === detail._id);
+    const recordedDates = { actual_start: programDate(detail.actual_start), actual_finish: programDate(detail.actual_finish) };
+    const legacyTiming = leaves.length ? null : getRecordedProgressTiming(summary.progress, recordedDates, historyByDetail.get(String(detail._id)) ?? []);
+    timingByDetail.set(String(detail._id), leaves.length ? getExecutionTiming(leaves) : {
+      has_reported_progress: legacyTiming!.hasReportedProgress,
+      actual_start: recordedDates.actual_start ?? null,
+      actual_finish: summary.progress === 100 ? recordedDates.actual_finish ?? null : null,
+    });
+    const parent = scheduleById.get(String(detail.programa_obra_id));
+    barByDetail.set(String(detail._id), getProgramBarDates({
+      start: detail.fecha_inicio, end: detail.fecha_fin,
+      parent_start: parent?.fecha_inicio, parent_end: parent?.fecha_fin,
+      extra_amount: detail.tiempo_extra_cantidad, extra_unit: detail.tiempo_extra_unidad,
+    }));
+  }
   const programProgressByPartida = new Map<string, number>();
   const parentActivities = schedules.filter((s: any) => programSummary.schedules.some((row) => row.id === s._id)).map((schedule: any) => {
     const summary = programSummary.schedules.find((row) => row.id === schedule._id);
@@ -469,6 +484,12 @@ export async function buildReportSnapshot(
     const name = sanitizeReportText(partida?.nombre || "Partida", 90) || "Partida";
     programProgressByPartida.set(normalizeLabel(name), actual);
     const end = parseProjectDate(schedule.fecha_fin);
+    const bar = getProgramBarDates({ start: schedule.fecha_inicio, end: schedule.fecha_fin });
+    const children = details.filter((d: any) => d.programa_obra_id === schedule._id && timingByDetail.has(String(d._id)));
+    const extensionEnd = children.map((d: any) => {
+      const dates = barByDetail.get(String(d._id))!;
+      return dates.extension_end ?? dates.end;
+    }).filter((date: string | null): date is string => !!date && !!end && date > end).sort().at(-1) ?? null;
     const milestones = [
       schedule.anticipo_fecha ? {
         type: "advance" as const,
@@ -493,7 +514,9 @@ export async function buildReportSnapshot(
       group: name,
       level: 1,
       approved_budget: numberValue(partida?.presupuesto_aprobado),
-      parent_start: null, parent_end: null, extension_end: null,
+      parent_start: null, parent_end: null, extension_end: extensionEnd,
+      bar_start: bar.start, bar_end: bar.end,
+      execution_timing: aggregateExecutionTiming(children.map((d: any) => timingByDetail.get(String(d._id))!)),
       start: parseProjectDate(schedule.fecha_inicio),
       end,
       actual_progress_percent: actual,
@@ -516,6 +539,7 @@ export async function buildReportSnapshot(
     const summary = programSummary.details.find((row) => row.id === detail._id);
     const actual = summary?.progress ?? 0;
     const end = parseProjectDate(detail.fecha_fin);
+    const bar = barByDetail.get(String(detail._id))!;
     return {
       id: String(detail._id),
       name,
@@ -527,11 +551,9 @@ export async function buildReportSnapshot(
       end,
       parent_start: parseProjectDate(parent?.fecha_inicio),
       parent_end: parseProjectDate(parent?.fecha_fin),
-      extension_end: addScheduleExtension(
-        detail.fecha_fin,
-        detail.tiempo_extra_cantidad,
-        detail.tiempo_extra_unidad,
-      ),
+      extension_end: bar.extension_end,
+      bar_start: bar.start, bar_end: bar.end,
+      execution_timing: timingByDetail.get(String(detail._id))!,
       actual_progress_percent: actual,
       planned_progress_percent: summary?.planned ?? null,
       delayed: Boolean(end && end < args.periodEnd && !summary?.released),
@@ -557,6 +579,9 @@ export async function buildReportSnapshot(
       parent_start: activity.parent_start,
       parent_end: activity.parent_end,
       extension_end: activity.extension_end,
+      bar_start: activity.bar_start,
+      bar_end: activity.bar_end,
+      execution_timing: activity.execution_timing,
       actual_progress_percent: activity.actual_progress_percent,
       planned_progress_percent: activity.planned_progress_percent,
       financial_progress_percent: activity.financial_progress_percent,

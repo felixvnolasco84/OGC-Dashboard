@@ -1,5 +1,6 @@
 import { isProgramaItemDelayed } from "./programa-obra-status";
 import { programToday } from "@/lib/programa-obra-rules";
+import { getProgramBarDates, getProgramDelay } from "@/lib/programa-obra-delay";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -132,68 +133,17 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
         ? item.familiaSchedule
         : schedule;
 
-  // Parse dates from the effective schedule
-  const rawStartDate = parseDate(effectiveSchedule?.fecha_inicio);
-  const rawEndDate = parseDate(effectiveSchedule?.fecha_fin);
-  const anticipoDate = parseDate(schedule?.anticipo_fecha);
-  const suministroDate = parseDate(schedule?.suministro_fecha);
-  const finiquitoDate = parseDate(schedule?.finiquito_fecha);
-
-  // Clamp child items' start to parent start
-  let startDate = rawStartDate;
-  let endDate = rawEndDate;
-  if ((item.level === 1 || item.level === 2) && item.schedule) {
-    const parentStart = parseDate(item.schedule.fecha_inicio);
-    if (parentStart && startDate && startDate < parentStart) startDate = parentStart;
-  }
-
-  // Compute extension end date from tiempo_extra fields on detalleSchedule.
-  // The base fecha_fin is the planned bar end; only manual time extends it.
-  //
-  // Backward-compat: old records stored fecha_fin = base + extension (baked in).
-  // Detection: if tiempo_extra exists AND fecha_fin > parent end, the stored fecha_fin
-  // likely already includes the extension. In that case, subtract to get the base.
-  let extensionEndDate: Date | null = null;
-  if (
-    (item.level === 1 || item.level === 2) &&
-    item.detalleSchedule &&
-    item.detalleSchedule.tiempo_extra_cantidad &&
-    item.detalleSchedule.tiempo_extra_cantidad > 0 &&
-    endDate
-  ) {
-    const cant = item.detalleSchedule.tiempo_extra_cantidad;
-    const unidad = item.detalleSchedule.tiempo_extra_unidad ?? "dias";
-    const parentEnd = item.schedule ? parseDate(item.schedule.fecha_fin) : null;
-
-    // Check if this is an old record (fecha_fin already includes extension)
-    const isOldRecord = parentEnd && endDate.getTime() > parentEnd.getTime();
-
-    if (isOldRecord) {
-      // Old logic: fecha_fin = base + extension. Use stored fecha_fin as the extension end.
-      extensionEndDate = new Date(endDate);
-      // Subtract extension to recover the base date for the green bar.
-      const base = new Date(endDate);
-      if (unidad === "dias") {
-        base.setDate(base.getDate() - cant);
-      } else if (unidad === "semanas") {
-        base.setDate(base.getDate() - cant * 7);
-      } else if (unidad === "meses") {
-        base.setMonth(base.getMonth() - cant);
-      }
-      endDate = base;
-    } else {
-      // New logic: fecha_fin is the base. Add extension for the red bar.
-      const ext = new Date(endDate);
-      if (unidad === "dias") {
-        ext.setDate(ext.getDate() + cant);
-      } else if (unidad === "semanas") {
-        ext.setDate(ext.getDate() + cant * 7);
-      } else if (unidad === "meses") {
-        ext.setMonth(ext.getMonth() + cant);
-      }
-      extensionEndDate = ext;
-    }
-  }
+  const isDetail = item.level === 1 || item.level === 2;
+  const barDates = getProgramBarDates({
+    start: effectiveSchedule?.fecha_inicio, end: effectiveSchedule?.fecha_fin,
+    parent_start: isDetail ? item.schedule?.fecha_inicio : undefined,
+    parent_end: isDetail ? item.schedule?.fecha_fin : undefined,
+    extra_amount: isDetail ? item.detalleSchedule?.tiempo_extra_cantidad : undefined,
+    extra_unit: item.detalleSchedule?.tiempo_extra_unidad,
+  });
+  const startDate = parseDate(barDates.start);
+  const endDate = parseDate(barDates.end);
+  const extensionEndDate = parseDate(barDates.extension_end);
 
   // For level 0, check if any child extends beyond (maxChildEndDate)
   const maxChildEnd = item.level === 0 ? parseDate(item.maxChildEndDate) : null;
@@ -210,39 +160,21 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
   // Avance real and financiero percentages
   const avanceReal = item.avanceReal ?? 0;
   const financiero = item.financiero ?? 0;
-  const now = parseDate(programToday(currentTime))!;
-
-  // A late start is only shown after a full seven-day reporting window.
-  // Once progress exists, preserve its late start within the planned bar.
-  const graceEnd = new Date(startDate);
-  graceEnd.setDate(graceEnd.getDate() + 7);
-  graceEnd.setHours(23, 59, 59, 999);
-
-  let lateStartEndDate: Date | null = null;
-  if (item.hasReportedProgress === false && now > graceEnd) {
-    lateStartEndDate = now;
-  } else if (
-    item.hasReportedProgress === true &&
-    item.progressStartKnown &&
-    item.progressStartedAt != null
-  ) {
-    const reportedStart = new Date(item.progressStartedAt);
-    if (reportedStart > graceEnd) lateStartEndDate = reportedStart;
-  }
-  const lateStartEndPx = lateStartEndDate
-    ? dateToPixel(lateStartEndDate, columnWidth, timelineMonths)
-    : null;
-  const lateStartWidth = lateStartEndPx != null
-    ? Math.min(Math.max(lateStartEndPx - startPx, 0), barWidth)
-    : 0;
-
-  // Overdue work and known late completions turn the planned line red. Neither
-  // today's date nor an actual date may extend the saved schedule.
-  const hasFinishDelay = isProgramaItemDelayed(item, currentTime) || !!(
-    item.completionKnown &&
-    item.completedAt != null &&
-    new Date(item.completedAt) > endDate
-  );
+  const delay = getProgramDelay({
+    start: barDates.start, end: barDates.end, cutoff: programToday(currentTime),
+    overdue: isProgramaItemDelayed(item, currentTime),
+    timing: {
+      has_reported_progress: item.hasReportedProgress,
+      actual_start: item.progressStartKnown && item.progressStartedAt != null ? formatRecordedStart(item.progressStartedAt) : null,
+      actual_finish: item.completionKnown && item.completedAt != null ? formatRecordedStart(item.completedAt) : null,
+    },
+  });
+  const hasFinishDelay = delay?.kind === "overdue" || delay?.kind === "late_finish";
+  const lateStartEndDate = delay?.kind === "late_start" ? parseDate(delay.end) : null;
+  const lateStartEndPx = lateStartEndDate ? dateToPixel(lateStartEndDate, columnWidth, timelineMonths) : null;
+  // A complete delayed interval also covers a one-day bar's minimum pixel width.
+  const lateStartWidth = delay?.kind === "late_start" && delay.end === barDates.end ? barWidth
+    : lateStartEndPx != null ? Math.min(Math.max(lateStartEndPx - startPx, 0), barWidth) : 0;
   const delayWidth = hasFinishDelay ? barWidth : lateStartWidth;
 
   // Extensions come exclusively from saved manual dates and time allowances.
@@ -273,6 +205,9 @@ export default function ProgramaObraGanttItem({ item, columnWidth, timelineMonth
     : null;
 
   // Milestone positions (relative to bar start)
+  const anticipoDate = parseDate(schedule?.anticipo_fecha);
+  const suministroDate = parseDate(schedule?.suministro_fecha);
+  const finiquitoDate = parseDate(schedule?.finiquito_fecha);
   const anticipoPx = anticipoDate ? dateToPixel(anticipoDate, columnWidth, timelineMonths) : null;
   const suministroPx = suministroDate ? dateToPixel(suministroDate, columnWidth, timelineMonths) : null;
   const finiquitoPx = finiquitoDate ? dateToPixel(finiquitoDate, columnWidth, timelineMonths) : null;

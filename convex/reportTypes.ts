@@ -1,3 +1,5 @@
+import type { ProgramExecutionTiming } from "../src/lib/programa-obra-delay";
+
 export const REPORT_SECTIONS = [
   "executive",
   "financial",
@@ -128,6 +130,10 @@ export type ReportProgramActivity = {
   planned_progress_percent: number | null;
   financial_progress_percent?: number | null;
   delayed: boolean;
+  // Optional for rendering snapshots saved before execution-aware delay colours.
+  execution_timing?: ProgramExecutionTiming;
+  bar_start?: string | null;
+  bar_end?: string | null;
   milestones?: Array<{
     type: "advance" | "supply" | "closeout";
     date: string;

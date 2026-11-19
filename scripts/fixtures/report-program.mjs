@@ -27,3 +27,29 @@ export function reportProgramFixture({ partidas = 12, familias = 3 } = {}) {
     args: { proyecto: "project", periodStart: "2026-11-13", periodEnd: "2026-11-19", periodKey: "weekly:2026-11-13:2026-11-19", profile: "full" },
   };
 }
+
+/** Covers old pending work, real delays, missing dates and saved extra time. */
+export function reportProgramDelayFixture() {
+  const f = reportProgramFixture();
+  const set = (p, name, start, end, progress, actualStart, actualFinish) => {
+    f.partidas[p].nombre = name;
+    Object.assign(f.schedules[p], { fecha_inicio: start, fecha_fin: end });
+    for (const detail of f.details.filter((d) => d.programa_obra_id === f.schedules[p]._id)) {
+      Object.assign(detail, { partida: name, fecha_inicio: start, fecha_fin: end, avance_porcentaje: progress, actual_start: actualStart, actual_finish: actualFinish, progress_as_of: "2026-11-18" });
+    }
+  };
+  set(0, "PRELIMINARES", "2026-05-28", "2026-07-15", 75, "2026-05-28");
+  set(1, "MUROS_PB", "2026-10-13", "2026-10-28", 85, "2026-10-13");
+  set(2, "LOSA_PN", "2026-11-01", "2026-12-10", 45, "2026-11-12");
+  Object.assign(f.details.find((d) => d._id === "family-2-2"), { avance_porcentaje: 0, actual_start: undefined });
+  set(3, "INICIO TARDÍO ANTERIOR", "2026-08-01", "2026-12-15", 55, "2026-08-20");
+  set(4, "TERMINACIÓN TARDÍA", "2026-10-10", "2026-11-01", 100, "2026-10-10", "2026-11-07");
+  set(5, "INICIO OPORTUNO", "2026-10-15", "2026-12-15", 60, "2026-10-15");
+  set(6, "TERMINACIÓN OPORTUNA", "2026-10-18", "2026-11-05", 100, "2026-10-18", "2026-11-01");
+  set(7, "TERMINADA ANTERIOR", "2026-05-01", "2026-07-15", 100, "2026-05-01", "2026-07-15");
+  set(8, "TIEMPO EXTRA GUARDADO", "2026-11-10", "2026-11-28", 30, "2026-11-10");
+  Object.assign(f.details.find((d) => d._id === "family-8-0"), { tiempo_extra_cantidad: 5, tiempo_extra_unidad: "dias" });
+  set(9, "INICIO SIN FECHA REAL", "2026-11-01", "2026-12-10", 60);
+  set(10, "CIERRE SIN FECHA REAL", "2026-10-01", "2026-10-31", 100, "2026-10-01");
+  return f;
+}

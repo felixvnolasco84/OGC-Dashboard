@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { getProgramDelay } from "../src/lib/programa-obra-delay";
 import type {
   ReportInsights,
   ReportLogbookEntry,
@@ -241,11 +242,13 @@ function selectProgramActivities(
       if (!activity.start || !activity.end) return false;
       const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
       const activityEnd = Date.parse(`${activity.end}T00:00:00Z`);
+      const displayStart = Date.parse(`${activity.bar_start ?? activity.start}T00:00:00Z`);
+      const displayEnd = Date.parse(`${activity.extension_end ?? activity.bar_end ?? activity.end}T00:00:00Z`);
       return Number.isFinite(activityStart)
         && Number.isFinite(activityEnd)
         && activityEnd >= activityStart
-        && activityStart < endExclusive
-        && activityEnd >= start;
+        && ((displayStart < endExclusive && displayEnd >= start)
+          || (activity.delayed && activityEnd < start));
     });
 }
 
@@ -1510,6 +1513,45 @@ const PROGRAM_PAGE_BOTTOM = PAGE_HEIGHT - MARGIN;
 const programMatrixHeight = (rows: ReportProgramActivity[]) =>
   Math.max(72, PROGRAM_HEADER_HEIGHT + rows.length * PROGRAM_ROW_HEIGHT);
 
+const DAY_MS = 86_400_000;
+const PROGRAM_DELAY_FILL: PdfColor = [239, 229, 228];
+const PROGRAM_DELAY_INK: PdfColor = [145, 78, 76];
+const reportProgramDelay = (activity: ReportProgramActivity, cutoff: string) => getProgramDelay({
+  start: activity.bar_start ?? activity.start, end: activity.bar_end ?? activity.end,
+  cutoff, overdue: activity.delayed, timing: activity.execution_timing,
+});
+
+/** Normalize complete intervals first; cropping never changes the progress ratio. */
+export function getReportProgramGeometry(activity: ReportProgramActivity, cutoff: string) {
+  const window = getProgramDisplayWindow(cutoff);
+  const start = Date.parse(`${activity.bar_start ?? activity.start}T00:00:00Z`);
+  const end = Date.parse(`${activity.bar_end ?? activity.end}T00:00:00Z`);
+  const delay = reportProgramDelay(activity, cutoff);
+  const clip = (from: number, to: number) => {
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from || to <= window.start || from >= window.endExclusive) return null;
+    return {
+      start: (Math.max(from, window.start) - window.start) / (window.endExclusive - window.start),
+      end: (Math.min(to, window.endExclusive) - window.start) / (window.endExclusive - window.start),
+    };
+  };
+  const valid = Number.isFinite(start) && Number.isFinite(end) && end >= start;
+  const endExclusive = end + DAY_MS;
+  const progress = Math.max(0, Math.min(100, activity.actual_progress_percent)) / 100;
+  const delayEnd = delay ? Date.parse(`${delay.end}T00:00:00Z`) : NaN;
+  // A late-start fragment stops where the real start (or reporting cutoff) begins.
+  const delayEndExclusive = delayEnd + (delay?.kind === "late_start" && delayEnd < end ? 0 : DAY_MS);
+  const scheduledEnd = Date.parse(`${activity.end}T00:00:00Z`);
+  return {
+    bar: valid ? clip(start, endExclusive) : null,
+    progress: valid ? clip(start, start + (endExclusive - start) * progress) : null,
+    delay: delay ? clip(Date.parse(`${delay.start}T00:00:00Z`), delayEndExclusive) : null,
+    extension: valid && activity.extension_end ? clip(endExclusive, Date.parse(`${activity.extension_end}T00:00:00Z`) + DAY_MS) : null,
+    delay_kind: delay?.kind ?? null,
+    previous_pending: activity.delayed && Number.isFinite(scheduledEnd) && scheduledEnd < window.start,
+    prior_late_start: !!delay && delay.kind === "late_start" && delayEndExclusive <= window.start,
+  };
+}
+
 /** Fill the available sheet while retaining the imported hierarchy and order. */
 export function paginateProgramActivities(doc: jsPDF, activities: ReportProgramActivity[], asOf: string) {
   const visible = new Set(selectProgramActivities(activities, asOf));
@@ -1523,7 +1565,7 @@ export function paginateProgramActivities(doc: jsPDF, activities: ReportProgramA
   }
   const pages: Array<{ rows: ReportProgramActivity[]; matrixHeight: number; bullets: string[]; narrativeHeight: number }> = [];
   const layout = (rows: ReportProgramActivity[]) => {
-    const bullets = programNarrative(rows);
+    const bullets = programNarrative(rows, asOf);
     return { rows, bullets, matrixHeight: programMatrixHeight(rows), narrativeHeight: measureBulletedNarrativeCard(doc, bullets).height };
   };
   const fits = (rows: ReportProgramActivity[]) => {
@@ -1673,32 +1715,38 @@ function drawProgramMatrix(
     doc.setTextColor(...COLORS.text);
     doc.text(value, MARGIN + tableWidth - 1.5, rowY + rowHeight * 0.63, { align: "right" });
 
-    const activityStart = Date.parse(`${activity.start}T00:00:00Z`);
-    const activityEnd = Date.parse(`${activity.end}T00:00:00Z`);
-    // A repeated context parent can have dates outside the displayed window.
-    if (!Number.isFinite(activityStart) || !Number.isFinite(activityEnd) || activityEnd < activityStart || activityStart >= maxTime || activityEnd < minTime) return;
-    const clippedStart = Math.max(minTime, activityStart);
-    const clippedEnd = Math.min(maxTime, activityEnd);
-    const barX = dateToX(clippedStart);
-    const endX = dateToX(clippedEnd);
-    const barWidth = Math.max(0.9, endX - barX);
-    if (activity.level === 1) {
-      doc.setFillColor(244, 239, 236);
-      doc.rect(barX, rowY, barWidth, rowHeight, "F");
-      doc.setFillColor(190, 219, 199);
-      doc.rect(barX, rowY, barWidth, 0.9, "F");
-      doc.setFillColor(23, 151, 91);
-      doc.rect(barX, rowY, barWidth * Math.min(1, activity.actual_progress_percent / 100), 0.9, "F");
-    } else {
-      doc.setFillColor(235, 235, 232);
-      doc.rect(barX, rowY + 0.5, barWidth, Math.max(0.7, rowHeight - 1), "F");
-      doc.setFillColor(129, 176, 143);
-      doc.rect(barX, rowY + 0.5, barWidth * Math.min(1, activity.actual_progress_percent / 100), 0.65, "F");
+    const geometry = getReportProgramGeometry(activity, snapshot.period.end);
+    const isParent = activity.level === 1;
+    const barY = rowY + (isParent ? 0 : 0.5);
+    const barHeight = isParent ? rowHeight : Math.max(0.7, rowHeight - 1);
+    const paintInterval = (interval: { start: number; end: number } | null, color: PdfColor, top: number, height: number) => {
+      if (!interval) return;
+      doc.setFillColor(...color);
+      doc.rect(chartX + interval.start * chartWidth, top, (interval.end - interval.start) * chartWidth, height, "F");
+    };
+    paintInterval(geometry.bar, isParent ? [244, 239, 236] : [235, 235, 232], barY, barHeight);
+    paintInterval(geometry.delay, PROGRAM_DELAY_FILL, barY, barHeight);
+    if (isParent) paintInterval(geometry.bar, [190, 219, 199], barY, 0.9);
+    paintInterval(geometry.progress, isParent ? [23, 151, 91] : [129, 176, 143], barY, isParent ? 0.9 : 0.65);
+    paintInterval(geometry.extension, [186, 126, 121], rowY + 0.2, 0.8);
+
+    if (geometry.previous_pending || geometry.prior_late_start) {
+      doc.setFillColor(...PROGRAM_DELAY_INK);
+      const middle = rowY + rowHeight / 2;
+      doc.triangle(chartX + 0.4, middle, chartX + 1.6, middle - 1, chartX + 1.6, middle + 1, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(4.2);
+      doc.setTextColor(...PROGRAM_DELAY_INK);
+      const label = geometry.previous_pending
+        ? `Pendiente anterior · venció ${formatDate(activity.end!)}` : "Inicio tardío anterior";
+      doc.text(label, chartX + 2.5, rowY + rowHeight * 0.68);
+      return;
     }
-    if (activity.extension_end && Date.parse(`${activity.extension_end}T00:00:00Z`) > Date.parse(`${activity.end}T00:00:00Z`)) {
-      doc.setFillColor(186, 126, 121);
-      doc.rect(endX, rowY + 0.2, Math.max(0.8, dateToX(Math.min(maxTime, Date.parse(`${activity.extension_end}T00:00:00Z`))) - endX), 0.8, "F");
-    }
+    // Context parents can have no scheduled interval inside the visible window.
+    if (!geometry.bar && !geometry.extension) return;
+    const interval = geometry.bar ?? geometry.extension!;
+    const barX = chartX + interval.start * chartWidth;
+    const barWidth = (interval.end - interval.start) * chartWidth;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(3.5);
     doc.setTextColor(...COLORS.secondary);
@@ -1735,7 +1783,7 @@ function drawProgramMatrix(
   return height;
 }
 
-function programNarrative(activities: ReportProgramActivity[]) {
+function programNarrative(activities: ReportProgramActivity[], cutoff: string) {
   const candidates = activities.filter((activity) => activity.level === 1).slice(0, 4);
   const selectedActivities = candidates.length ? candidates : activities.slice(0, 4);
   return selectedActivities.map((activity) => {
@@ -1744,8 +1792,15 @@ function programNarrative(activities: ReportProgramActivity[]) {
     const progress = planned === null
       ? `registra ${actual}% de avance real`
       : `registra ${actual}% real frente a ${number(planned, 0)}% planeado`;
+    const delay = reportProgramDelay(activity, cutoff);
     const timing = activity.delayed
       ? "presenta atraso y requiere seguimiento inmediato"
+      : delay?.kind === "late_finish"
+        ? "tiene una terminación real tardía registrada"
+      : delay?.kind === "late_start"
+        ? activity.execution_timing?.has_reported_progress
+          ? "tiene un inicio real tardío registrado"
+          : "no registra inicio después de la tolerancia de siete días"
       : planned !== null && activity.actual_progress_percent + 2 < planned
         ? "avanza por debajo del plan y conviene revisar el siguiente frente"
         : "se mantiene dentro de una trayectoria controlada";
@@ -1785,6 +1840,10 @@ function drawProgramPages(doc: jsPDF, snapshot: ReportSnapshotV1, activities: Re
   pages.forEach((page, index) => {
     paintWhitePage(doc, true);
     portraitSectionTitle(doc, `Programa de obra - avance por concepto${index ? ` - continuación ${index + 1}` : ""}`, 31.5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5);
+    doc.setTextColor(...COLORS.secondary);
+    doc.text(`Verde: avance físico · Fondo rojo: atraso · Trazo adicional: tiempo extra · Línea punteada: corte ${formatDate(snapshot.period.end)}`, MARGIN, 36.8);
     const matrixHeight = drawProgramMatrix(doc, snapshot, page.rows, PROGRAM_MATRIX_Y);
     drawBulletedNarrativeCard(doc, PROGRAM_MATRIX_Y + matrixHeight + PROGRAM_NARRATIVE_GAP, page.bullets);
   });
