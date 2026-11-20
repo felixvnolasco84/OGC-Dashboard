@@ -3248,7 +3248,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
             <Button
               variant="outline"
               onClick={() => setNotificationsOpen(true)}
-              className="relative h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-5 sm:text-base"
+              size="action"
+              className="relative flex-1 rounded-sm border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground sm:flex-none"
             >
               <span className="h-3 w-3 rounded-full bg-[#50AC66]" />
               Notificaciones
@@ -3262,7 +3263,8 @@ export function TareasBoard({ proyectoId }: { proyectoId?: string }) {
               <Button
                 onClick={openCreateDialog}
                 variant="outline"
-                className="h-11 flex-1 gap-2 rounded-sm border-border bg-card px-4 text-sm font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground sm:h-14 sm:flex-none sm:gap-3 sm:px-8 sm:text-base"
+                size="action"
+                className="flex-1 rounded-sm border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-card hover:text-muted-foreground sm:flex-none"
               >
                 <Plus className="h-5 w-5 text-muted-foreground" />
                 Nueva tarea

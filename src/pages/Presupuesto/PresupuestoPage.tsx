@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import {
   X, Plus,
-  ChevronDown,
+  ChevronRight,
   RefreshCw,
   CalendarIcon,
   CreditCard,
@@ -448,7 +448,7 @@ export default function PresupuestoPage() {
                   <Button
                     ref={actionsTriggerRef}
                     variant="outline"
-                    size="iconLg"
+                    size="actionIcon"
                     className="mt-5 shrink-0"
                     data-viewer-readonly-allow="true"
                   >
@@ -647,20 +647,18 @@ export default function PresupuestoPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-card pb-4 px-4 sm:px-6 xl:px-12" data-viewer-readonly-allow="true">
-          <div role="group" aria-label="Filtros y vista del presupuesto" className="grid grid-cols-1 items-start gap-3 min-[360px]:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <div className="bg-card  pb-4 px-4 sm:px-6 xl:px-12">
+          <div className="responsive-filters">
             {/* Partida Filter - Multi-select */}
-            <div className="flex min-w-0 flex-col gap-1 text-left">
-              <span id="presupuesto-partida-label" className="text-sm text-muted-foreground">Partida</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-muted-foreground">Partida</span>
               <DropdownMenu open={isPartidaOpen} onOpenChange={setIsPartidaOpen} modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="outline"
-                    size="field"
-                    className="h-11 w-full justify-between bg-card font-normal lg:h-9"
-                    aria-labelledby="presupuesto-partida-label presupuesto-partida-value"
+                    variant="filter"
+                    size="filter"
                   >
-                    <span id="presupuesto-partida-value" className="truncate">
+                    <span className="flex items-center gap-2">
                       {selectedPartidas.length === 0 ? (
                         "Todas"
                       ) : selectedPartidas.length === 1 ? (
@@ -668,29 +666,22 @@ export default function PresupuestoPage() {
                       ) : (
                         `${selectedPartidas.length} seleccionadas`
                       )}
+                      {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */}
                     </span>
-                    <ChevronDown className="text-muted-foreground" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="w-80 max-w-[calc(100vw-2rem)]"
-                  data-viewer-readonly-allow="true"
+                  className="w-80"
                 >
                   <div className="p-3 border-b">
                     <Input
                       ref={partidaSearchRef}
-                      autoFocus
                       placeholder="Buscar partidas..."
-                      aria-label="Buscar partidas"
                       value={partidaSearchTerm}
                       onChange={(e) => setPartidaSearchTerm(e.target.value)}
                       onKeyDown={(event) => {
                         if (event.key !== "Escape") event.stopPropagation();
-                        if (event.key === "ArrowDown") {
-                          event.preventDefault();
-                          event.currentTarget.closest('[role="menu"]')?.querySelector<HTMLElement>('[role="menuitemcheckbox"]')?.focus();
-                        }
                       }}
                       density="compact"
                     />
@@ -701,7 +692,6 @@ export default function PresupuestoPage() {
                         <DropdownMenuCheckboxItem
                           key={partida}
                           checked={selectedPartidas.includes(partida)}
-                          className="min-h-11 lg:min-h-9"
                           onCheckedChange={(checked) => {
                             setSelectedPartidas((current) => checked
                               ? [...current, partida]
@@ -726,8 +716,6 @@ export default function PresupuestoPage() {
                       <Button
                         variant="ghost"
                         size="compact"
-                        className="min-h-11 lg:min-h-9"
-                        aria-label="Limpiar partidas"
                         onClick={() => setSelectedPartidas([])}
                       >
                         Limpiar
@@ -742,11 +730,9 @@ export default function PresupuestoPage() {
                     <Badge
                       key={partida}
                       variant="secondary"
-                      className="max-w-full gap-1 pr-0.5"
-                      title={partida}
                     >
-                      <span className="min-w-0 truncate">{partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}</span>
-                      <Button type="button" variant="quiet" size="badgeIcon" className="h-11 w-11 shrink-0 lg:h-6 lg:w-6" aria-label={`Quitar partida ${partida}`} onClick={() => setSelectedPartidas(selectedPartidas.filter(p => p !== partida))}><X /></Button>
+                      {partida.length > 15 ? `${partida.slice(0, 15)}...` : partida}
+                      <Button type="button" variant="quiet" size="badgeIcon" aria-label={`Quitar partida ${partida}`} onClick={() => setSelectedPartidas(selectedPartidas.filter(p => p !== partida))}><X /></Button>
                     </Badge>
                   ))}
                 </div>
@@ -754,17 +740,15 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Familia Filter - Multi-select */}
-            <div className="flex min-w-0 flex-col gap-1 text-left">
-              <span id="presupuesto-familia-label" className="text-sm text-muted-foreground">Familia</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-muted-foreground pb-2">Familia</span>
               <DropdownMenu open={isFamiliaOpen} onOpenChange={setIsFamiliaOpen} modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="outline"
-                    size="field"
-                    className="h-11 w-full justify-between bg-card font-normal lg:h-9"
-                    aria-labelledby="presupuesto-familia-label presupuesto-familia-value"
+                    variant="filter"
+                    size={"filter"}
                   >
-                    <span id="presupuesto-familia-value" className="truncate">
+                    <span className="flex items-center gap-2">
                       {selectedFamilias.length === 0 ? (
                         "Todas"
                       ) : selectedFamilias.length === 1 ? (
@@ -772,29 +756,22 @@ export default function PresupuestoPage() {
                       ) : (
                         `${selectedFamilias.length} seleccionadas`
                       )}
+                      {/* <ChevronDown className="h-4 w-4 text-disabled-foreground" /> */}
                     </span>
-                    <ChevronDown className="text-muted-foreground" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="w-80 max-w-[calc(100vw-2rem)]"
-                  data-viewer-readonly-allow="true"
+                  className="w-80"
                 >
                   <div className="p-3 border-b">
                     <Input
                       ref={familiaSearchRef}
-                      autoFocus
                       placeholder="Buscar familias..."
-                      aria-label="Buscar familias"
                       value={familiaSearchTerm}
                       onChange={(e) => setFamiliaSearchTerm(e.target.value)}
                       onKeyDown={(event) => {
                         if (event.key !== "Escape") event.stopPropagation();
-                        if (event.key === "ArrowDown") {
-                          event.preventDefault();
-                          event.currentTarget.closest('[role="menu"]')?.querySelector<HTMLElement>('[role="menuitemcheckbox"]')?.focus();
-                        }
                       }}
                       density="compact"
                     />
@@ -805,7 +782,6 @@ export default function PresupuestoPage() {
                         <DropdownMenuCheckboxItem
                           key={familia}
                           checked={selectedFamilias.includes(familia)}
-                          className="min-h-11 lg:min-h-9"
                           onCheckedChange={(checked) => {
                             setSelectedFamilias((current) => checked
                               ? [...current, familia]
@@ -830,8 +806,6 @@ export default function PresupuestoPage() {
                       <Button
                         variant="ghost"
                         size="compact"
-                        className="min-h-11 lg:min-h-9"
-                        aria-label="Limpiar familias"
                         onClick={() => setSelectedFamilias([])}
                       >
                         Limpiar
@@ -846,11 +820,9 @@ export default function PresupuestoPage() {
                     <Badge
                       key={familia}
                       variant="secondary"
-                      className="max-w-full gap-1 pr-0.5"
-                      title={familia}
                     >
-                      <span className="min-w-0 truncate">{familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}</span>
-                      <Button type="button" variant="quiet" size="badgeIcon" className="h-11 w-11 shrink-0 lg:h-6 lg:w-6" aria-label={`Quitar familia ${familia}`} onClick={() => setSelectedFamilias(selectedFamilias.filter(f => f !== familia))}><X /></Button>
+                      {familia.length > 15 ? `${familia.slice(0, 15)}...` : familia}
+                      <Button type="button" variant="quiet" size="badgeIcon" aria-label={`Quitar familia ${familia}`} onClick={() => setSelectedFamilias(selectedFamilias.filter(f => f !== familia))}><X /></Button>
                     </Badge>
                   ))}
                 </div>
@@ -858,13 +830,13 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Fecha Filter */}
-            <div className="flex min-w-0 flex-col gap-1 text-left">
-              <span id="presupuesto-fecha-label" className="text-sm text-muted-foreground">Fecha</span>
+            <div className="flex flex-col space-y-1 text-left border-b border-border">
+              <span className="text-sm text-muted-foreground pb-2">Fecha</span>
               <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as typeof dateFilter)}>
-                <SelectTrigger aria-labelledby="presupuesto-fecha-label" className="h-11 shadow-none lg:h-9">
+                <SelectTrigger variant="filter">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent data-viewer-readonly-allow="true">
+                <SelectContent>
                   <SelectItem value="total">Hoy (total)</SelectItem>
                   <SelectItem value="ultima_semana">Última semana</SelectItem>
                   <SelectItem value="este_mes">Este mes</SelectItem>
@@ -878,7 +850,6 @@ export default function PresupuestoPage() {
                     <Button
                       variant="date"
                       size="sm"
-                      className="h-auto min-h-11 whitespace-normal px-0 lg:min-h-9"
                     >
                       <CalendarIcon className="mr-2 h-3.5 w-3.5 text-disabled-foreground" />
                       {calendarRange?.from ? (
@@ -896,7 +867,7 @@ export default function PresupuestoPage() {
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-auto max-w-[calc(100vw-2rem)]" data-viewer-readonly-allow="true">
+                  <DropdownMenuContent align="start" className="w-auto">
                     <div onKeyDown={(event) => {
                       if (event.key !== "Escape") event.stopPropagation();
                     }}>
@@ -912,23 +883,6 @@ export default function PresupuestoPage() {
                 </DropdownMenu>
               )}
             </div>
-            <div className="pt-6">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="field" className="h-11 w-full justify-between lg:h-9">
-                    Vista
-                    <ChevronDown className="text-muted-foreground" aria-hidden="true" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" data-viewer-readonly-allow="true">
-                  <DropdownMenuLabel>Columnas</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem checked={showPrecioUnitario} onCheckedChange={togglePrecioUnitario} className="min-h-11 lg:min-h-9">
-                    Mostrar precio unitario
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </div>
         </div>
 
@@ -936,6 +890,20 @@ export default function PresupuestoPage() {
       </div>
 
       <div className="flex flex-col gap-4">
+
+        {/* toggle precio unitario */}
+
+
+
+        <div className="flex items-center gap-6 px-4">
+          <Button type="button" onClick={togglePrecioUnitario} variant="filter" size="bare" aria-pressed={showPrecioUnitario}>
+            <small>Precio unitario</small>
+            <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", showPrecioUnitario && "rotate-90")} />
+          </Button>
+
+        </div>
+
+
 
         {/* Budget Table Component */}
         <PresupuestoTable

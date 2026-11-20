@@ -130,6 +130,7 @@ export default function ProyectoDocumentosPage() {
     if (projectId) documentNavigation.setCurrentFolder(projectId, folderId);
   };
   const dragDepthRef = useRef(0);
+  const sidebarActionTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -146,6 +147,7 @@ export default function ProyectoDocumentosPage() {
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   const proyecto = useQuery(api.desarrollos.getById, projectId ? { id: projectId } : "skip");
+  const currentUser = useQuery(api.users.getCurrentUser);
   const metadata = useQuery(
     api.documentos.getProjectFileManagerMetadata,
     isAuthenticated && projectId ? { proyecto: projectId } : "skip"
@@ -256,6 +258,39 @@ export default function ProyectoDocumentosPage() {
 
   const isLoading = !proyecto || !metadata || !documentosPage;
   const selectedTargetLabel = selectedTarget?.item.nombre || "";
+  const deleteDialogTarget = deleteTarget ?? selectedTarget;
+
+  // Sidebar actions use the same dialogs and mutation handlers as the page.
+  useEffect(() => {
+    const request = documentNavigation.folderActionRequest;
+    if (!request || !currentUser || !metadata) return;
+    documentNavigation.clearFolderActionRequest(request);
+    if (request.projectId !== projectId || currentUser.role === "viewer" || currentUser.role === "almacenista") return;
+    const folder = folderById.get(request.folderId);
+    if (!folder || folder._id === metadata.projectRootFolderId) return;
+
+    sidebarActionTriggerRef.current = request.trigger;
+    setSelectedTarget({ kind: "folder", item: folder });
+    setContextMenu(null);
+    if (request.action === "rename") {
+      setDraftName(folder.nombre);
+      setRenameDialogOpen(true);
+    } else if (request.action === "move") {
+      setTargetFolderId(folder.parent_folder_id || ROOT_VALUE);
+      setMoveDialogOpen(true);
+    } else {
+      setDeleteTarget({ kind: "folder", item: folder });
+    }
+  }, [currentUser, documentNavigation, folderById, metadata, projectId]);
+
+  const restoreSidebarActionFocus = (event: Event) => {
+    const trigger = sidebarActionTriggerRef.current;
+    sidebarActionTriggerRef.current = null;
+    if (trigger?.isConnected) {
+      event.preventDefault();
+      trigger.focus();
+    }
+  };
 
   const handleUploadClick = () => {
     if (projectId) {
@@ -646,7 +681,7 @@ export default function ProyectoDocumentosPage() {
       </Dialog>
 
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent>
+        <DialogContent onCloseAutoFocus={restoreSidebarActionFocus}>
           <DialogHeader>
             <DialogTitle className="font-normal">Renombrar</DialogTitle>
             <DialogDescription>{selectedTargetLabel}</DialogDescription>
@@ -676,6 +711,8 @@ export default function ProyectoDocumentosPage() {
         rootLabel="Documentos"
         open={moveDialogOpen}
         onOpenChange={setMoveDialogOpen}
+        onCloseAutoFocus={restoreSidebarActionFocus}
+        footerClassName="flex-col items-stretch gap-3 px-4 sm:flex-row sm:items-center sm:gap-0 sm:px-9"
         itemName={selectedTargetLabel}
         currentLocationId={
           selectedTarget?.kind === "document"
@@ -696,15 +733,15 @@ export default function ProyectoDocumentosPage() {
           if (!open) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={restoreSidebarActionFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {deleteTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"}
+              {deleteDialogTarget?.kind === "folder" ? "Eliminar carpeta" : "Eliminar documento"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteTarget?.kind === "folder"
-                ? `Se eliminará la carpeta "${deleteTarget.item.nombre}". La carpeta debe estar vacía para poder eliminarla.`
-                : `Se eliminará el documento "${deleteTarget?.item.nombre}". Esta acción no se puede deshacer.`}
+              {deleteDialogTarget?.kind === "folder"
+                ? `Se eliminará la carpeta "${deleteDialogTarget.item.nombre}". La carpeta debe estar vacía para poder eliminarla.`
+                : `Se eliminará el documento "${deleteDialogTarget?.item.nombre}". Esta acción no se puede deshacer.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

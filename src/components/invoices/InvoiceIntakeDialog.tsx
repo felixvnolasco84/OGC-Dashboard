@@ -434,7 +434,7 @@ export function InvoiceIntakeDialog({
   return (
     <>
       {!hideTrigger && (
-        <Button variant="outline" size="lg" onClick={() => setOpen(true)}>
+        <Button variant="outline" size="action" onClick={() => setOpen(true)}>
           Cargar factura
           <Upload className="h-5 w-5" />
         </Button>

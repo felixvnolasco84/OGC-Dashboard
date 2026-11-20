@@ -821,7 +821,7 @@ export default function ProgramaObra() {
             </div>
           )}
           <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" className="h-11 min-[850px]:h-8" data-viewer-readonly-allow="true" disabled={!execution} onClick={() => openExecution()}>Actividades por frente</Button>
+            <Button size="action" variant="outline" data-viewer-readonly-allow="true" disabled={!execution} onClick={() => openExecution()}>Actividades por frente</Button>
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -834,13 +834,13 @@ export default function ProgramaObra() {
               }}
             />
             {focusMode && (
-              <Button variant="outline" size="sm" className="h-11 rounded-none gap-2 min-[850px]:h-8" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
+              <Button variant="outline" size="action" onClick={toggleFocusMode} data-viewer-readonly-allow="true">
                 <Minimize2 className="h-4 w-4" /> Salir de enfoque
               </Button>
             )}
             <DropdownMenu open={fileMenuOpen} onOpenChange={setFileMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button ref={fileMenuTriggerRef} variant="outline" size="sm" className="h-11 rounded-none gap-2 min-[850px]:h-8" data-viewer-readonly-allow="true">
+                <Button ref={fileMenuTriggerRef} variant="outline" size="action" data-viewer-readonly-allow="true">
                   {fileActionsBusy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                   Archivo
                   {fileActionStatus && <span role="status" className="text-xs text-muted-foreground">· {fileActionStatus}</span>}

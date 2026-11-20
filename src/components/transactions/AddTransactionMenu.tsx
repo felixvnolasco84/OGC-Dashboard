@@ -40,6 +40,7 @@ export function AddTransactionMenu({
       <DropdownMenuTrigger asChild>
         <Button
           ref={triggerRef}
+          size="action"
           variant={primary ? "inverse" : "outline"}
         >
           {primary && <Plus className="h-4 w-4" />}

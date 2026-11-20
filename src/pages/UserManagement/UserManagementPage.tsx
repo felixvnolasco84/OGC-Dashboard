@@ -154,7 +154,7 @@ export default function UserManagementPage() {
             Administra roles y permisos de acceso a proyectos
           </p>
           </div>
-          <Button asChild className="gap-2">
+          <Button asChild size="action">
             <Link to="/usuarios/nuevo">
               <UserPlus className="h-4 w-4" />
               Agregar Usuario

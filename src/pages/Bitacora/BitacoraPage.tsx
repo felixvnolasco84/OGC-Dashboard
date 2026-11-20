@@ -310,7 +310,7 @@ export default function BitacoraPage() {
               </span>
             </div>
             {repository.canCreate && (
-              <Button  variant="default" onClick={() => open("create")}><Plus className="h-4 w-4" />Agregar reporte</Button>
+              <Button size="action" variant="default" onClick={() => open("create")}><Plus className="h-4 w-4" />Agregar reporte</Button>
             )}
           </div>}
           {repository.isReady && <BitacoraAvailabilityNotice />}

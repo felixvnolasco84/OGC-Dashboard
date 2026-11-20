@@ -133,8 +133,8 @@ export default function SalesDocumentosPage() {
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Button onClick={handleUploadClick} className="w-full sm:w-auto">
-                <Upload className="mr-2 h-4 w-4" />
+              <Button size="action" onClick={handleUploadClick} className="w-full sm:w-auto">
+                <Upload className="h-4 w-4" />
                 Subir documentos
               </Button>
             </div>

@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 const root = fileURLToPath(new URL("../../", import.meta.url));
 export default defineConfig({
   root, plugins: [react()], cacheDir: `${root}/node_modules/.vite-rfi-preview`,
-  optimizeDeps: { entries: ["e2e/rfi/preview.html", "e2e/rfi/list-preview.html"] },
+  optimizeDeps: { entries: ["e2e/rfi/preview.html"] },
   build: {
     outDir: `${root}/output/rfi-ui-build`,
     rollupOptions: { input: fileURLToPath(new URL("./preview.html", import.meta.url)) },

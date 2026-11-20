@@ -44,7 +44,8 @@ export default function PlanViewerActions({
           type="button"
           variant="outline"
           disabled={busy}
-          className="h-11 w-11 shrink-0 rounded-sm bg-card p-0 text-subtle-foreground shadow-none"
+          size="actionIcon"
+          className="rounded-sm bg-card text-subtle-foreground shadow-none"
           aria-label={`Acciones del archivo: ${title}`}
           title={`Acciones del archivo: ${title}`}
           data-viewer-readonly-allow="true"

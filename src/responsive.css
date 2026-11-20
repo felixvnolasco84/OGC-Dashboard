@@ -39,7 +39,8 @@
   .responsive-header > .flex { flex-wrap:wrap; gap:0.75rem; }
   .responsive-header, .responsive-record-value { overflow-wrap:anywhere; }
   .responsive-record-value > .flex { min-width:0; flex-wrap:wrap; }
-  .responsive-record-value button, .responsive-header button, .responsive-filters button, .responsive-field button { min-height:44px; min-width:44px; }
+  .responsive-record-value button, .responsive-header button, .responsive-filters button, .responsive-field button { min-height:44px; }
+  .responsive-record-value button:not([data-button-size="action"]), .responsive-header button:not([data-button-size="action"]), .responsive-filters button:not([data-button-size="action"]), .responsive-field button:not([data-button-size="action"]) { min-width:44px; }
   .responsive-header .whitespace-nowrap { white-space:normal; }
 }
 [data-viewer-readonly="true"] .responsive-record-toggle button { pointer-events:auto; opacity:1; }

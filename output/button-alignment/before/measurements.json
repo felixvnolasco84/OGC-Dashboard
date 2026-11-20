@@ -1,0 +1,437 @@
+[
+  {
+    "id": "pnl",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Cargar movimientos",
+        "x": 32,
+        "y": 196,
+        "width": 202.453125,
+        "height": 40,
+        "font": "14px",
+        "padding": "24px",
+        "gap": "8px"
+      },
+      {
+        "name": "Herramientas de P&L",
+        "x": 242.453125,
+        "y": 196,
+        "width": 40,
+        "height": 40,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      },
+      {
+        "name": "Filtrar Profit & Loss por ubicación",
+        "x": 32,
+        "y": 148,
+        "width": 256,
+        "height": 40
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "pnl",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Cargar movimientos",
+        "x": 32,
+        "y": 196,
+        "width": 202.453125,
+        "height": 40,
+        "font": "14px",
+        "padding": "24px",
+        "gap": "8px"
+      },
+      {
+        "name": "Herramientas de P&L",
+        "x": 242.453125,
+        "y": 196,
+        "width": 40,
+        "height": 40,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      },
+      {
+        "name": "Filtrar Profit & Loss por ubicación",
+        "x": 32,
+        "y": 148,
+        "width": 326,
+        "height": 40
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "pnl",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Cargar movimientos",
+        "x": 1125.546875,
+        "y": 40,
+        "width": 202.453125,
+        "height": 40,
+        "font": "14px",
+        "padding": "24px",
+        "gap": "8px"
+      },
+      {
+        "name": "Herramientas de P&L",
+        "x": 1336,
+        "y": 40,
+        "width": 40,
+        "height": 40,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      },
+      {
+        "name": "Filtrar Profit & Loss por ubicación",
+        "x": 877.546875,
+        "y": 40,
+        "width": 240,
+        "height": 40
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "providers",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Nuevo proveedor",
+        "x": 16,
+        "y": 214,
+        "width": 191.546875,
+        "height": 48,
+        "font": "14px",
+        "padding": "24px",
+        "gap": "8px"
+      },
+      {
+        "name": "Herramientas del catálogo de proveedores",
+        "x": 215.546875,
+        "y": 214,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "providers",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Nuevo proveedor",
+        "x": 16,
+        "y": 214,
+        "width": 191.546875,
+        "height": 48,
+        "font": "14px",
+        "padding": "24px",
+        "gap": "8px"
+      },
+      {
+        "name": "Herramientas del catálogo de proveedores",
+        "x": 215.546875,
+        "y": 214,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "providers",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Nuevo proveedor",
+        "x": 1144.453125,
+        "y": 80,
+        "width": 191.546875,
+        "height": 48,
+        "font": "14px",
+        "padding": "24px",
+        "gap": "8px"
+      },
+      {
+        "name": "Herramientas del catálogo de proveedores",
+        "x": 1344,
+        "y": 80,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "documents",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Agregar",
+        "x": 16,
+        "y": 157,
+        "width": 288,
+        "height": 48,
+        "font": "14px",
+        "padding": "20px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "documents",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Agregar",
+        "x": 16,
+        "y": 157,
+        "width": 358,
+        "height": 48,
+        "font": "14px",
+        "padding": "20px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "documents",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Agregar",
+        "x": 1252.875,
+        "y": 85,
+        "width": 139.125,
+        "height": 48,
+        "font": "14px",
+        "padding": "20px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "tasks",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Notificaciones",
+        "x": 16,
+        "y": 153,
+        "width": 142.921875,
+        "height": 44,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Nueva tarea",
+        "x": 166.921875,
+        "y": 153,
+        "width": 137.078125,
+        "height": 44,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "tasks",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Notificaciones",
+        "x": 16,
+        "y": 137,
+        "width": 175,
+        "height": 44,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Nueva tarea",
+        "x": 199,
+        "y": 137,
+        "width": 175,
+        "height": 44,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "tasks",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Notificaciones",
+        "x": 1020.4375,
+        "y": 69,
+        "width": 167.625,
+        "height": 56,
+        "font": "16px",
+        "padding": "20px",
+        "gap": "12px"
+      },
+      {
+        "name": "Nueva tarea",
+        "x": 1196.0625,
+        "y": 69,
+        "width": 179.9375,
+        "height": 56,
+        "font": "16px",
+        "padding": "32px",
+        "gap": "12px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "rfi",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Nueva RFI",
+        "x": 24,
+        "y": 345,
+        "width": 272,
+        "height": 56,
+        "font": "16px",
+        "padding": "32px",
+        "gap": "12px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "rfi",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Nueva RFI",
+        "x": 24,
+        "y": 265,
+        "width": 342,
+        "height": 56,
+        "font": "16px",
+        "padding": "32px",
+        "gap": "12px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "rfi",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Nueva RFI",
+        "x": 1207.625,
+        "y": 125,
+        "width": 168.375,
+        "height": 56,
+        "font": "16px",
+        "padding": "32px",
+        "gap": "12px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "sales-budget",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Más acciones del presupuesto de ventas",
+        "x": 228,
+        "y": 97,
+        "width": 44,
+        "height": 44,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "sales-budget",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Más acciones del presupuesto de ventas",
+        "x": 298,
+        "y": 81,
+        "width": 44,
+        "height": 44,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "sales-budget",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Más acciones del presupuesto de ventas",
+        "x": 1348,
+        "y": 81,
+        "width": 44,
+        "height": 44,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  }
+]

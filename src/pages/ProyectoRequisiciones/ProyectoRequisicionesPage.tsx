@@ -1156,7 +1156,7 @@ export default function ProyectoRequisicionesPage() {
                                 <Button
                                     type="button"
                                     onClick={() => requisicionModal.onOpen({ projectId: proyectoId as Id<"desarrollos"> }, "create")}
-                                    className="h-11 px-4"
+                                    size="action"
                                 >
                                     <Plus className="h-4 w-4" aria-hidden="true" />
                                     Nueva requisición
@@ -1165,8 +1165,8 @@ export default function ProyectoRequisicionesPage() {
                             <div className="flex min-w-0 items-center gap-2">
                                 <DropdownMenu open={headerMenuOpen} onOpenChange={setHeaderMenuOpen}>
                                     <DropdownMenuTrigger asChild>
-                                        <Button ref={headerMenuTriggerRef} type="button" variant="outline" size="icon"
-                                            className="h-11 w-11 shrink-0" aria-label="Acciones de requisiciones"
+                                        <Button ref={headerMenuTriggerRef} type="button" variant="outline" size="actionIcon"
+                                            aria-label="Acciones de requisiciones"
                                             aria-describedby={unreadNotificationCount > 0 ? "requisiciones-unread-count" : undefined}>
                                             <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
                                         </Button>

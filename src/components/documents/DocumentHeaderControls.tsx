@@ -33,7 +33,7 @@ export function DocumentAddMenu({ onUpload, onNewFolder, dialogOpen, disabled = 
   return (
     <DropdownMenu onOpenChange={(open) => { if (open) pendingAction.current = null; }}>
       <DropdownMenuTrigger asChild>
-        <Button ref={triggerRef} type="button" disabled={disabled || dialogOpen} className="h-12 w-full rounded-none px-5 sm:w-auto">
+        <Button ref={triggerRef} type="button" size="action" disabled={disabled || dialogOpen} className="w-full sm:w-auto">
           <Plus aria-hidden="true" />
           Agregar
           <ChevronDown aria-hidden="true" />

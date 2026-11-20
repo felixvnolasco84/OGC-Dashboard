@@ -141,8 +141,8 @@ export default function SalesProyectoDocumentosPage() {
               <h1 className="text-2xl text-foreground">{salesProyecto.nombre}</h1>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleUploadClick}>
-                <Upload className="mr-2 h-4 w-4" />
+              <Button size="action" onClick={handleUploadClick}>
+                <Upload className="h-4 w-4" />
                 Subir Documentos
               </Button>
               <Badge variant="outline" className="rounded-none px-4 py-2 bg-muted">

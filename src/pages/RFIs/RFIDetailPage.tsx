@@ -366,11 +366,12 @@ export default function RFIDetailPage({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 min-w-[154px] rounded-[4px] border-[#E75F79] bg-card font-normal text-[#C93F5B] shadow-none hover:bg-[#FFF5F7] hover:text-[#B52F4A]"
+                  size="action"
+                  className="rounded-[4px] border-[#E75F79] bg-card font-normal text-[#C93F5B] shadow-none hover:bg-[#FFF5F7] hover:text-[#B52F4A]"
                   onClick={() => setDeleteDialogOpen(true)}
                   disabled={busyAction !== null}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                   Eliminar borrador
                 </Button>
               )}
@@ -425,7 +426,8 @@ export default function RFIDetailPage({
                       ref={editMenuTrigger}
                       type="button"
                       variant="outline"
-                      className="h-11 w-11 shrink-0 rounded-[4px] border-border bg-card p-0 text-muted-foreground shadow-none"
+                      size="actionIcon"
+                      className="rounded-[4px] border-border bg-card text-muted-foreground shadow-none"
                       aria-label={`Más acciones de ${rfi.code}`}
                       disabled={busyAction !== null || review !== null}
                     >
@@ -809,14 +811,15 @@ function ActionButton({
     <Button
       type="button"
       onClick={onClick}
+      size="action"
       disabled={busyAction !== null || blocked}
       aria-describedby={describedBy}
-      className="h-11 min-w-[118px] rounded-[4px] bg-inverse px-5 font-normal text-on-color shadow-none hover:bg-inverse/90"
+      className="rounded-[4px] bg-inverse font-normal text-on-color shadow-none hover:bg-inverse/90"
     >
       {busyAction === name ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Icon className="mr-2 h-4 w-4" />
+        <Icon className="h-4 w-4" />
       )}
       {label}
     </Button>

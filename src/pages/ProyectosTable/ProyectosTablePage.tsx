@@ -139,7 +139,7 @@ export default function ProyectosTablePage() {
               <Button
                 type="button"
                 onClick={() => addProyectoModal.onOpen()}
-                className="h-11 gap-2 px-4 sm:h-10"
+                size="action"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 Nuevo proyecto
@@ -150,8 +150,7 @@ export default function ProyectosTablePage() {
                     ref={actionsTriggerRef}
                     type="button"
                     variant="outline"
-                    size="iconLg"
-                    className="h-11 w-11 shrink-0 sm:h-10 sm:w-10"
+                    size="actionIcon"
                     aria-label="Acciones de proyectos"
                   >
                     <MoreHorizontal className="h-4 w-4" aria-hidden="true" />

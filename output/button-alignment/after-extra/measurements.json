@@ -1,0 +1,272 @@
+[
+  {
+    "id": "plans",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Cargar planos",
+        "size": "action",
+        "x": 24,
+        "y": 244,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Más acciones de la biblioteca de planos. 3 menciones sin leer",
+        "size": "actionIcon",
+        "x": 224,
+        "y": 244,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "plans",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Cargar planos",
+        "size": "action",
+        "x": 24,
+        "y": 244,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Más acciones de la biblioteca de planos. 3 menciones sin leer",
+        "size": "actionIcon",
+        "x": 224,
+        "y": 244,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "plans",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Cargar planos",
+        "size": "action",
+        "x": 1128,
+        "y": 120,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Más acciones de la biblioteca de planos. 3 menciones sin leer",
+        "size": "actionIcon",
+        "x": 1328,
+        "y": 120,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "program",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Actividades por frente",
+        "size": "action",
+        "x": 16,
+        "y": 84,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Archivo",
+        "size": "action",
+        "x": 16,
+        "y": 140,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "program",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Actividades por frente",
+        "size": "action",
+        "x": 16,
+        "y": 84,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Archivo",
+        "size": "action",
+        "x": 16,
+        "y": 140,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "program",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Actividades por frente",
+        "size": "action",
+        "x": 1016,
+        "y": 50,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Archivo",
+        "size": "action",
+        "x": 1216,
+        "y": 50,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "requisitions",
+    "width": 320,
+    "controls": [
+      {
+        "name": "Nueva requisición",
+        "size": "action",
+        "x": 16,
+        "y": 235,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Acciones de requisiciones",
+        "size": "actionIcon",
+        "x": 216,
+        "y": 235,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "requisitions",
+    "width": 390,
+    "controls": [
+      {
+        "name": "Nueva requisición",
+        "size": "action",
+        "x": 16,
+        "y": 186,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Acciones de requisiciones",
+        "size": "actionIcon",
+        "x": 216,
+        "y": 186,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "id": "requisitions",
+    "width": 1440,
+    "controls": [
+      {
+        "name": "Nueva requisición",
+        "size": "action",
+        "x": 48,
+        "y": 138,
+        "width": 192,
+        "height": 48,
+        "font": "14px",
+        "padding": "16px",
+        "gap": "8px"
+      },
+      {
+        "name": "Acciones de requisiciones",
+        "size": "actionIcon",
+        "x": 248,
+        "y": 138,
+        "width": 48,
+        "height": 48,
+        "font": "14px",
+        "padding": "0px",
+        "gap": "8px"
+      }
+    ],
+    "overflow": false,
+    "errors": []
+  }
+]

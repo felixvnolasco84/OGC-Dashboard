@@ -403,8 +403,8 @@ export default function SalesPresupuestoTable() {
                 <Button
                   type="button"
                   variant="outline"
-                  size="icon"
-                  className="h-11 w-11 shrink-0 rounded-none text-muted-foreground"
+                  size="actionIcon"
+                  className="text-muted-foreground"
                   aria-label="Más acciones del presupuesto de ventas"
                   aria-busy={isSyncing}
                 >

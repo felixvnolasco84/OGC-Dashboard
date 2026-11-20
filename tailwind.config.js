@@ -4,6 +4,13 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
       extend: {
+        spacing: {
+          control: 'var(--control-height)',
+          'control-x': 'var(--control-padding-x)'
+        },
+        minWidth: {
+          action: 'var(--control-action-width)'
+        },
         keyframes: {
           'accordion-down': {
             from: {

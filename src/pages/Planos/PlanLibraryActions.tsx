@@ -49,7 +49,8 @@ function LibraryMentionMenu({ onOpen, unreadCount, triggerRef }: MentionNotifica
           ref={triggerRef}
           type="button"
           variant="outline"
-          className="relative h-11 w-11 rounded-sm bg-card p-0 text-subtle-foreground shadow-none"
+          size="actionIcon"
+          className="relative rounded-sm bg-card text-subtle-foreground shadow-none"
           aria-label={`Más acciones de la biblioteca de planos. ${unreadLabel}`}
           title="Más acciones de la biblioteca de planos"
           data-viewer-readonly-allow="true"
@@ -92,7 +93,7 @@ export default function PlanLibraryActions({
       {canWrite && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button ref={uploadTriggerRef} type="button" disabled={busy} className="h-11 gap-2 rounded-sm px-4 font-normal shadow-none" aria-label="Cargar planos">
+            <Button ref={uploadTriggerRef} type="button" size="action" disabled={busy} className="rounded-sm font-normal shadow-none" aria-label="Cargar planos">
               <Plus className="h-4 w-4" aria-hidden="true" />
               Cargar
               <ChevronDown className="h-4 w-4" aria-hidden="true" />

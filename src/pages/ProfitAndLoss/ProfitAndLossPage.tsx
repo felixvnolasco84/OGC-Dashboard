@@ -2384,7 +2384,8 @@ export default function ProfitAndLossPage() {
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger
                   aria-label="Filtrar Profit & Loss por ubicación"
-                  className="h-10 w-full min-w-52 rounded-none bg-card text-foreground md:w-60"
+                  size="action"
+                  className="w-full min-w-52 rounded-none bg-card text-foreground md:w-60"
                 >
                   <SelectValue placeholder="Todas las ubicaciones" />
                 </SelectTrigger>
@@ -2403,7 +2404,7 @@ export default function ProfitAndLossPage() {
               <Button
                 type="button"
                 onClick={() => setIsOgcUploadOpen(true)}
-                className="h-10"
+                size="action"
               >
                 <Upload className="h-4 w-4" />
                 Cargar movimientos
@@ -2414,8 +2415,7 @@ export default function ProfitAndLossPage() {
                     ref={toolsTriggerRef}
                     type="button"
                     variant="outline"
-                    size="icon"
-                    className="h-10 w-10 shrink-0"
+                    size="actionIcon"
                     aria-label="Herramientas de P&L"
                     title="Herramientas de P&L"
                   >

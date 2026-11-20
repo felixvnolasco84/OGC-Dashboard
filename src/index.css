@@ -251,6 +251,10 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    /* Shared dimensions for page actions and their adjacent controls. */
+    --control-height: 3rem;
+    --control-action-width: 12rem;
+    --control-padding-x: 1rem;
     --sidebar-background: var(--neutral-0);
     --sidebar-foreground: var(--neutral-800);
     --sidebar-primary: var(--neutral-900);

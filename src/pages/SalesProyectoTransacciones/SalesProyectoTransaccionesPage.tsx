@@ -211,8 +211,8 @@ export default function SalesProyectoTransaccionesPage() {
                                     uploadSalesProjectTransactionsModal.onOpen(salesProyectoId as Id<"sales_projects">, salesProyecto.nombre);
                                 }}
                                 disabled={!salesProyectoId}
-                                size="lg"
-                                className="flex-1 px-4 sm:flex-none"
+                                size="action"
+                                className="flex-1 sm:flex-none"
                             >
                                 <Upload aria-hidden="true" />
                                 Subir transacciones
@@ -221,7 +221,7 @@ export default function SalesProyectoTransaccionesPage() {
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        size="iconLg"
+                                        size="actionIcon"
                                         disabled={!salesProyectoId}
                                         aria-label={isSyncing ? "Más acciones de transacciones: sincronizando documentos" : "Más acciones de transacciones"}
                                     >

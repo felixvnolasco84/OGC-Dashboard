@@ -190,8 +190,8 @@ export default function SalesProjectManagementPage() {
               Administra los proyectos de ventas y sus configuraciones
             </p>
           </div>
-          <Button onClick={handleCreateNew}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button size="action" onClick={handleCreateNew}>
+            <Plus className="h-4 w-4" />
             Nuevo Proyecto
           </Button>
         </div>

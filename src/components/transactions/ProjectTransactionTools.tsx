@@ -43,7 +43,7 @@ export function ProjectTransactionTools({ projectId, canReviewInvoices, canSync,
   return <>
     <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
-        <Button ref={trigger} type="button" variant="outline" size="icon" className="h-12 w-12"
+        <Button ref={trigger} type="button" variant="outline" size="actionIcon"
           data-viewer-readonly-allow="true" aria-label="Herramientas de transacciones" title="Herramientas de transacciones">
           <MoreHorizontal className={isSyncing ? "hidden" : "h-5 w-5"} />
           {isSyncing && <RefreshCw className="h-4 w-4 animate-spin" />}

@@ -92,8 +92,8 @@ export default function SalesProyectosTablePage() {
               <Button
                 onClick={() => addSalesProjectModal.onOpen()}
                 variant="outline"
-                size="lg"
-                className="flex items-center gap-2 rounded-none text-muted-foreground py-6"
+                size="action"
+                className="text-muted-foreground"
               >
                 Agregar Proyecto de Ventas
                 <Plus className="h-6 w-6 rounded-full shadow-none" />

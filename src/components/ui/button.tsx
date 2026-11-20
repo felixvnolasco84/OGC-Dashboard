@@ -43,6 +43,8 @@ const buttonVariants = cva(
         metric: "justify-end rounded-md text-right font-normal text-foreground hover:bg-muted",
       },
       size: {
+        action: "h-control min-w-action shrink-0 px-control-x py-2 text-sm leading-5",
+        actionIcon: "h-control w-control shrink-0 p-0",
         default: "h-12 px-6 py-2.5",
         sm: "h-8 px-3 text-xs",
         lg: "h-10 px-8",
@@ -90,6 +92,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
+        data-button-size={size}
         className={cn(buttonVariants({ variant, size, className }), "")}
         ref={ref}
         {...props}

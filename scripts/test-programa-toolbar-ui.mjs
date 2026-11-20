@@ -93,7 +93,7 @@ try {
     await expect(page.getByRole("textbox", { name: "Buscar partida o familia" })).toBeVisible();
     assert.equal(await page.getByRole("button", { name: "Hoy", exact: true }).isVisible(), width >= 850);
     assert.equal(await page.getByRole("button", { name: "Vista", exact: true }).isVisible(), width >= 850);
-    assert.equal(await trigger().evaluate(el => el.getBoundingClientRect().height), width < 850 ? 44 : 32);
+    assert.equal(await trigger().evaluate(el => el.getBoundingClientRect().height), 48);
     await capture("cerrado");
     await trigger().focus(); await page.keyboard.press("ArrowDown");
     await expect(item("Cargar Excel")).toBeFocused();

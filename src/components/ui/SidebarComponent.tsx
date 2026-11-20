@@ -8,6 +8,7 @@ import LOGO from '../../../public/OGC-LOGO.svg'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -27,6 +28,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/Sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -56,11 +58,16 @@ import {
   FileQuestion,
   PanelsTopLeft,
   MapPin,
+  MoreHorizontal,
+  Edit3,
+  FolderInput,
+  Trash2,
   // Settings,
 } from "lucide-react";
 import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
-import { ForwardRefExoticComponent, RefAttributes, useMemo, useState } from "react";
-import { useProjectDocumentNavigation } from "@/hooks/project-document-navigation";
+import { ForwardRefExoticComponent, RefAttributes, useMemo, useRef, useState } from "react";
+import { useProjectDocumentNavigation, type ProjectDocumentFolderAction } from "@/hooks/project-document-navigation";
+import { Button } from "@/components/ui/button";
 import { useProjectPlanNavigation } from "@/hooks/project-plan-navigation";
 import { bitacoraDb, clearOfflineUser } from "@/lib/bitacora-offline/db";
 import { planDirectorySegments, planPathsMatch } from "@/lib/plan-folder-navigation";
@@ -216,6 +223,68 @@ type ProjectDocumentFolder = {
   parent_folder_id?: Id<"document_folders">;
 };
 
+function DocumentFolderActionMenu({
+  folder,
+  onAction,
+}: {
+  folder: ProjectDocumentFolder;
+  onAction: (folderId: Id<"document_folders">, action: ProjectDocumentFolderAction, trigger: HTMLButtonElement) => void;
+}) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const pendingAction = useRef<ProjectDocumentFolderAction | null>(null);
+  const { isMobile } = useSidebar();
+  const label = `Acciones de la carpeta ${folder.nombre}`;
+
+  return (
+    <DropdownMenu onOpenChange={(open) => { if (open) pendingAction.current = null; }}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          ref={triggerRef}
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 shrink-0 rounded-sm text-muted-foreground md:h-7 md:w-7"
+          aria-label={label}
+          onClick={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+        >
+          <MoreHorizontal className="size-4" aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={isMobile ? "end" : "start"}
+        side={isMobile ? "bottom" : "right"}
+        className="w-56 max-w-[calc(100vw-1rem)] rounded-sm"
+        collisionPadding={8}
+        aria-label={label}
+        onCloseAutoFocus={(event) => {
+          const action = pendingAction.current;
+          pendingAction.current = null;
+          const trigger = triggerRef.current;
+          if (!action || !trigger?.isConnected) return;
+          event.preventDefault();
+          trigger.focus();
+          onAction(folder._id, action, trigger);
+        }}
+      >
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Organizar</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem className="min-h-11" onSelect={() => { pendingAction.current = "rename"; }}>
+            <Edit3 aria-hidden="true" />Renombrar
+          </DropdownMenuItem>
+          <DropdownMenuItem className="min-h-11" onSelect={() => { pendingAction.current = "move"; }}>
+            <FolderInput aria-hidden="true" />Mover
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="min-h-11" variant="destructive" onSelect={() => { pendingAction.current = "delete"; }}>
+          <Trash2 aria-hidden="true" />Eliminar
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ProjectDocumentFolderNavigation({
   activeFolderId,
   documentCountsByFolder,
@@ -223,6 +292,7 @@ function ProjectDocumentFolderNavigation({
   isLoading,
   isVisible,
   onFolderSelect,
+  onFolderAction,
 }: {
   activeFolderId?: Id<"document_folders">;
   documentCountsByFolder: Record<string, number>;
@@ -230,6 +300,7 @@ function ProjectDocumentFolderNavigation({
   isLoading: boolean;
   isVisible: boolean;
   onFolderSelect: (folderId?: Id<"document_folders">) => void;
+  onFolderAction?: (folderId: Id<"document_folders">, action: ProjectDocumentFolderAction, trigger: HTMLButtonElement) => void;
 }) {
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(
     () => new Set()
@@ -317,7 +388,7 @@ function ProjectDocumentFolderNavigation({
                 isActive={activeFolderId === folder._id}
               >
                 <div
-                  className="gap-0 px-1"
+                  className="h-11 gap-0 px-1 md:h-8"
                   style={{ paddingLeft: `${0.25 + level * 0.75}rem` }}
                 >
                   {hasChildren ? (
@@ -351,6 +422,7 @@ function ProjectDocumentFolderNavigation({
                       {getItemCount(folder._id)}
                     </span>
                   </button>
+                  {onFolderAction && <DocumentFolderActionMenu folder={folder} onAction={onFolderAction} />}
                 </div>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
@@ -1097,6 +1169,14 @@ export default function SidebarComponent() {
                           isVisible={isDocumentsNavigationExpanded}
                           onFolderSelect={(folderId) =>
                             documentNavigation.setCurrentFolder(currentProject._id, folderId)
+                          }
+                          onFolderAction={
+                            canReadProjectDocuments === true && currentUser &&
+                            currentUser.role !== "viewer" && currentUser.role !== "almacenista"
+                              ? (folderId, action, trigger) => documentNavigation.requestFolderAction({
+                                  projectId: currentProject._id, folderId, action, trigger,
+                                })
+                              : undefined
                           }
                         />
                       )}

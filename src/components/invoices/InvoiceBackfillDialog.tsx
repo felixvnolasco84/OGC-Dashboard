@@ -118,7 +118,7 @@ export function InvoiceBackfillDialog({ projectId, open: controlledOpen, onOpenC
 
   return (
     <>
-      {!hideTrigger && <Button variant="outline" size="lg" className="flex items-center gap-2 rounded-none py-6 text-muted-foreground" onClick={() => setOpen(true)}>
+      {!hideTrigger && <Button variant="outline" size="action" className="text-muted-foreground" onClick={() => setOpen(true)}>
         Facturas IA
         {queue?.length ? <Badge className="ml-1 rounded-full px-1.5">{queue.length}</Badge> : <Bot className="h-5 w-5" />}
       </Button>}

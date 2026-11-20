@@ -883,13 +883,13 @@ export default function IngresosModal() {
 
           {!showForm && !showBulkUpload && context && (
             <div className="flex items-center justify-end gap-2 border-b border-border px-4 py-2">
-              {canManageIngresos && <Button size="lg" onClick={handleAddNew}>
+              {canManageIngresos && <Button size="action" onClick={handleAddNew}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 Nuevo ingreso
               </Button>}
               <DropdownMenu open={incomeActionsOpen} onOpenChange={setIncomeActionsOpen}>
                 <DropdownMenuTrigger asChild>
-                  <Button ref={incomeActionsTriggerRef} variant="outline" size="iconLg" aria-label="Acciones de ingresos">
+                  <Button ref={incomeActionsTriggerRef} variant="outline" size="actionIcon" aria-label="Acciones de ingresos">
                     <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>

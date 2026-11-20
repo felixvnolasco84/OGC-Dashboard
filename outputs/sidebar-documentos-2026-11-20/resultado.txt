@@ -1,0 +1,67 @@
+Sidebar · Carpetas de Documentos · 20 de noviembre de 2026
+
+Implementación
+- SidebarComponent.tsx muestra un único «…» por carpeta y subcarpeta de Documentos del proyecto.
+- Organizar: Renombrar y Mover. Separador y Eliminar con variante destructiva.
+- Nombre accesible «Acciones de la carpeta [nombre]».
+- El nombre sigue abriendo la carpeta; la flecha conserva la expansión independiente.
+- Los menús no cambian la ubicación activa de la página.
+- En escritorio el menú abre a la derecha; en móvil, debajo y alineado al borde del disparador para quedar dentro de pantalla.
+- Los diálogos y mutations siguen siendo los existentes en ProyectoDocumentosPage.
+- project-document-navigation transmite una solicitud puntual con proyecto, carpeta, acción y disparador para restaurar el foco.
+- La página valida el proyecto y la carpeta de la solicitud antes de abrir el diálogo. La raíz física queda excluida.
+- Los menús nuevos requieren acceso al proyecto y un rol con escritura; no cambian permisos de ruta o backend.
+
+Archivos de producción
+src/components/ui/SidebarComponent.tsx
+src/hooks/project-document-navigation.ts
+src/pages/ProyectoDocumentos/ProyectoDocumentosPage.tsx
+
+Validación de interfaz realizada en Chrome mediante computer-use
+Se montaron SidebarComponent y ProyectoDocumentosPage reales, con CSS real, dentro de e2e/document-sidebar.
+Se revisaron escritorio 1440 × 1000 y móvil 390 × 844. Las pruebas fueron interactivas, no un nuevo runner automatizado.
+
+Resultados observados
+- Un menú por carpeta del sidebar y ausencia de botones interactivos anidados.
+- Acceso por teclado: ArrowDown enfoca Renombrar; Enter abre el diálogo.
+- Renombrar una carpeta anidada desde el sidebar prellena su nombre aunque la página esté en la raíz.
+- Cancelar Renombrar devuelve el foco a su disparador y no cambia registros.
+- Reabrir Renombrar reinicia el borrador cancelado.
+- Guardar en el fixture llama documentos:renameFolder con id folder-annex y el nombre escrito; el sidebar se actualiza.
+- Mover preselecciona el padre de la carpeta anidada y deja deshabilitada la confirmación mientras el destino no cambie.
+- Confirmar el movimiento en el fixture llama documentos:moveFolder con id folder-annex y parent_folder_id folder-empty.
+- Eliminar desde el menú sólo abre la confirmación de la carpeta elegida. Cancelar no muta y devuelve el foco.
+- Menú móvil completo dentro de 390 px, sin recorte lateral.
+- Mover desde el sidebar móvil abre encima del panel; Cancelar devuelve foco al disparador dentro del sidebar abierto.
+- Para mover Contratos, su descendiente Anexos no aparece como destino disponible.
+- El nombre de la carpeta sigue cambiando la ubicación: consulta con folder_id folder-contracts y proyecto obra.
+- Cambiar al segundo proyecto muestra sólo «Otra carpeta»; Renombrar usa su nombre y no abre solicitudes previas.
+- Los escenarios de lector y sin acceso no muestran los nuevos menús de escritura.
+- Estado vacío: «Sin carpetas», sin menús huérfanos.
+- Estado de carga: «Cargando carpetas...», sin menús antes de recibir datos.
+- Usuario con escritura: menús disponibles; colapsar Documentos los oculta y expandirlos los recupera.
+- Sin errores de consola al finalizar la revisión.
+
+Comprobaciones de código
+npm run build: correcto, TypeScript + Vite + PWA. Aviso existente sobre chunks de más de 500 kB.
+npm run test:project-documents: 12 tests correctos.
+npx eslint src/components/ui/SidebarComponent.tsx src/hooks/project-document-navigation.ts src/pages/ProyectoDocumentos/ProyectoDocumentosPage.tsx: correcto.
+git diff --check sobre los tres archivos: correcto.
+
+Datos y alcance
+El fixture reemplaza convex/react y Clerk; no crea clientes reales ni llama al backend.
+Renombrado y movimiento se probaron únicamente con registros ficticios en memoria.
+No se renombraron, movieron o eliminaron carpetas reales.
+El alcance es el árbol existente de Documentos del proyecto en SidebarComponent, ruta /proyecto/:proyectoId/documentos.
+Los cambios concurrentes y las carpetas de Planos se conservaron.
+
+Reproducir la revisión
+npx vite --config e2e/document-sidebar/vite.config.ts
+Abrir http://127.0.0.1:4417/e2e/document-sidebar/preview.html
+El servidor se dejó detenido tras la validación.
+
+Capturas
+menu-escritorio.jpg
+menu-movil.jpg
+confirmacion-escritorio.jpg
+mover-movil.jpg

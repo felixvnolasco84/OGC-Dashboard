@@ -557,15 +557,17 @@ export default function ReportesPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button
                   type="button"
+                  size="action"
                   aria-label={`Detalles del perfil ${profileDetails.label}`}
-                  className="flex h-14 w-fit cursor-help items-center gap-3 rounded-sm border border-border bg-card px-5 text-base font-normal text-muted-foreground shadow-none outline-none hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
+                  variant="outline"
+                  className="w-fit cursor-help rounded-sm border-border bg-card font-normal text-muted-foreground shadow-none hover:bg-card focus-visible:ring-2"
                 >
                   <span className="h-3 w-3 rounded-sm bg-[#50AC66]" />
                   Perfil: {profileDetails.label}
                   <Info className="h-4 w-4" />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent
                 side="bottom"
@@ -686,19 +688,21 @@ export default function ReportesPage() {
                 onClick={() => void generateNow()}
                 disabled={isGenerating || !sections.length || periodEnd < periodStart}
                 variant="outline"
-                className={`${OUTLINE_BUTTON_CLASS} h-11 px-5`}
+                size="action"
+                className={OUTLINE_BUTTON_CLASS}
               >
                 {isGenerating
-                  ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[#50AC66]" />
-                  : <FileText className="mr-2 h-4 w-4 text-[#50AC66]" />}
+                  ? <LoaderCircle className="h-4 w-4 animate-spin text-[#50AC66]" />
+                  : <FileText className="h-4 w-4 text-[#50AC66]" />}
                 Generar PDF
               </Button>
               <Button
                 variant="outline"
                 onClick={() => changeTab("programaciones")}
-                className={`${OUTLINE_BUTTON_CLASS} h-11 px-5`}
+                size="action"
+                className={OUTLINE_BUTTON_CLASS}
               >
-                <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" />
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
                 Programar este reporte
               </Button>
             </div>
@@ -867,11 +871,12 @@ export default function ReportesPage() {
                   onClick={() => void scheduleReport()}
                   disabled={isSaving || !sections.length || !recipientIds.length}
                   variant="outline"
-                  className={`${OUTLINE_BUTTON_CLASS} h-11 px-5`}
+                  size="action"
+                  className={OUTLINE_BUTTON_CLASS}
                 >
                   {isSaving
-                    ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin text-[#50AC66]" />
-                    : <Send className="mr-2 h-4 w-4 text-[#50AC66]" />}
+                    ? <LoaderCircle className="h-4 w-4 animate-spin text-[#50AC66]" />
+                    : <Send className="h-4 w-4 text-[#50AC66]" />}
                   Guardar programación
                 </Button>
               </CardContent>

@@ -178,7 +178,7 @@ export function LaborImportHistoryDialog({ projectId, open: controlledOpen, onOp
   } : "skip");
   return (
     <>
-      {!hideTrigger && <Button type="button" variant="outline" size="lg" className="rounded-none" onClick={() => { setCursors([null]); setExpandedId(null); setOpen(true); }}>
+      {!hideTrigger && <Button type="button" variant="outline" size="action" onClick={() => { setCursors([null]); setExpandedId(null); setOpen(true); }}>
         <History className="h-4 w-4" /> Historial de cargas
       </Button>}
       <Dialog open={open} onOpenChange={setOpen}>

@@ -220,16 +220,17 @@ export default function ProveedoresTablePage() {
             </Badge>
             <div className="flex items-center gap-2">
               <Button
+                size="action"
                 onClick={() => {
                   setEditingProvider(null);
                   setFormOpen(true);
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" /> Nuevo proveedor
+                <Plus className="h-4 w-4" /> Nuevo proveedor
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button ref={catalogTriggerRef} variant="outline" size="icon" className="h-12 w-12 shrink-0" aria-label="Herramientas del catálogo de proveedores">
+                  <Button ref={catalogTriggerRef} variant="outline" size="actionIcon" aria-label="Herramientas del catálogo de proveedores">
                     <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </DropdownMenuTrigger>
