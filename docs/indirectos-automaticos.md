@@ -34,6 +34,8 @@ Registrar los gastos reales mediante captura manual o Excel en P&L → Cargar mo
 
 Los cargos de Indirectos, General Conditions y Viáticos se agrupan como ingreso de indirectos; Honorarios se presenta por separado. Saldo de indirectos muestra ingreso menos costos reales y el componente de costo histórico, si el periodo lo incluye. Cada costo se cuenta una sola vez.
 
+La clasificación manual usa la partida principal de Indirectos, General Conditions o Viáticos, no coincidencias en familias ni subpartidas. Los viáticos de colocación de Mármol y los viáticos o fletes de Cocina permanecen como costos de esas partidas: no generan ingreso ni costo histórico de indirectos en P&L y no se sustituyen como manuales de indirectos en Presupuesto. Los conceptos configurados explícitamente conservan su partida de origen y los costos reales de estructura provienen de movimientos OGC.
+
 Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Los cargos se redondean a centavos por pago y se distribuyen sin perder centavos. El cálculo no crea transferencias bancarias ni facturas.
 
 ## Compatibilidad y revisión

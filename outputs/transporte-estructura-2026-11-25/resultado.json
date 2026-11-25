@@ -1,0 +1,43 @@
+{
+  "verifiedAt": "2026-11-25T20:29:56.144Z",
+  "deployment": "dev:animated-walrus-612",
+  "period": {
+    "periodYear": 2026,
+    "cutoffMonth": 11,
+    "usdToMxn": 17,
+    "eurToMxn": 18.5
+  },
+  "operation": "Anulación de todos los costos de estructura activos con categoría TRANSPORTE, en todo el historial.",
+  "voidedCount": 70,
+  "removedMxn": 2143942.9899999993,
+  "remainingActiveTransportCosts": 0,
+  "unchangedOtherMovements": 786,
+  "unchangedOtherMovementsSha256": "6f21452ae30ca9bc2978b867fbf5fc86f17f9bc66556c111b772a3e634b5bc49",
+  "pnl": {
+    "transportBefore": 2143942.9899999998,
+    "transportAfter": 0,
+    "structureBefore": 5246237.410000004,
+    "structureAfter": 3102294.42,
+    "ebitdaBefore": 23578354.005419053,
+    "ebitdaAfter": 25722296.995419055
+  },
+  "profitability": {
+    "transportBefore": 2143942.9899999998,
+    "transportAfter": 0,
+    "structureBefore": 5246237.410000004,
+    "structureAfter": 3102294.42
+  },
+  "verification": {
+    "sourceFieldsPreserved": true,
+    "otherMovementsUnchanged": true,
+    "otherCategoriesUnchanged": true,
+    "incomeUnchanged": true,
+    "structureReductionReconciled": true,
+    "ebitdaIncreaseReconciled": true,
+    "auditSampleCount": 2,
+    "auditVerifiedCount": 70,
+    "allAuditEntriesVerified": true,
+    "auditManifestSha256": "065a19332d4777efef9d1ad25a9be69a92bbe83c5aebc7c08451ec9eceefe9cf"
+  },
+  "backupDirectory": ".migration/transporte-estructura-2026-11-25"
+}

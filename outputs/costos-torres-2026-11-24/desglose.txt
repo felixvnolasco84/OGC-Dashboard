@@ -1,0 +1,81 @@
+ORIGEN DE COSTOS OGC — LARENA TORRES I Y H
+Consulta: 24/11/2026, 14:17:38 (America/Mexico_City).
+Fuente: Convex animated-walrus-612, configurado como desarrollo en .env.local.
+Corte: noviembre de 2026; acumulado desde el inicio de cada obra hasta el 30/11/2026.
+
+Larena - Torre I: $236,590.40, 36 pagos; estructura OGC asignada: $0.00.
+Larena - Torre H: $34,533.20, 16 pagos; estructura OGC asignada: $0.00.
+
+DESGLOSE POR CONCEPTO
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 35 pagos | $163,046.40
+Larena - Torre I | COCINA / COCINA PRINCIPAL (VIATICOS  Y  FLETE) | 1 pagos | $73,544.00
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 16 pagos | $34,533.20
+
+POR QUÉ APARECEN EN COSTOS OGC
+La lógica de P&L clasifica pagos de familias con Viáticos como costo histórico de indirectos. También los suma al ingreso de indirectos. La factura es una referencia almacenada; archivo_presupuesto_de_partida identifica el presupuesto de la partida, no acredita el Excel usado para cargar el pago.
+Código: ProfitAndLossPage.tsx:1293 presenta project.costosOgc; desarrollos.ts:974 toma costosEstructuraMasIndirectos; desarrollos.ts:646-658 identifica Viáticos y suma indirectosLegacyCosto.
+
+QUIÉN LOS SUBIÓ
+No identificable con los registros disponibles: pagos y transacciones no tienen usuario creador ni vínculo a lote de importación. No existen lotes transaction_import_batches ni budget_creation_attempts para estas obras; los registros labor_payment_imports no están vinculados a estos 52 pagos.
+Los timestamps son fechas de creación en la base de datos. Por sí solos no identifican a una persona ni prueban el mecanismo de carga.
+
+TRAZABILIDAD DEL PRESUPUESTO
+Las partidas conservan PRESUPUESTO LARENA TORRE I.xlsx y PRESUPUESTO LARENA TORRE H.xlsx como archivo_origen. Los pagos no conservan un archivo Excel de carga identificable.
+
+VERIFICACIÓN
+52 IDs de pago únicos; estado Pagado; MXN; tipo de cambio 1; fechas válidas hasta el corte; proyecto correcto; sumas coincidentes con la consulta desplegada a menos de 0.000001 MXN.
+
+DETALLE DE LOS 52 PAGOS
+Obra | Partida / Familia | Fecha de pago | Monto MXN | Referencia factura | Creado en sistema (México) | ID de pago | ID de transacción
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 16/11/2025 | $1,131.00 | DIS-VIA-251117.pdf | 26/2/2026, 12:02:49 | js74qp19m8qa4j7p3g157cyvph81w0e3 | k97bcr19sd0rdx3cwq7jdc3qyh81wz2c
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 23/11/2025 | $1,885.00 | DIS-VIA-251124.pdf | 26/2/2026, 12:02:56 | js7e15g2dx01jpvaak7bqhv6jx81xy20 | k970rhwq1v2rr0qcttz422caqn81xchn
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 30/11/2025 | $1,885.00 | DIS-VIA-251201.pdf | 26/2/2026, 12:03:03 | js77gdcjkq3ecz51nsjke5gcgx81xtk3 | k9776brn75nxha0fdbqwj1dk2981wb69
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 07/12/2025 | $1,885.00 | DIS-VIA-251208.pdf | 26/2/2026, 12:03:10 | js77hj6f2dn8z1m6t5rt2ss62d81xz21 | k9787s6znb52smc8g96pz5xd4n81wf29
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 28/12/2025 | $1,885.00 | DIS-VIA-251229.pdf | 26/2/2026, 12:03:24 | js7791jcksmhpkraexaq9wvtf181we0q | k97ctzxy67gzmvkrjg7pjqhspn81xag8
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 18/01/2026 | $6,861.40 | EFE-TI-VIA-260119.pdf | 26/2/2026, 12:03:31 | js75fc4cy64rex9jx3qhs2sy4h81wv9p | k970qa2b28vwm202b6b04etx8n81wft8
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 25/01/2026 | $3,166.80 | EFE-TI-VIA-260126.pdf | 26/2/2026, 12:04:00 | js74dtvkhjy8phbzjmfvjqkm0s81xmm4 | k97fweny4f3b8zbjh6h168esjx81x9rf
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 25/01/2026 | $6,861.40 | DIS-TI-VIA-260126.pdf | 26/2/2026, 12:04:07 | js78804dsj9pwftvwnt7h8j5s981wk6h | k972gzm2a0dqwsssdctjrfybkh81wych
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 01/02/2026 | $6,861.40 | DIS-TI-VIA-260202.pdf | 26/2/2026, 12:04:18 | js7eedp2v7xhgpfb2v6vq1r03981x86t | k97e5b74ywr536mm0v8pp6hg4181w6qn
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 01/02/2026 | $3,166.80 | DIS-TI-VIA-260202.pdf | 26/2/2026, 12:04:18 | js77jte0hxzj4gs08fh8hfhsdd81x5kb | k97e5b74ywr536mm0v8pp6hg4181w6qn
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 08/02/2026 | $6,861.40 | DIS-TI-VIA-260209.pdf | 26/2/2026, 12:04:29 | js703kktv8xf216pd7zw7y9bm181wtan | k9735xhw05k1qsr26f6n7vp24581wjey
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 08/02/2026 | $1,809.60 | DIS-TI-VIA-260209.pdf | 26/2/2026, 12:04:29 | js7ds9nqep1ehz99qb3rv9vr0581xfqx | k9735xhw05k1qsr26f6n7vp24581wjey
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 18/01/2026 | $2,714.40 | DIS-TI-VIA-260119.pdf | 26/2/2026, 12:04:34 | js7fqdebn6x1synrvekpa5qqjh81x1k7 | k97azwqxcan5tm6hn1r3rav0y181wkfx
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 11/01/2026 | $2,714.40 | DIS-TI-VIA-260112.pdf | 26/2/2026, 12:04:37 | js7btz3w9kxhke0fc3tk1a7rv581wb24 | k971g64gh3p9qdrvwbsvnp8va181xjqc
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 04/01/2026 | $2,262.00 | DIS-TI-VIA-260105.pdf | 26/2/2026, 12:04:41 | js70tavcrk7sw6n82tdk1g1a5981xqg6 | k97cfgw394a2tgejjpnhn2sqa981wvp1
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 14/12/2025 | $1,885.00 | DIS-TI-VIA-251215.pdf | 26/2/2026, 12:04:45 | js7c58wtxc4qcjgntaj15b9qts81wq6p | k9772pwwmgbq5c93a7wz90fagx81xvzh
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 15/02/2026 | $3,166.80 | DIS-TI-VIA-260216.pdf | 26/2/2026, 12:06:16 | js7dn3hh2k600rt8efy3wfje8s81xxa2 | k974c8ssq9secryznbamgqjjj181wmtd
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 15/02/2026 | $9,500.40 | DIS-TI-VIA-260216.pdf | 26/2/2026, 12:06:16 | js70jwb10rn939qgf61m9wgvvd81xb0e | k974c8ssq9secryznbamgqjjj181wmtd
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 22/02/2026 | $3,166.80 | DIS-TI-VIA-260223.pdf | 23/3/2026, 19:58:37 | js73xz74258pgffj7za1xbv0ws83hae8 | k973vcyet3ck8d6sm2h87tw1rd83g33g
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 22/02/2026 | $9,500.40 | DIS-TI-VIA-260223.pdf | 23/3/2026, 19:58:37 | js7dys07yhp7048zwses4twsj983g88x | k973vcyet3ck8d6sm2h87tw1rd83g33g
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 01/03/2026 | $3,166.80 | DIS-TI-VIA-260302.pdf | 15/4/2026, 14:44:04 | js780j7ypxkp077qzeqvxv0kt984w4hx | k976t7k63qt99kyatjqbba74z184ww7b
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 01/03/2026 | $9,500.40 | DIS-TI-VIA-260302.pdf | 15/4/2026, 14:44:04 | js767yp4nadgfg9ec4pw198tx984xndk | k976t7k63qt99kyatjqbba74z184ww7b
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 08/03/2026 | $754.00 | DIS-TI-VIA-260309.pdf | 15/4/2026, 14:44:40 | js72e4gt72hnnrvtxrg0051ad984w7de | k97cmhtns4z14r7106k31rv6rn84wazk
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 08/03/2026 | $9,500.40 | DIS-TI-VIA-260309.pdf | 15/4/2026, 14:44:40 | js7aw1sk9eb0hmqfr59mefhq5d84w3rf | k97cmhtns4z14r7106k31rv6rn84wazk
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 15/03/2026 | $754.00 | DIS-TI-VIA-260316.pdf | 15/4/2026, 14:45:38 | js7bj53jn4kkf89jfs2esgqn5984waq2 | k9774wdtgdwqhsaa6ev3qmt9r584xhtw
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 15/03/2026 | $9,500.40 | DIS-TI-VIA-260316.pdf | 15/4/2026, 14:45:38 | js76vwgs2g2d41ktn69m94q6zs84wpgn | k9774wdtgdwqhsaa6ev3qmt9r584xhtw
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 22/03/2026 | $754.00 | DIS-TI-VIA-260323.pdf | 28/4/2026, 17:37:37 | js76v99rkezc5hd53jb99pnaf585q8d3 | k9721g2z2zvbea1yxgfhhrrwa985pw2v
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 22/03/2026 | $9,500.40 | DIS-TI-VIA-260323.pdf | 28/4/2026, 17:37:37 | js7cmm2q62njs8zy9c6yw8tdts85pd0q | k9721g2z2zvbea1yxgfhhrrwa985pw2v
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 29/03/2026 | $754.00 | DIS-TI-VIA-260330.pdf | 28/4/2026, 17:37:41 | js7bdng0vw6502qj4zjcq80t6n85p5sn | k9745hcpks305qcxt0p4g553nn85pe62
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 05/04/2026 | $754.00 | DIS-TI-VIA-260406.pdf | 28/4/2026, 17:37:44 | js73jdtnth7zk9f9jrn2atth4985qgb7 | k976czkphp3tpkyx4j18jjvtw185qb67
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 05/04/2026 | $9,500.40 | DIS-TI-VIA-260406.pdf | 28/4/2026, 17:37:44 | js763w5g8m77tf770awz1vf1y185qv18 | k976czkphp3tpkyx4j18jjvtw185qb67
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 12/04/2026 | $5,218.40 | DIS-TI-VIA-260413.pdf | 28/4/2026, 17:37:48 | js7d2t1zctgs67zp91q5t5f4ss85q409 | k97c8q4xbpd15d5kfarrw62whx85pz6h
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 12/04/2026 | $9,500.40 | DIS-TI-VIA-260413.pdf | 28/4/2026, 17:37:48 | js7f3pach1ktpbzq9atenext1x85qmdj | k97c8q4xbpd15d5kfarrw62whx85pz6h
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 19/04/2026 | $5,218.40 | DIS-TI-VIA-260420.pdf | 28/4/2026, 17:37:51 | js74rgwf7n1xh8d0t296nej69185pphf | k9751z65qgk5n7py9tky4x5e8185q5dw
+Larena - Torre I | MÁRMOL / VIATICOS COLOCACION | 19/04/2026 | $9,500.40 | DIS-TI-VIA-260420.pdf | 28/4/2026, 17:37:51 | js7dbymtgr31wd87z1dvetjkwh85q2as | k9751z65qgk5n7py9tky4x5e8185q5dw
+Larena - Torre I | COCINA / COCINA PRINCIPAL (VIATICOS  Y  FLETE) | 23/04/2026 | $73,544.00 | CO3--260424.pdf | 28/4/2026, 17:35:44 | js71f7mc2ehepnbvp7kcj74f9585q547 | k97ak0pqg6dw3p7yz2ephbq9cs85pggy
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 08/02/2026 | $1,131.00 | DIS-TH-VIA-260209.pdf | 26/2/2026, 11:57:19 | js7fsd0d1rwywkrgdgcrv8zv8181x4zm | k97521a4drtsqv600d7nkhgs9581xbft
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 15/02/2026 | $1,131.00 | DIS-TH-VIA-260216.pdf | 26/2/2026, 11:57:25 | js72dyxst4d743nthy7sm5kew581wvj2 | k9713p1116tks4fybrbg8ng9yd81xd5q
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 22/02/2026 | $1,131.00 | DIS-TH-VIA-260223.pdf | 23/3/2026, 19:54:07 | js77p0bqfr66d5znnjsxxb795x83hq5m | k973554cz8qb8mwx1q7jz8c4c183g7h7
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 01/03/2026 | $1,131.00 | DIS-TH-VIA-260302.pdf | 15/4/2026, 14:36:23 | js7a0jzf1vgnv6gy39ynnvmm0184xmxz | k9786kbt731qk06xzhde66a6b584x4mb
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 08/03/2026 | $2,262.00 | DIS-TH-VIA-260309.pdf | 15/4/2026, 14:36:54 | js7a5qjdzz8km6wazxrhg8b70184w3g5 | k97dpetkf7s1we2zh357g6gqk184x8h9
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 15/03/2026 | $1,809.60 | DIS-TH-VIA-260316.pdf | 15/4/2026, 14:37:28 | js70j46f08br0exj7dzm3348rd84xgnm | k973nyb2bfk9xjfdhhjcsrxv5n84wdx9
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 05/04/2026 | $2,714.40 | DIS-TH-VIA-260406.pdf | 29/4/2026, 11:49:03 | js78s1n8nwqrsykaqfa0xss05x85stx1 | k9706c5xh403awm85cdzjraejx85sgcs
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 05/04/2026 | $1,809.60 | DIS-TH-VIA-260406.pdf | 29/4/2026, 11:49:03 | js7615e47x0mttgsdxfyr6dkg985s894 | k9706c5xh403awm85cdzjraejx85sgcs
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 12/04/2026 | $3,619.20 | DIS-TH-VIA-260413.pdf | 29/4/2026, 11:49:06 | js7djnnqpbxj92kbwxxy6yhfax85s0ex | k973yaqn7ybyh28jw1vgtn1hr985sxj2
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 12/04/2026 | $1,809.60 | DIS-TH-VIA-260413.pdf | 29/4/2026, 11:49:06 | js7bfjg7bdq6f5q2jzz5t96n8s85sw8j | k973yaqn7ybyh28jw1vgtn1hr985sxj2
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 12/04/2026 | $1,809.60 | DIS-TH-VIA-260413.pdf | 29/4/2026, 11:49:06 | js72k0te5vgnyxkcs36j0frxch85rkrc | k973yaqn7ybyh28jw1vgtn1hr985sxj2
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 19/04/2026 | $6,333.60 | DIS-TH-VIA-260420.pdf | 29/4/2026, 11:49:08 | js78tq0knsvct31qyfrx20paqn85szg6 | k972wfbtvhnnwd9eh3w8xn2ac985r3yn
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 19/04/2026 | $1,809.60 | DIS-TH-VIA-260420.pdf | 29/4/2026, 11:49:08 | js76zgg0xyy8z0jx7ws5kbfrth85r7cy | k972wfbtvhnnwd9eh3w8xn2ac985r3yn
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 19/04/2026 | $2,412.80 | DIS-TH-VIA-260420.pdf | 29/4/2026, 11:49:08 | js7ev3rr5dr6t4zcbvv5wqx4mx85s1wx | k972wfbtvhnnwd9eh3w8xn2ac985r3yn
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 22/03/2026 | $1,809.60 | DIS-TH-VIA-260323.pdf | 29/4/2026, 11:49:25 | js78s1hkrnx52jhsftryyd0mnd85syf9 | k976kc83tkbcvma05bentws94185rpf8
+Larena - Torre H | MÁRMOL / VIATICOS COLOCACION | 29/03/2026 | $1,809.60 | DIS-TH-VIA-260330.pdf | 29/4/2026, 11:49:28 | js703b1krgnt3er66js1aqcpc985r4ap | k9792wat136f7d7t5cgxstm66s85rcw7

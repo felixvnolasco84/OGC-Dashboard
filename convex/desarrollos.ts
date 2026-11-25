@@ -643,13 +643,7 @@ export const summarizeProjectPaymentRecords = (
                 continue;
             }
 
-            if (
-                isAutomaticIndirectos(proyecto, transaction.fecha)
-                    ? isIndirectosPartida(partida)
-                    : (matchesAnyReportLabel(partida.nombre, INDIRECTOS_LABELS) ||
-                       matchesAnyReportLabel(partida.familia, INDIRECTOS_LABELS) ||
-                       matchesAnyReportLabel(partida.sub_partida, INDIRECTOS_LABELS))
-            ) {
+            if (isIndirectosPartida(partida)) {
                 if (isAutomaticIndirectos(proyecto, transaction.fecha)) continue;
                 summary.indirectos += amount;
                 summary.indirectosLegacyCosto += amount;

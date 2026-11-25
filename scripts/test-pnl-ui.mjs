@@ -74,8 +74,7 @@ try {
     const projectRow = page.getByRole("row").filter({ hasText: "Obra de prueba" });
     await expect(projectRow.locator('[title="$13,735,506.49"]')).toBeVisible();
     const corporateRow = page.getByRole("row").filter({ hasText: "OGC sin obra asignada" });
-    await expect(corporateRow).toBeVisible();
-    await expect(corporateRow.locator('[title="$12,000.00"]')).toBeVisible();
+    await expect(corporateRow).toHaveCount(0);
     const nominaRow = page.getByRole("row").filter({ has: page.getByText("NOMINA", { exact: true }) });
     await expect(nominaRow.locator('[title="$12,000.00"]')).toBeVisible();
     await expect(page.getByText("DISP HONORARIOS", { exact: true })).toHaveCount(0);

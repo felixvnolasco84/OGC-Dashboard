@@ -128,6 +128,63 @@ describe.each([
     expect(result.projects[0].monthlyOgcMovements["2026-2"].indirectos).toBe(20);
   });
 
+  it.each(["manual", "percentage", "configured"])("keeps marble and kitchen travel in their trade with %s indirectos", async mode => {
+    const partidas = [
+      { _id: "marble", proyecto: "project", nivel: 1, nombre: "MÁRMOL", presupuesto_original: 500000, presupuesto_aprobado: 500000, pagado: 163046.4 },
+      { _id: "kitchen", proyecto: "project", nivel: 1, nombre: "COCINA", presupuesto_original: 400000, presupuesto_aprobado: 400000, pagado: 73544 },
+      { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS", presupuesto_original: 100000, presupuesto_aprobado: 100000, pagado: 0 },
+      { _id: "marble-travel", proyecto: "project", nivel: 3, nombre: "VIÁTICOS", partida_nombre: "MÁRMOL", familia: "VIATICOS COLOCACION", sub_partida: "GENERAL CONDITIONS DE COLOCACIÓN" },
+      { _id: "kitchen-delivery", proyecto: "project", nivel: 2, nombre: "COCINA", partida_nombre: "COCINA", familia: "COCINA PRINCIPAL (VIATICOS Y FLETE)" },
+    ];
+    const config = mode === "percentage" ? { indirectos_porcentaje: 10 }
+      : mode === "configured" ? { fee_concepts: deriveFeeConcepts([{ concepto: "indirectos", partida_id: "indirect", excluded_partidas: [] }], partidas, "project") } : {};
+    const f = database({
+      desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 0, ...config }],
+      partidas,
+      transacciones: [{ _id: "transaction", proyecto: "project", fecha: "15/01/2026", status: "Pagado", monto_total: 236590.4, moneda: "MXN" }],
+      pagos: [
+        { _id: "marble-payment", transaccion_id: "transaction", partida_id: "marble-travel", monto: 163046.4 },
+        { _id: "kitchen-payment", transaccion_id: "transaction", partida_id: "kitchen-delivery", monto: 73544 },
+      ],
+    });
+    const before = structuredClone(f.tables);
+    const result = await query._handler(f.ctx, period);
+    const indirectos = mode === "manual" ? 0 : 23659.04;
+    expect(result.totals).toMatchObject({ indirectos, indirectosLegacyCosto: 0, costosEstructuraOgc: 0, costosEstructuraMasIndirectos: 0, ingresosOgc: indirectos, ebitda: indirectos });
+    expect(result.projects[0].monthlyOgcMovements["2026-1"]).toMatchObject({ indirectos, indirectosLegacyCosto: 0, costosDirectosObra: 236590.4 });
+    if (query === getProfitabilitySummary) {
+      expect(result.projects[0]).toMatchObject({ costosOgc: 0, margen: indirectos });
+    }
+    const budget = await getPaymentsByDateRange._handler(f.ctx, { proyecto_id: "project" });
+    expect(budget.paymentsByPartida["marble-travel"]).toBe(163046.4);
+    expect(budget.paymentsByPartida["kitchen-delivery"]).toBe(73544);
+    expect(f.tables).toEqual(before);
+  });
+
+  it("recognizes legacy indirect roots and explicit OGC costs without searching trade descriptions", async () => {
+    const f = database({
+      desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 0 }],
+      partidas: [
+        { _id: "travel", proyecto: "project", nivel: 2, nombre: "TRASLADOS", partida_nombre: "VIÁTICOS PERSONAL", familia: "Transporte" },
+        { _id: "gc", proyecto: "project", nivel: 2, nombre: "PERSONAL", partida_nombre: "GENERAL CONDITIONS", familia: "Campamento" },
+        { _id: "indirect", proyecto: "project", nivel: 1, nombre: "INDIRECTOS" },
+        { _id: "trade", proyecto: "project", nivel: 1, nombre: "CARPINTERÍA Y VIÁTICOS", familia: "INDIRECTOS DE COLOCACIÓN" },
+        { _id: "unlinked-travel", proyecto: "project", nivel: 3, nombre: "VIÁTICOS", familia: "COLOCACIÓN" },
+      ],
+      pagos: [
+        { transaccion_id: "transaction", partida_id: "travel", monto: 30 },
+        { transaccion_id: "transaction", partida_id: "gc", monto: 50 },
+        { transaccion_id: "transaction", partida_id: "indirect", monto: 20 },
+        { transaccion_id: "transaction", partida_id: "trade", monto: 800 },
+        { transaccion_id: "transaction", partida_id: "unlinked-travel", monto: 100 },
+      ],
+      ogc_movimientos: [movement({ tipo: "costo_estructura", categoria: "INDIRECTOS", monto: 25 })],
+    });
+    const result = await query._handler(f.ctx, period);
+    expect(result.totals).toMatchObject({ indirectos: 100, indirectosLegacyCosto: 100, costosEstructuraOgc: 25, costosRealesIndirectos: 25, costosEstructuraMasIndirectos: 125, ebitda: -25 });
+    expect(result.projects[0].monthlyOgcMovements["2026-1"].costosDirectosObra).toBe(900);
+  });
+
   it("preserves payment eligibility, hierarchy exclusions, currency and cutoff", async () => {
     const f = database({
       desarrollos: [{ _id: "project", nombre: "Obra", honorarios_porcentaje: 10, honorarios_modo: "transacciones", excluded_partidas_honorarios: ["excluded"] }],

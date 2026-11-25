@@ -1,0 +1,22 @@
+{
+  "tipo": "Verificación local de la corrección sobre los 52 pagos consultados; no es una consulta del backend desplegado.",
+  "snapshot": "2026-11-24T20:17:04.214Z",
+  "resultados": [
+    {
+      "obra": "Larena - Torre I",
+      "pagos_verificados": 36,
+      "costos_ogc_antes": 236590.39999999997,
+      "costos_ogc_con_correccion": 0,
+      "conservado_en_costos_de_partida": 236590.39999999997,
+      "costo_historico_de_indirectos_con_correccion": 0
+    },
+    {
+      "obra": "Larena - Torre H",
+      "pagos_verificados": 16,
+      "costos_ogc_antes": 34533.19999999999,
+      "costos_ogc_con_correccion": 0,
+      "conservado_en_costos_de_partida": 34533.19999999999,
+      "costo_historico_de_indirectos_con_correccion": 0
+    }
+  ]
+}

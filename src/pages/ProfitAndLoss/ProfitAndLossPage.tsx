@@ -309,14 +309,17 @@ const DEFAULT_EUR_TO_MXN = 18.5;
 const DETAIL_TEXT_CLASS = "text-disabled-foreground";
 const SOFT_HIGHLIGHT_CLASS = "bg-[#FBFAF2]";
 const STRONG_HIGHLIGHT_CLASS = "bg-[#F7F5E6]";
+const OTHER_STRUCTURE_LABEL = "OTROS (SERVICIOS, OPERACIÓN OFICINA, COMISIONES)";
 const DEFAULT_STRUCTURE_GROUPS = [
   { key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS" },
   { key: "nomina", label: "NOMINA" },
   { key: "cargas_sociales", label: "CARGAS SOCIALES ADMN (IMSS, ISN, INFONAVIT)" },
   { key: "transporte", label: "TRANSPORTE" },
   { key: "renta", label: "RENTA" },
-  { key: "otros", label: "OTROS" },
+  { key: "otros", label: OTHER_STRUCTURE_LABEL },
 ];
+const getStructureGroupLabel = (group: { key: string; label: string }) =>
+  group.key === "otros" ? OTHER_STRUCTURE_LABEL : group.label;
 const LEDGER_CATEGORIES = [
   "HONORARIOS",
   "INDIRECTOS",
@@ -509,7 +512,7 @@ const buildMonthlyRows = (
     { label: "INDIRECTOS COBRADOS", type: "line", values: monthlyIndirectos },
     { label: "TOTAL INGRESOS", type: "subtotal", values: monthlyIngresos },
     { label: "COSTO ESTRUCTURA", type: "section" },
-    ...structureGroups.map((group, index) => ({ label: group.label, type: "line" as const, values: costRows[index] })),
+    ...structureGroups.map((group, index) => ({ label: getStructureGroupLabel(group), type: "line" as const, values: costRows[index] })),
     { label: "TOTAL ESTRUCTURA", type: "subtotal", values: monthlyEstructura },
     { label: "COSTO HISTÓRICO DE INDIRECTOS", type: "line", values: legacyIndirectosCosts.map(amount => -amount) },
     { label: "SALDO DE INDIRECTOS", type: "subtotal", values: indirectosBalances },
@@ -539,10 +542,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Honorarios e indirectos calculados con las reglas de cada obra sobre pagos elegibles del periodo seleccionado. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC en la fecha capturada. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
+    return `Honorarios e indirectos calculados con las reglas de cada obra sobre pagos elegibles del periodo seleccionado. Indirectos agrupa los conceptos propios de Indirectos, General Conditions y Viáticos. Los viáticos dentro de otras partidas permanecen como costos de esas partidas. Los costos reales provienen de movimientos OGC en la fecha capturada. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Los conceptos configurados usan los pagos Pagado del periodo seleccionado. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa Indirectos, General Conditions y Viáticos. Los costos reales provienen de movimientos OGC en la fecha capturada, sin prorrateo lineal.";
+  return "Los conceptos configurados usan los pagos Pagado del periodo seleccionado. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa los conceptos propios de Indirectos, General Conditions y Viáticos. Los viáticos dentro de otras partidas permanecen como costos de esas partidas. Los costos reales provienen de movimientos OGC en la fecha capturada, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({
@@ -681,7 +684,18 @@ function MonthlyPnlTable({
   );
 }
 
-function WipMetricCard({
+function PnlMetricsGrid({ children, columns = 4 }: { children: ReactNode; columns?: 3 | 4 }) {
+  return (
+    <div className={cn(
+      "grid w-full min-w-0 grid-cols-1 gap-6 py-4 sm:grid-cols-2 sm:py-6",
+      columns === 3 ? "lg:grid-cols-3 lg:gap-x-8" : "xl:grid-cols-4 xl:gap-x-8"
+    )}>
+      {children}
+    </div>
+  );
+}
+
+function PnlMetricCard({
   label,
   value,
   badge,
@@ -693,9 +707,9 @@ function WipMetricCard({
   valueClassName?: string;
 }) {
   return (
-    <div className="space-y-2 text-left">
+    <div className="min-w-0 space-y-2 text-left">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={cn("text-4xl text-foreground", valueClassName)}>{value}</p>
+      <p className={cn("break-words text-3xl tabular-nums text-foreground lg:text-4xl", valueClassName)}>{value}</p>
       <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
         {badge}
       </Badge>
@@ -722,31 +736,31 @@ function WorkInProgressView({
 
   return (
     <>
-      <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
-        <WipMetricCard
+      <PnlMetricsGrid>
+        <PnlMetricCard
           label="Backlog total contratado"
           value={formatMetricCurrency(totals.wip.presupuesto)}
           badge={`${totals.activeProjects} obras activas`}
         />
-        <WipMetricCard
+        <PnlMetricCard
           label="Costo real acumulado"
           value={formatMetricCurrency(totals.wip.costoReal)}
           badge={`${(totals.wip.ejecutadoPercent * 100).toFixed(0)}% ejecutado`}
         />
-        <WipMetricCard
+        <PnlMetricCard
           label="Ingresos cobrados registrados"
           value={formatMetricCurrency(totals.wip.pagado)}
           badge="Ingresos y OGC a la fecha"
           valueClassName="text-[#1A5D21]"
         />
-        <WipMetricCard
+        <PnlMetricCard
           label="Backlog pendiente"
           value={formatMetricCurrency(totals.wip.backlogPendiente)}
           badge="Por facturar"
         />
-      </div>
+      </PnlMetricsGrid>
 
-      <div className="border-t border-border-strong pt-12 space-y-6">
+      <div className="space-y-6 border-t border-border-strong pt-6 sm:pt-8">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <h2 className="text-lg text-foreground">OBRAS ACTIVAS - ESTADO AL CORTE</h2>
           <div className="text-left md:text-right">
@@ -1121,7 +1135,7 @@ function AnnualPnlSummaryTables({
             <tbody>
               {estructuraRows.map((row) => (
                 <tr key={row.key} className="border-b border-border bg-card">
-                  <td className="px-8 py-6 align-middle text-base text-foreground">{row.label}</td>
+                  <td className="px-8 py-6 align-middle text-base text-foreground">{getStructureGroupLabel(row)}</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatTableCurrency(row.amount)}
                   </td>
@@ -1227,40 +1241,40 @@ function ProjectProfitabilityView({
 
   return (
     <>
-      <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
-        <WipMetricCard
+      <PnlMetricsGrid>
+        <PnlMetricCard
           label="Margen bruto total OGC"
           value={formatMetricCurrency(totals.margen)}
           badge={`Acumulado hasta ${currentMonthLabel}`}
           valueClassName={totals.margen >= 0 ? "text-foreground" : "text-[#802424]"}
         />
-        <WipMetricCard
+        <PnlMetricCard
           label="Margen bruto %"
           value={formatPercent(totals.margenPercent)}
           badge={`${summary.totals.activeProjects} obras activas`}
           valueClassName={totals.margenPercent >= 0 ? "text-foreground" : "text-[#802424]"}
         />
-        <WipMetricCard
+        <PnlMetricCard
           label="Margen mensual actual"
           value={formatMetricCurrency(totals.currentMonthMargen)}
           badge={currentMonthLabel}
           valueClassName={totals.currentMonthMargen >= 0 ? "text-foreground" : "text-[#802424]"}
         />
-        <WipMetricCard
+        <PnlMetricCard
           label="Margen mensual %"
           value={formatPercent(totals.currentMonthMargenPercent)}
           badge={currentMonthLabel}
           valueClassName={totals.currentMonthMargenPercent >= 0 ? "text-foreground" : "text-[#802424]"}
         />
-      </div>
+      </PnlMetricsGrid>
 
-      <div className="border-t border-border-strong pt-12 space-y-12">
+      <div className="space-y-8 border-t border-border-strong pt-6 sm:pt-8">
         <div className="space-y-6">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-lg text-foreground">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
             <div className="text-left md:text-right">
               <p className="text-sm text-disabled-foreground">Ingresos por obra vs. costos reales OGC asignados y costos históricos de indirectos</p>
-              <p className="mt-1 text-xs text-muted-foreground">Desde el inicio de cada obra hasta {currentMonthLabel}, con las reglas vigentes de Presupuesto.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Desde el inicio de cada obra hasta {currentMonthLabel}, con las reglas vigentes de Presupuesto. Los viáticos de colocación o envío dentro de otras partidas no son costos de estructura OGC.</p>
             </div>
           </div>
 
@@ -1311,26 +1325,6 @@ function ProjectProfitabilityView({
                   </tr>
                 )}
 
-                {summary.unassignedOgc && (summary.unassignedOgc.ingresosOgc !== 0 || summary.unassignedOgc.costosOgc !== 0) && (
-                  <tr className="border-b border-border bg-card">
-                    <td className="px-8 py-6 align-middle text-base text-foreground">OGC sin obra asignada</td>
-                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                      {formatTableCurrency(summary.unassignedOgc.ingresosOgc)}
-                    </td>
-                    <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                      {formatAccountingCurrency(-Math.abs(summary.unassignedOgc.costosOgc))}
-                    </td>
-                    <td className={cn(SOFT_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
-                      <div className="flex items-center justify-center gap-8">
-                        <span className={summary.unassignedOgc.margen >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
-                          {formatTableCurrency(summary.unassignedOgc.margen)}
-                        </span>
-                        <span className={DETAIL_TEXT_CLASS}>{formatWholePercent(safeDivide(summary.unassignedOgc.margen, summary.unassignedOgc.ingresosOgc))}</span>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-
                 <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                   <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OGC</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
@@ -1375,7 +1369,7 @@ function ProjectProfitabilityView({
                 <tbody>
                   {estructuraRows.map((row) => (
                     <tr key={row.label} className="border-b border-border bg-card">
-                      <td className="px-8 py-6 align-middle text-base text-foreground">{row.label}</td>
+                      <td className="px-8 py-6 align-middle text-base text-foreground">{getStructureGroupLabel(row)}</td>
                       <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                         {formatTableCurrency(row.amount)}
                       </td>
@@ -2450,35 +2444,26 @@ export default function ProfitAndLossPage() {
           pnlSummary === undefined ? (
             <p className="py-12 text-muted-foreground">Cargando datos...</p>
           ) : <>
-            <div className="responsive-metrics gap-10 w-full xl:w-3/4 py-8">
-              <div className="space-y-2 text-left">
-                <p className="text-sm text-muted-foreground">Ingresos OGC YTD</p>
-                <p className="text-4xl text-foreground">{formatMetricCurrency(ingresosYtd)}</p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
-                  {periodLabel}
-                </Badge>
-              </div>
+            <PnlMetricsGrid columns={3}>
+              <PnlMetricCard
+                label="Ingresos OGC YTD"
+                value={formatMetricCurrency(ingresosYtd)}
+                badge={periodLabel}
+              />
+              <PnlMetricCard
+                label="Estructura YTD"
+                value={formatMetricCurrency(estructuraYtd)}
+                badge={`${(pnlSummary.totals.estructuraPercent * 100).toFixed(1)}% de ingresos`}
+              />
+              <PnlMetricCard
+                label="EBITDA YTD"
+                value={formatMetricCurrency(ebitdaYtd)}
+                badge={`${(pnlSummary.totals.ebitdaMargin * 100).toFixed(1)}% de margen`}
+                valueClassName={ebitdaYtd >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}
+              />
+            </PnlMetricsGrid>
 
-              <div className="space-y-2 text-left">
-                <p className="text-sm text-muted-foreground">Estructura YTD</p>
-                <p className="text-4xl text-foreground">{formatMetricCurrency(estructuraYtd)}</p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
-                  {(pnlSummary.totals.estructuraPercent * 100).toFixed(1)}% de ingresos
-                </Badge>
-              </div>
-
-              <div className="space-y-2 text-left">
-                <p className="text-sm text-muted-foreground">EBITDA YTD</p>
-                <p className={cn("text-4xl", ebitdaYtd >= 0 ? "text-[#1A5D21]" : "text-[#802424]")}>
-                  {formatMetricCurrency(ebitdaYtd)}
-                </p>
-                <Badge variant="secondary" className="text-[10px] font-normal py-1.5 leading-none text-muted-foreground rounded-xl border-border-strong">
-                  {(pnlSummary.totals.ebitdaMargin * 100).toFixed(1)}% de margen
-                </Badge>
-              </div>
-            </div>
-
-            <div className="space-y-12 border-t border-border-strong pt-12">
+            <div className="space-y-8 border-t border-border-strong pt-6 sm:pt-8">
               <MonthlyPnlTable
                 months={months}
                 rows={rows}

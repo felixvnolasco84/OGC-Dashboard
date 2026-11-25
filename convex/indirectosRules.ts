@@ -7,8 +7,10 @@ type Transaction = { _id: string; fecha: string; status: string; moneda?: string
 const normalize = (value?: string) => (value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 export function isIndirectosPartida(partida: Partial<Partida>) {
-  return [partida.nombre, partida.partida_nombre, partida.familia, partida.sub_partida].some(value =>
-    /indirecto|general condition|condicion(?:es)? general|viatico/.test(normalize(value)));
+  // The root identifies the budget concept. Travel or delivery inside a trade
+  // remains a cost of that trade, even when a family or leaf says "Viáticos".
+  const rootName = partida.nivel === 1 ? partida.nombre : partida.partida_nombre;
+  return /^(?:indirectos?|general conditions?|condicion(?:es)? general(?:es)?|viaticos?)(?:\s|$)/.test(normalize(rootName));
 }
 
 export function reportDateIso(value?: string): string | null {
