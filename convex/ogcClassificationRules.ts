@@ -4,10 +4,15 @@ const normalizeText = (value?: string) => (value || "")
   .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   .trim().toLowerCase().replace(/\s+/g, " ");
 
-const INFORMATION_CATEGORIES = new Set([
-  "carga social obra (siroc-recuperable)",
-  "flujo fiscal (iva + retenciones)",
+export type OgcInformativeKey = "siroc" | "ivaRetenciones";
+
+const INFORMATION_CATEGORIES = new Map<string, OgcInformativeKey>([
+  ["carga social obra (siroc-recuperable)", "siroc"],
+  ["flujo fiscal (iva + retenciones)", "ivaRetenciones"],
 ]);
+
+export const getOgcInformativeKey = (categoria?: string) =>
+  INFORMATION_CATEGORIES.get(normalizeText(categoria).replace(/\s*-\s*/g, "-"));
 
 export const isDispHonorarios = (movement: { categoria?: string; descripcion?: string }) =>
   [movement.categoria, movement.descripcion].some(value =>
@@ -20,7 +25,7 @@ export function normalizeOgcClassification(movement: {
   descripcion?: string;
 }): { tipo: OgcMovementType | null; categoria: string } {
   const categoria = movement.categoria?.trim().toUpperCase().replace(/\s+/g, " ") || "OTROS";
-  if (INFORMATION_CATEGORIES.has(normalizeText(categoria))) return { tipo: "informativo", categoria };
+  if (getOgcInformativeKey(categoria)) return { tipo: "informativo", categoria };
   if (isDispHonorarios(movement)) return { tipo: "costo_estructura", categoria: "DISP HONORARIOS" };
   const tipo = normalizeText(movement.tipo).replace(/_/g, " ");
   if (["ingreso", "ingresos", "cobro"].includes(tipo)) return { tipo: "ingreso", categoria };

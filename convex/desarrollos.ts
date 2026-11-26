@@ -32,7 +32,7 @@ import {
     loadFeeImpactRecords, feeImpactScope, feeBudgetScenario, persistFeeProjectTotals,
     type FeeImpactRecords, type FeeProposal,
 } from "./projectFeeImpact";
-import { isDispHonorarios, isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
+import { getOgcInformativeKey, isDispHonorarios, isOgcIncome, normalizeOgcClassification } from "./ogcClassificationRules";
 import {
     NO_PROJECT_LOCATION,
     matchesProjectLocation,
@@ -152,6 +152,7 @@ type MonthlyOgcMovementSummary = {
     baseIndirectos: number;
     indirectosAutomaticos: number;
     structureBreakdown: Record<string, number>;
+    informativeBreakdown: { siroc: number; ivaRetenciones: number };
 };
 
 const toFiniteNumber = (value: unknown) => {
@@ -174,7 +175,10 @@ const matchesMovementGroup = (movement: Pick<OgcMovement, "categoria" | "descrip
     });
 };
 
-const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripcion">) => {
+const getMovementGroupKey = (movement: Pick<OgcMovement, "categoria" | "descripcion" | "proyecto">) => {
+    // Assigned OGC expenses belong to the project's real indirect costs. Keep
+    // their original category in the ledger; corporate expenses retain its split.
+    if (movement.proyecto) return "indirectos_reales";
     if (normalizeMovementCategory(movement.categoria) === "indirectos") return "indirectos_reales";
     const category = normalizeMovementCategory(movement.categoria);
     const explicitGroup = OGC_STRUCTURE_COST_GROUPS.find(group => normalizeMovementCategory(group.label) === category);
@@ -285,6 +289,7 @@ const createEmptyMonthlySummary = (): MonthlyOgcMovementSummary => ({
     baseIndirectos: 0,
     indirectosAutomaticos: 0,
     structureBreakdown: emptyStructureBreakdownMap(),
+    informativeBreakdown: { siroc: 0, ivaRetenciones: 0 },
 });
 
 const addMonthlyAmount = (
@@ -310,6 +315,8 @@ const mergeMonthlySummaries = (
         target[monthKey].indirectos += sourceSummary.indirectos;
         target[monthKey].indirectosLegacyCosto += sourceSummary.indirectosLegacyCosto || 0;
         target[monthKey].costosDirectosObra += sourceSummary.costosDirectosObra || 0;
+        target[monthKey].informativeBreakdown.siroc += sourceSummary.informativeBreakdown?.siroc || 0;
+        target[monthKey].informativeBreakdown.ivaRetenciones += sourceSummary.informativeBreakdown?.ivaRetenciones || 0;
         Object.entries(sourceSummary.structureBreakdown || {}).forEach(([key, amount]) => {
             target[monthKey].structureBreakdown[key] = (target[monthKey].structureBreakdown[key] || 0) + amount;
         });
@@ -352,7 +359,17 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
             const monthKey = parsedDate ? `${parsedDate.getFullYear()}-${parsedDate.getMonth() + 1}` : null;
 
             const classification = normalizeOgcClassification(movement);
-            if (!classification.tipo || classification.tipo === "informativo") return acc;
+            if (!classification.tipo) return acc;
+            if (classification.tipo === "informativo") {
+                const key = getOgcInformativeKey(classification.categoria);
+                if (key) {
+                    acc.informativeBreakdown[key] += amount;
+                    addMonthlyAmount(acc.monthly, monthKey, summary => {
+                        summary.informativeBreakdown[key] += amount;
+                    });
+                }
+                return acc;
+            }
             if (classification.tipo === "ingreso") {
                 // Only project payment percentages generate P&L honorarios.
                 // Other OGC income stays available in the ledger and collected income.
@@ -385,6 +402,7 @@ const summarizeOgcMovements = (movements: OgcMovement[], period: PnlPeriod, rate
             indirectosLegacyCosto: 0,
             costosEstructura: 0,
             structureBreakdown: emptyStructureBreakdownMap(),
+            informativeBreakdown: { siroc: 0, ivaRetenciones: 0 },
             monthly: {} as Record<string, MonthlyOgcMovementSummary>,
             hasIncomeMovements: false,
             hasStructureMovements: false,
@@ -901,6 +919,7 @@ export const getPnlSummary = query({
             })),
             hasOgcIncomeMovements: allMovementSummary.hasIncomeMovements,
             hasOgcStructureMovements: allMovementSummary.hasStructureMovements,
+            informativeBreakdown: allMovementSummary.informativeBreakdown,
             estructuraPercent: totals.ingresosOgc > 0 ? totals.costosEstructuraOgc / totals.ingresosOgc : 0,
             ebitdaMargin: totals.ingresosOgc > 0 ? totals.ebitda / totals.ingresosOgc : 0,
             margenBrutoPercent: totals.ingresosOgc > 0 ? totals.margenBruto / totals.ingresosOgc : 0,

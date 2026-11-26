@@ -30,9 +30,13 @@ La columna **Avance** de Presupuesto muestra pagado visible / aprobado × 100 en
 
 ## Costos reales y P&L
 
-Registrar los gastos reales mediante captura manual o Excel en P&L → Cargar movimientos, con tipo **Costo estructura** y categoría **INDIRECTOS**. La obra es opcional: sin obra afecta el consolidado de OGC; con obra afecta también su rentabilidad.
+Registrar los gastos reales mediante captura manual o Excel en P&L → Cargar movimientos, con tipo **Costo estructura** y su categoría de origen. La obra es opcional: sin obra afecta el consolidado de OGC; con obra afecta también su rentabilidad. La categoría **INDIRECTOS** permite agrupar en costos reales de indirectos los gastos sin obra que correspondan a ese concepto.
 
 Los cargos de Indirectos, General Conditions y Viáticos se agrupan como ingreso de indirectos; Honorarios se presenta por separado. Saldo de indirectos muestra ingreso menos costos reales y el componente de costo histórico, si el periodo lo incluye. Cada costo se cuenta una sola vez.
+
+En P&L, los gastos OGC asignados a una obra se presentan en COSTOS REALES DE INDIRECTOS, conservando su categoría de origen en el libro de movimientos. Los gastos sin obra mantienen su categoría corporativa (Nómina, Transporte, Renta y otras). El costo histórico de indirectos de transacciones se incluye en la misma fila y en TOTAL ESTRUCTURA, sin volver a descontarlo del EBITDA. Los cargos porcentuales automáticos siguen siendo ingreso de indirectos y no se convierten en costo.
+
+Las filas informativas de SIROC e IVA + retenciones muestran los movimientos importados de esas categorías, convertidos a MXN y distribuidos por fecha, ubicación y corte. No se estiman con porcentajes ni afectan ingresos, estructura, EBITDA o utilidad neta. Los movimientos anulados y duplicados quedan excluidos.
 
 La clasificación manual usa la partida principal de Indirectos, General Conditions o Viáticos, no coincidencias en familias ni subpartidas. Los viáticos de colocación de Mármol y los viáticos o fletes de Cocina permanecen como costos de esas partidas: no generan ingreso ni costo histórico de indirectos en P&L y no se sustituyen como manuales de indirectos en Presupuesto. Los conceptos configurados explícitamente conservan su partida de origen y los costos reales de estructura provienen de movimientos OGC.
 

@@ -22,6 +22,24 @@ const pnl = { totals, monthlyOgcMovements, structureGroups: [{ key: "indirectos_
 const profitability = { ...pnl, projects: [{ ...project, id: "project", ...totals, wip: { ...totals.wip, avance: .5, valorGanado: 100000, restante: 75000, eac: 250000, varianza: -50000, cpi: .8, ingresosBreakdown: [], runway: 4, averageMonthlyExpense: 100000 } }] };
 const profitabilityFixes = new URLSearchParams(location.search).get("reportScenario") === "profitabilityFixes";
 const toolsScenario = new URLSearchParams(location.search).get("reportScenario") === "tools";
+const importedCostsScenario = new URLSearchParams(location.search).get("reportScenario") === "importedCosts";
+const importedCostsPnl = {
+  ...pnl,
+  structureGroups: [
+    { key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS" },
+    { key: "nomina", label: "NOMINA" },
+  ],
+  totals: { ...totals, indirectosLegacyCosto: 2000, costosEstructuraOgc: 19000,
+    costosEstructuraMasIndirectos: 21000, saldoIndirectos: 1000, ebitda: 4000, ebitdaMargin: .16,
+    structureBreakdown: [...structureBreakdown, { key: "nomina", label: "NOMINA", amount: 12000 }] },
+  monthlyOgcMovements: {
+    "2026-9": { honorarios: 0, indirectos: 0, indirectosLegacyCosto: 0,
+      structureBreakdown: {}, informativeBreakdown: { siroc: 150, ivaRetenciones: 0 } },
+    "2026-10": { ...monthlyOgcMovements["2026-10"], indirectosLegacyCosto: 2000,
+      structureBreakdown: { indirectos_reales: 7000, nomina: 12000 },
+      informativeBreakdown: { siroc: 8500, ivaRetenciones: 1250 } },
+  },
+};
 const accumulatedProject = {
   ...profitability.projects[0], honorarios: 11069963.72, indirectos: 2665542.77,
   ingresosOgc: 13735506.49, margen: 13728506.49, margenPercent: 13728506.49 / 13735506.49,
@@ -137,7 +155,7 @@ function queryResult(name: string, args?: unknown): unknown {
   if (name === "desarrollos:getPnlSummary") {
     reportQueries.push(name);
     reportQueryArgs.push({ name, args });
-    return reportLoading === "pnl" ? undefined : profitabilityFixes ? { ...pnl, structureGroups: undefined } : pnl;
+    return reportLoading === "pnl" ? undefined : importedCostsScenario ? importedCostsPnl : profitabilityFixes ? { ...pnl, structureGroups: undefined } : pnl;
   }
   if (name === "desarrollos:getProfitabilitySummary") {
     reportQueries.push(name);

@@ -127,6 +127,7 @@ type PnlMonthlyMovement = {
   saldoIndirectos?: number;
   costosDirectosObra?: number;
   structureBreakdown: Record<string, number>;
+  informativeBreakdown?: { siroc: number; ivaRetenciones: number };
 };
 
 type DesarrolloOption = {
@@ -186,8 +187,6 @@ type LedgerAction = "void" | "duplicate" | "reconcile";
 type TaxSettings = {
   isr: number;
   ptu: number;
-  siroc: number;
-  ivaRetenciones: number;
 };
 
 type PnlQueryParams = {
@@ -281,6 +280,7 @@ type AnnualPnlTotals = Pick<
   PnlSummary["totals"],
   | "honorarios"
   | "indirectos"
+  | "indirectosLegacyCosto"
   | "ingresosOgc"
   | "costosEstructuraOgc"
   | "costosEstructuraMasIndirectos"
@@ -301,8 +301,6 @@ const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "S
 const DEFAULT_TAX_SETTINGS: TaxSettings = {
   isr: 4,
   ptu: 1,
-  siroc: 0,
-  ivaRetenciones: 0,
 };
 const DEFAULT_USD_TO_MXN = 17;
 const DEFAULT_EUR_TO_MXN = 18.5;
@@ -478,7 +476,10 @@ const buildMonthlyRows = (
   taxSettings: TaxSettings = DEFAULT_TAX_SETTINGS
 ): PnlRow[] => {
   const monthlyMovements = pnlSummary?.monthlyOgcMovements || {};
-  const structureGroups = pnlSummary?.structureGroups?.length ? pnlSummary.structureGroups : DEFAULT_STRUCTURE_GROUPS;
+  const sourceGroups = pnlSummary?.structureGroups?.length ? pnlSummary.structureGroups : DEFAULT_STRUCTURE_GROUPS;
+  const structureGroups = sourceGroups.some(group => group.key === "indirectos_reales")
+    ? sourceGroups
+    : [DEFAULT_STRUCTURE_GROUPS[0], ...sourceGroups];
 
   const monthlyHonorarios = months.map((month) => {
     return safeNumber(monthlyMovements[month.key]?.honorarios);
@@ -488,20 +489,20 @@ const buildMonthlyRows = (
   });
   const monthlyIngresos = monthlyHonorarios.map((value, index) => value + monthlyIndirectos[index]);
 
+  const legacyIndirectosCosts = months.map(month => safeNumber(monthlyMovements[month.key]?.indirectosLegacyCosto));
   const costRows = structureGroups.map((group) => {
-    return months.map((month) => {
+    return months.map((month, index) => {
       const movementAmount = safeNumber(monthlyMovements[month.key]?.structureBreakdown?.[group.key]);
-      return -Math.abs(movementAmount);
+      return -Math.abs(movementAmount + (group.key === "indirectos_reales" ? legacyIndirectosCosts[index] : 0));
     });
   });
   const monthlyEstructura = months.map((_, index) => costRows.reduce((sum, row) => sum + safeNumber(row[index]), 0));
-  const legacyIndirectosCosts = months.map(month => safeNumber(monthlyMovements[month.key]?.indirectosLegacyCosto));
-  const indirectosBalances = monthlyIndirectos.map((amount, i) => amount - legacyIndirectosCosts[i] - safeNumber(monthlyMovements[months[i].key]?.structureBreakdown.indirectos_reales));
-  const ebitdaValues = monthlyIngresos.map((value, index) => value + monthlyEstructura[index] - legacyIndirectosCosts[index]);
+  const indirectosBalances = monthlyIndirectos.map((amount, i) => amount - legacyIndirectosCosts[i] - safeNumber(monthlyMovements[months[i].key]?.structureBreakdown?.indirectos_reales));
+  const ebitdaValues = monthlyIngresos.map((value, index) => value + monthlyEstructura[index]);
   const isrValues = ebitdaValues.map((value) => -Math.max(value, 0) * (taxSettings.isr / 100));
   const ptuValues = ebitdaValues.map((value) => -Math.max(value, 0) * (taxSettings.ptu / 100));
-  const sirocValues = monthlyIngresos.map((value) => -Math.max(value, 0) * (taxSettings.siroc / 100));
-  const ivaRetencionesValues = monthlyIngresos.map((value) => -Math.max(value, 0) * (taxSettings.ivaRetenciones / 100));
+  const sirocValues = months.map(month => -Math.abs(safeNumber(monthlyMovements[month.key]?.informativeBreakdown?.siroc)));
+  const ivaRetencionesValues = months.map(month => -Math.abs(safeNumber(monthlyMovements[month.key]?.informativeBreakdown?.ivaRetenciones)));
   const netValues = ebitdaValues.map((value, index) => value + isrValues[index] + ptuValues[index]);
   const ebitdaPercentages = ebitdaValues.map((value, index) => safeDivide(value, monthlyIngresos[index]));
   const netPercentages = netValues.map((value, index) => safeDivide(value, monthlyIngresos[index]));
@@ -514,7 +515,6 @@ const buildMonthlyRows = (
     { label: "COSTO ESTRUCTURA", type: "section" },
     ...structureGroups.map((group, index) => ({ label: getStructureGroupLabel(group), type: "line" as const, values: costRows[index] })),
     { label: "TOTAL ESTRUCTURA", type: "subtotal", values: monthlyEstructura },
-    { label: "COSTO HISTÓRICO DE INDIRECTOS", type: "line", values: legacyIndirectosCosts.map(amount => -amount) },
     { label: "SALDO DE INDIRECTOS", type: "subtotal", values: indirectosBalances },
     { label: "EBITDA", type: "metric", values: ebitdaValues, percentages: ebitdaPercentages },
     { label: "IMPUESTOS SOBRE RESULTADO", type: "section" },
@@ -530,7 +530,8 @@ const buildMonthlyRows = (
 const hasMonthlyMovement = (movement?: PnlMonthlyMovement) => {
   if (!movement) return false;
   const structureTotal = Object.values(movement.structureBreakdown || {}).reduce((sum, amount) => sum + safeNumber(amount), 0);
-  return safeNumber(movement.honorarios) > 0 || safeNumber(movement.indirectos) > 0 || structureTotal > 0;
+  const informativeTotal = Object.values(movement.informativeBreakdown || {}).reduce((sum, amount) => sum + safeNumber(amount), 0);
+  return safeNumber(movement.honorarios) > 0 || safeNumber(movement.indirectos) > 0 || structureTotal > 0 || informativeTotal > 0;
 };
 
 const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
@@ -542,10 +543,10 @@ const buildMonthlyDataNote = (months: PnlMonth[], pnlSummary?: PnlSummary) => {
     safeNumber(pnlSummary.totals.ingresosOgc) > 0 || safeNumber(pnlSummary.totals.costosEstructuraOgc) > 0;
 
   if (hasPeriodActivity && monthsWithMovements < months.length) {
-    return `Honorarios e indirectos calculados con las reglas de cada obra sobre pagos elegibles del periodo seleccionado. Indirectos agrupa los conceptos propios de Indirectos, General Conditions y Viáticos. Los viáticos dentro de otras partidas permanecen como costos de esas partidas. Los costos reales provienen de movimientos OGC en la fecha capturada. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
+    return `Honorarios e indirectos calculados con las reglas de cada obra sobre pagos elegibles del periodo seleccionado. Indirectos agrupa los conceptos propios de Indirectos, General Conditions y Viáticos. Los viáticos dentro de otras partidas permanecen como costos de esas partidas. Costos reales de indirectos reúne los gastos OGC asignados a obras y los indirectos históricos de transacciones. Los informativos muestran movimientos cargados, sin afectar la utilidad. ${monthsWithMovements}/${months.length} meses tienen movimientos fechados; sin prorrateo lineal.`;
   }
 
-  return "Los conceptos configurados usan los pagos Pagado del periodo seleccionado. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa los conceptos propios de Indirectos, General Conditions y Viáticos. Los viáticos dentro de otras partidas permanecen como costos de esas partidas. Los costos reales provienen de movimientos OGC en la fecha capturada, sin prorrateo lineal.";
+  return "Los conceptos configurados usan los pagos Pagado del periodo seleccionado. Sus porcentajes se calculan con el monto original del concepto dividido entre el presupuesto aprobado total menos el aprobado de sus partidas excluidas, y se actualizan al cambiar ese presupuesto. Las exclusiones ajustan la base presupuestal del porcentaje. Indirectos agrupa los conceptos propios de Indirectos, General Conditions y Viáticos. Los viáticos dentro de otras partidas permanecen como costos de esas partidas. Costos reales de indirectos reúne los gastos OGC asignados a obras y los indirectos históricos de transacciones. Los informativos muestran movimientos cargados, sin afectar la utilidad. Cada importe se presenta en su fecha, sin prorrateo lineal.";
 };
 
 function MonthlyPnlTable({
@@ -1084,10 +1085,21 @@ function CollectedIncomeBreakdownDialog({
   );
 }
 
+const buildStructureRows = (totals: AnnualPnlTotals) => {
+  const rows = totals.structureBreakdown.map(row => ({
+    ...row,
+    amount: row.amount + (row.key === "indirectos_reales" ? safeNumber(totals.indirectosLegacyCosto) : 0),
+  }));
+  if (!rows.some(row => row.key === "indirectos_reales")) {
+    rows.unshift({ key: "indirectos_reales", label: "COSTOS REALES DE INDIRECTOS", amount: safeNumber(totals.indirectosLegacyCosto) });
+  }
+  return rows.map(row => ({ ...row, percent: safeDivide(row.amount, totals.costosEstructuraMasIndirectos) }));
+};
+
 function renderIndirectosBalanceRow(totals: { saldoIndirectos?: number }) {
   return (
     <tr className="border-b border-border bg-card">
-      <td className="px-8 py-6 align-middle text-base text-foreground">SALDO DE INDIRECTOS <span className="block text-xs text-muted-foreground">Cobrados menos costos reales y costo histórico</span></td>
+      <td className="px-8 py-6 align-middle text-base text-foreground">SALDO DE INDIRECTOS <span className="block text-xs text-muted-foreground">Cobrados menos costos reales de indirectos</span></td>
       <td className="px-8 py-6 text-center align-middle text-base">{formatTableCurrency(safeNumber(totals.saldoIndirectos))}</td>
     </tr>
   );
@@ -1102,10 +1114,7 @@ function AnnualPnlSummaryTables({
   periodLabel: string;
   showDataNote?: boolean;
 }) {
-  const estructuraRows = totals.structureBreakdown.map((row) => ({
-    ...row,
-    percent: safeDivide(row.amount, totals.costosEstructuraOgc),
-  }));
+  const estructuraRows = buildStructureRows(totals);
   const costosEstructuraMasIndirectos = totals.costosEstructuraMasIndirectos;
 
   return (
@@ -1117,7 +1126,7 @@ function AnnualPnlSummaryTables({
             <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
             {showDataNote && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Solo movimientos OGC cargados, distribuidos por la fecha capturada.
+                Gastos OGC cargados e indirectos de transacciones, distribuidos por la fecha capturada.
               </p>
             )}
           </div>
@@ -1147,10 +1156,10 @@ function AnnualPnlSummaryTables({
               <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                 <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL ESTRUCTURA</td>
                 <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                  {formatTableCurrency(totals.costosEstructuraOgc)}
+                  {formatTableCurrency(costosEstructuraMasIndirectos)}
                 </td>
                 <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                  {formatWholePercent(safeDivide(totals.costosEstructuraOgc, totals.ingresosOgc))}
+                  {formatWholePercent(safeDivide(costosEstructuraMasIndirectos, totals.ingresosOgc))}
                 </td>
               </tr>
             </tbody>
@@ -1231,10 +1240,7 @@ function ProjectProfitabilityView({
 }) {
   const projects = summary.projects;
   const totals = summary.totals;
-  const estructuraRows = totals.structureBreakdown.map((row) => ({
-    ...row,
-    percent: safeDivide(row.amount, totals.costosEstructuraOgc),
-  }));
+  const estructuraRows = buildStructureRows(totals);
   const honorariosOgc = totals.honorarios;
   const indirectosOgc = totals.indirectos;
   const ebitda = totals.ebitda;
@@ -1353,7 +1359,7 @@ function ProjectProfitabilityView({
               <h2 className="text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
               <div className="text-left md:text-right">
                 <p className="text-sm text-disabled-foreground">Acumulado hasta {currentMonthLabel}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Movimientos OGC con y sin obra asignada, por la fecha capturada.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Indirectos de transacciones y gastos OGC asignados a obras en Costos reales de indirectos. Gastos sin obra por categoría.</p>
               </div>
             </div>
 
@@ -1381,10 +1387,10 @@ function ProjectProfitabilityView({
                   <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL ESTRUCTURA</td>
                     <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                      {formatTableCurrency(totals.costosEstructuraOgc)}
+                      {formatTableCurrency(totals.costosEstructuraMasIndirectos)}
                     </td>
                     <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                      {formatWholePercent(safeDivide(totals.costosEstructuraOgc, totals.ingresosOgc))}
+                      {formatWholePercent(safeDivide(totals.costosEstructuraMasIndirectos, totals.ingresosOgc))}
                     </td>
                   </tr>
                 </tbody>
@@ -2148,7 +2154,7 @@ function PnlSettingsDialog({
                 <SettingsGroup
                   icon={<Percent className="h-4 w-4" />}
                   title="Impuestos"
-                  description="Porcentajes editables para resultado e informativos."
+                  description="Porcentajes editables para el resultado. SIROC e IVA/retenciones muestran los movimientos cargados."
                 >
                   <div className="grid grid-cols-2 gap-3">
                     <SettingField label="ISR" htmlFor="pnl-isr">
@@ -2171,28 +2177,6 @@ function PnlSettingsDialog({
                         min={0}
                         step="0.1"
                         onChange={(event) => onTaxSettingChange("ptu", event.target.value)}
-                      />
-                    </SettingField>
-                    <SettingField label="SIROC" htmlFor="pnl-siroc">
-                      <Input
-                        id="pnl-siroc"
-                        type="number"
-                        inputMode="decimal"
-                        value={taxSettings.siroc}
-                        min={0}
-                        step="0.1"
-                        onChange={(event) => onTaxSettingChange("siroc", event.target.value)}
-                      />
-                    </SettingField>
-                    <SettingField label="IVA/Ret" htmlFor="pnl-iva-retenciones">
-                      <Input
-                        id="pnl-iva-retenciones"
-                        type="number"
-                        inputMode="decimal"
-                        value={taxSettings.ivaRetenciones}
-                        min={0}
-                        step="0.1"
-                        onChange={(event) => onTaxSettingChange("ivaRetenciones", event.target.value)}
                       />
                     </SettingField>
                   </div>
@@ -2277,7 +2261,7 @@ export default function ProfitAndLossPage() {
   const periodLabel = buildPeriodLabel(periodYear, cutoffMonth);
   const currentMonthLabel = `${MONTH_LABELS[cutoffMonth - 1]} ${periodYear}`;
   const ingresosYtd = safeNumber(pnlSummary?.totals.ingresosOgc);
-  const estructuraYtd = safeNumber(pnlSummary?.totals.costosEstructuraOgc);
+  const estructuraYtd = safeNumber(pnlSummary?.totals.costosEstructuraMasIndirectos);
   const ebitdaYtd = safeNumber(pnlSummary?.totals.ebitda);
   const rows = useMemo(
     () => buildMonthlyRows(months, pnlSummary, taxSettings),
@@ -2453,7 +2437,7 @@ export default function ProfitAndLossPage() {
               <PnlMetricCard
                 label="Estructura YTD"
                 value={formatMetricCurrency(estructuraYtd)}
-                badge={`${(pnlSummary.totals.estructuraPercent * 100).toFixed(1)}% de ingresos`}
+                badge={`${(safeDivide(estructuraYtd, ingresosYtd) * 100).toFixed(1)}% de ingresos`}
               />
               <PnlMetricCard
                 label="EBITDA YTD"

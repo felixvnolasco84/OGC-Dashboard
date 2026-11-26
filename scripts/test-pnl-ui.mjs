@@ -65,6 +65,36 @@ try {
     await page.evaluate(() => window.feeFixtureChange({ reportLoading: null }));
     await expect(page.getByText("Ingresos OGC YTD", { exact: true })).toBeVisible();
 
+    // Imported informatives remain visible even without income. Historical
+    // costs appear with real indirect costs and reduce EBITDA only once.
+    await page.goto(`${fixtureUrl}?reportScenario=importedCosts`);
+    if (width === 390) await page.getByRole("button", { name: "Mostrar matriz comparativa", exact: true }).click();
+    const monthlyTable = page.getByRole("table").first();
+    const monthlyRow = label => monthlyTable.getByRole("row").filter({ has: page.getByText(label, { exact: true }) });
+    await expect(monthlyRow("COSTOS REALES DE INDIRECTOS").getByText("(9,000)", { exact: true })).toBeVisible();
+    await expect(monthlyRow("TOTAL ESTRUCTURA").getByText("(21,000)", { exact: true })).toBeVisible();
+    await expect(monthlyRow("SALDO DE INDIRECTOS").getByText("1,000", { exact: true })).toBeVisible();
+    await expect(monthlyRow("EBITDA").getByText("4,000", { exact: true })).toBeVisible();
+    await expect(monthlyRow("UTILIDAD NETA").getByText("3,800", { exact: true })).toBeVisible();
+    const sirocRow = monthlyRow("CARGA SOCIAL OBRA (SIROC - RECUPERABLE)");
+    await expect(sirocRow.getByText("(150)", { exact: true })).toBeVisible();
+    await expect(sirocRow.getByText("(8,500)", { exact: true })).toBeVisible();
+    await expect(monthlyRow("FLUJO FISCAL (IVA + RETENCIONES)").getByText("(1,250)", { exact: true })).toBeVisible();
+    await expect(page.getByText("COSTO HISTÓRICO DE INDIRECTOS", { exact: true })).toHaveCount(0);
+    const annualStructure = page.getByRole("table").nth(1);
+    const annualIndirects = annualStructure.getByRole("row").filter({ hasText: "COSTOS REALES DE INDIRECTOS" });
+    await expect(annualIndirects.locator('[title="$9,000.00"]')).toBeVisible();
+    await expect(annualIndirects.getByText("43%", { exact: true })).toBeVisible();
+    await openTools(page);
+    await page.getByRole("menuitem", { name: "Configurar P&L", exact: true }).click();
+    const importedSettings = page.getByRole("dialog");
+    await expect(importedSettings.getByLabel("SIROC", { exact: true })).toHaveCount(0);
+    await expect(importedSettings.getByLabel("IVA/Ret", { exact: true })).toHaveCount(0);
+    await importedSettings.getByLabel("ISR", { exact: true }).fill("12");
+    await importedSettings.getByRole("button", { name: "Listo", exact: true }).click();
+    await expect(monthlyRow("UTILIDAD NETA").getByText("3,480", { exact: true })).toBeVisible();
+    await expect(sirocRow.getByText("(8,500)", { exact: true })).toBeVisible();
+
     // Accumulated income, corporate costs and excluded dispersions render in
     // both responsive layouts, including the secondary ledger.
     await page.goto(`${fixtureUrl}?reportScenario=profitabilityFixes`);
