@@ -85,6 +85,10 @@ try {
     const annualIndirects = annualStructure.getByRole("row").filter({ hasText: "COSTOS REALES DE INDIRECTOS" });
     await expect(annualIndirects.locator('[title="$9,000.00"]')).toBeVisible();
     await expect(annualIndirects.getByText("43%", { exact: true })).toBeVisible();
+    const annualEbitda = page.getByRole("table").nth(2);
+    await expect(annualEbitda.getByText("SALDO DE INDIRECTOS", { exact: true })).toHaveCount(0);
+    const annualCosts = annualEbitda.getByRole("row").filter({ has: page.getByText("COSTOS OGC", { exact: true }) });
+    await expect(annualCosts.locator('[title="$21,000.00"]')).toBeVisible();
     await openTools(page);
     await page.getByRole("menuitem", { name: "Configurar P&L", exact: true }).click();
     const importedSettings = page.getByRole("dialog");
@@ -102,6 +106,7 @@ try {
     await expect(page.getByText("DISP HONORARIOS", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Project profitability", exact: true }).click();
     const projectRow = page.getByRole("row").filter({ hasText: "Obra de prueba" });
+    await expect(page.getByText("SALDO DE INDIRECTOS", { exact: true })).toHaveCount(0);
     await expect(projectRow.locator('[title="$13,735,506.49"]')).toBeVisible();
     const corporateRow = page.getByRole("row").filter({ hasText: "OGC sin obra asignada" });
     await expect(corporateRow).toHaveCount(0);

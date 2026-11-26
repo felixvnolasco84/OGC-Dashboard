@@ -1096,15 +1096,6 @@ const buildStructureRows = (totals: AnnualPnlTotals) => {
   return rows.map(row => ({ ...row, percent: safeDivide(row.amount, totals.costosEstructuraMasIndirectos) }));
 };
 
-function renderIndirectosBalanceRow(totals: { saldoIndirectos?: number }) {
-  return (
-    <tr className="border-b border-border bg-card">
-      <td className="px-8 py-6 align-middle text-base text-foreground">SALDO DE INDIRECTOS <span className="block text-xs text-muted-foreground">Cobrados menos costos reales de indirectos</span></td>
-      <td className="px-8 py-6 text-center align-middle text-base">{formatTableCurrency(safeNumber(totals.saldoIndirectos))}</td>
-    </tr>
-  );
-}
-
 function AnnualPnlSummaryTables({
   totals,
   periodLabel,
@@ -1206,7 +1197,6 @@ function AnnualPnlSummaryTables({
                   {formatAccountingCurrency(-Math.abs(costosEstructuraMasIndirectos))}
                 </td>
               </tr>
-              {renderIndirectosBalanceRow(totals)}
               <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                 <td className="px-8 py-6 align-middle text-base text-foreground">
                   <div className="flex flex-col gap-1">
@@ -1437,7 +1427,6 @@ function ProjectProfitabilityView({
                       {formatAccountingCurrency(-Math.abs(totals.costosEstructuraMasIndirectos))}
                     </td>
                   </tr>
-                  {renderIndirectosBalanceRow(totals)}
                   <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
                     <td className="px-8 py-6 align-middle text-base text-foreground">
                       <div className="flex flex-col gap-1">
