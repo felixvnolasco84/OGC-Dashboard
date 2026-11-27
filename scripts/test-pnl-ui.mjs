@@ -136,7 +136,7 @@ try {
     await expect(page.getByText("SALDO DE INDIRECTOS", { exact: true })).toHaveCount(0);
     await expect(projectRow.locator('[title="$13,735,506.49"]')).toBeVisible();
     const projectTable = page.getByRole("table").first();
-    const projectTotal = projectTable.getByRole("row").filter({ has: page.getByText("TOTAL OBRAS", { exact: true }) });
+    const projectTotal = projectTable.getByRole("row").filter({ has: page.getByText("TOTAL OGC", { exact: true }) });
     await expect(projectTotal.locator('[title="$14,000,506.49"]')).toBeVisible();
     await expect(projectTotal.locator('[title="$77,000.00"]')).toBeVisible();
     await expect(projectTotal.locator('[title="$13,923,506.49"]')).toBeVisible();

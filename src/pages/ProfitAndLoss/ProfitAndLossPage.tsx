@@ -1356,7 +1356,7 @@ function ProjectProfitabilityView({
                 )}
 
                 <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
-                  <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OBRAS</td>
+                  <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OGC</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
                     {formatTableCurrency(projectTotals.ingresosOgc)}
                   </td>
