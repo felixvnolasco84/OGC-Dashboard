@@ -71,15 +71,15 @@ try {
     if (width === 390) await page.getByRole("button", { name: "Mostrar matriz comparativa", exact: true }).click();
     const monthlyTable = page.getByRole("table").first();
     const monthlyRow = label => monthlyTable.getByRole("row").filter({ has: page.getByText(label, { exact: true }) });
-    await expect(monthlyRow("COSTOS REALES DE INDIRECTOS").getByText("(9,000)", { exact: true })).toBeVisible();
-    await expect(monthlyRow("TOTAL ESTRUCTURA").getByText("(21,000)", { exact: true })).toBeVisible();
-    await expect(monthlyRow("SALDO DE INDIRECTOS").getByText("1,000", { exact: true })).toBeVisible();
-    await expect(monthlyRow("EBITDA").getByText("4,000", { exact: true })).toBeVisible();
-    await expect(monthlyRow("UTILIDAD NETA").getByText("3,800", { exact: true })).toBeVisible();
+    await expect(monthlyRow("COSTOS REALES DE INDIRECTOS").getByText("(9,000)", { exact: true }).first()).toBeVisible();
+    await expect(monthlyRow("TOTAL ESTRUCTURA").getByText("(21,000)", { exact: true }).first()).toBeVisible();
+    await expect(monthlyRow("SALDO DE INDIRECTOS").getByText("1,000", { exact: true }).first()).toBeVisible();
+    await expect(monthlyRow("EBITDA").getByText("4,000", { exact: true }).first()).toBeVisible();
+    await expect(monthlyRow("UTILIDAD NETA").getByText("3,800", { exact: true }).first()).toBeVisible();
     const sirocRow = monthlyRow("CARGA SOCIAL OBRA (SIROC - RECUPERABLE)");
     await expect(sirocRow.getByText("(150)", { exact: true })).toBeVisible();
-    await expect(sirocRow.getByText("(8,500)", { exact: true })).toBeVisible();
-    await expect(monthlyRow("FLUJO FISCAL (IVA + RETENCIONES)").getByText("(1,250)", { exact: true })).toBeVisible();
+    await expect(sirocRow.getByText("(8,500)", { exact: true }).first()).toBeVisible();
+    await expect(monthlyRow("FLUJO FISCAL (IVA + RETENCIONES)").getByText("(1,250)", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("COSTO HISTÓRICO DE INDIRECTOS", { exact: true })).toHaveCount(0);
     const annualStructure = page.getByRole("table").nth(1);
     const annualIndirects = annualStructure.getByRole("row").filter({ hasText: "COSTOS REALES DE INDIRECTOS" });
@@ -96,8 +96,35 @@ try {
     await expect(importedSettings.getByLabel("IVA/Ret", { exact: true })).toHaveCount(0);
     await importedSettings.getByLabel("ISR", { exact: true }).fill("12");
     await importedSettings.getByRole("button", { name: "Listo", exact: true }).click();
-    await expect(monthlyRow("UTILIDAD NETA").getByText("3,480", { exact: true })).toBeVisible();
-    await expect(sirocRow.getByText("(8,500)", { exact: true })).toBeVisible();
+    await expect(monthlyRow("UTILIDAD NETA").getByText("3,480", { exact: true }).first()).toBeVisible();
+    await expect(sirocRow.getByText("(8,500)", { exact: true }).first()).toBeVisible();
+
+    // Accumulated amounts include negative months; percentages divide the
+    // accumulated result by accumulated income instead of adding monthly rates.
+    await page.goto(`${fixtureUrl}?reportScenario=rowTotals`);
+    if (width === 390) await page.getByRole("button", { name: "Mostrar matriz comparativa", exact: true }).click();
+    await expect(monthlyTable.getByRole("columnheader").last()).toHaveText("Total");
+    const totalCell = label => monthlyRow(label).getByRole("cell").last();
+    for (const [label, expected] of [
+      ["HONORARIOS", "10,000"], ["INDIRECTOS COBRADOS", "1,000"], ["TOTAL INGRESOS", "11,000"],
+      ["COSTOS REALES DE INDIRECTOS", "(3,000)"], ["TOTAL ESTRUCTURA", "(3,000)"],
+      ["CARGA SOCIAL OBRA (SIROC - RECUPERABLE)", "(8,650)"], ["FLUJO FISCAL (IVA + RETENCIONES)", "(1,250)"],
+    ]) await expect(totalCell(label)).toHaveText(expected);
+    await expect(totalCell("EBITDA").getByText("8,000", { exact: true })).toBeVisible();
+    await expect(totalCell("EBITDA").getByText("72.73%", { exact: true })).toBeVisible();
+    await expect(totalCell("UTILIDAD NETA").getByText("7,550", { exact: true })).toBeVisible();
+    await expect(totalCell("UTILIDAD NETA").getByText("68.64%", { exact: true })).toBeVisible();
+    assert.equal(await totalCell("EBITDA").evaluate(cell => getComputedStyle(cell).backgroundColor), "rgb(255, 255, 255)");
+    const novemberCell = monthlyRow("EBITDA").getByRole("cell").nth(11);
+    assert.notEqual(await novemberCell.evaluate(cell => getComputedStyle(cell).backgroundColor), "rgb(255, 255, 255)");
+    if (width === 390) {
+      await page.getByRole("combobox", { name: "Periodo", exact: true }).click();
+      await page.getByRole("option", { name: "Total del periodo", exact: true }).click();
+      const mobileEbitda = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "EBITDA", exact: true }) });
+      await expect(mobileEbitda.getByText("8,000", { exact: true })).toBeVisible();
+      await expect(mobileEbitda.getByText("72.73%", { exact: true })).toBeVisible();
+    }
+    if (screenshotDir) await page.screenshot({ path: `${screenshotDir}/pnl-totals-${width}.png`, fullPage: true, animations: "disabled" });
 
     // Accumulated income, corporate costs and excluded dispersions render in
     // both responsive layouts, including the secondary ledger.
@@ -108,6 +135,14 @@ try {
     const projectRow = page.getByRole("row").filter({ hasText: "Obra de prueba" });
     await expect(page.getByText("SALDO DE INDIRECTOS", { exact: true })).toHaveCount(0);
     await expect(projectRow.locator('[title="$13,735,506.49"]')).toBeVisible();
+    const projectTable = page.getByRole("table").first();
+    const projectTotal = projectTable.getByRole("row").filter({ has: page.getByText("TOTAL OBRAS", { exact: true }) });
+    await expect(projectTotal.locator('[title="$14,000,506.49"]')).toBeVisible();
+    await expect(projectTotal.locator('[title="$77,000.00"]')).toBeVisible();
+    await expect(projectTotal.locator('[title="$13,923,506.49"]')).toBeVisible();
+    await expect(projectTotal.getByText("99%", { exact: true })).toBeVisible();
+    const consolidatedCosts = page.getByRole("row").filter({ has: page.getByText("COSTOS OGC", { exact: true }) });
+    await expect(consolidatedCosts.locator('[title="$89,000.00"]')).toBeVisible();
     const corporateRow = page.getByRole("row").filter({ hasText: "OGC sin obra asignada" });
     await expect(corporateRow).toHaveCount(0);
     const nominaRow = page.getByRole("row").filter({ has: page.getByText("NOMINA", { exact: true }) });

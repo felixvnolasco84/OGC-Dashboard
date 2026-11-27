@@ -38,6 +38,8 @@ En P&L, los gastos OGC asignados a una obra se presentan en COSTOS REALES DE IND
 
 Las filas informativas de SIROC e IVA + retenciones muestran los movimientos importados de esas categorías, convertidos a MXN y distribuidos por fecha, ubicación y corte. No se estiman con porcentajes ni afectan ingresos, estructura, EBITDA o utilidad neta. Los movimientos anulados y duplicados quedan excluidos.
 
+La fila TOTAL OBRAS de rentabilidad suma los ingresos, costos y márgenes de las obras visibles. Los gastos sin obra permanecen en el consolidado de EBITDA OGC y en el desglose de estructura. La columna Total del P&L mensual acumula los meses del periodo seleccionado; los porcentajes de EBITDA y utilidad neta se calculan sobre el ingreso acumulado, sin sumar porcentajes mensuales. Esta columna conserva fondo blanco y el mes al corte mantiene su resaltado.
+
 La clasificación manual usa la partida principal de Indirectos, General Conditions o Viáticos, no coincidencias en familias ni subpartidas. Los viáticos de colocación de Mármol y los viáticos o fletes de Cocina permanecen como costos de esas partidas: no generan ingreso ni costo histórico de indirectos en P&L y no se sustituyen como manuales de indirectos en Presupuesto. Los conceptos configurados explícitamente conservan su partida de origen y los costos reales de estructura provienen de movimientos OGC.
 
 Presupuesto usa la moneda de la obra; P&L usa MXN y su conversión existente. Los cargos se redondean a centavos por pago y se distribuyen sin perder centavos. El cálculo no crea transferencias bancarias ni facturas.

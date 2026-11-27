@@ -23,6 +23,20 @@ const profitability = { ...pnl, projects: [{ ...project, id: "project", ...total
 const profitabilityFixes = new URLSearchParams(location.search).get("reportScenario") === "profitabilityFixes";
 const toolsScenario = new URLSearchParams(location.search).get("reportScenario") === "tools";
 const importedCostsScenario = new URLSearchParams(location.search).get("reportScenario") === "importedCosts";
+const rowTotalsScenario = new URLSearchParams(location.search).get("reportScenario") === "rowTotals";
+const rowTotalsPnl = {
+  ...pnl,
+  totals: { ...totals, honorarios: 10000, indirectos: 1000, ingresosOgc: 11000,
+    costosRealesIndirectos: 3000, costosEstructuraOgc: 3000, costosEstructuraMasIndirectos: 3000,
+    saldoIndirectos: -2000, ebitda: 8000, ebitdaMargin: 8000 / 11000,
+    structureBreakdown: [{ ...structureBreakdown[0], amount: 3000 }] },
+  monthlyOgcMovements: {
+    "2026-9": { honorarios: 1000, indirectos: 0, structureBreakdown: { indirectos_reales: 2000 },
+      informativeBreakdown: { siroc: 150, ivaRetenciones: 0 } },
+    "2026-10": { honorarios: 9000, indirectos: 1000, structureBreakdown: { indirectos_reales: 1000 },
+      informativeBreakdown: { siroc: 8500, ivaRetenciones: 1250 } },
+  },
+};
 const importedCostsPnl = {
   ...pnl,
   structureGroups: [
@@ -44,13 +58,17 @@ const accumulatedProject = {
   ...profitability.projects[0], honorarios: 11069963.72, indirectos: 2665542.77,
   ingresosOgc: 13735506.49, margen: 13728506.49, margenPercent: 13728506.49 / 13735506.49,
 };
+const secondProject = {
+  ...profitability.projects[0], id: "second-project", nombre: "Segunda obra", honorarios: 200000, indirectos: 65000,
+  ingresosOgc: 265000, costosOgc: 70000, margen: 195000, margenPercent: 195000 / 265000,
+};
 const correctedProfitability = {
-  ...profitability, projects: [accumulatedProject],
+  ...profitability, projects: [accumulatedProject, secondProject],
   unassignedOgc: { ingresosOgc: 0, costosOgc: 12000, margen: -12000 },
-  totals: { ...totals, honorarios: accumulatedProject.honorarios, indirectos: accumulatedProject.indirectos,
-    ingresosOgc: accumulatedProject.ingresosOgc, costosOgc: 19000, costosEstructuraOgc: 19000, costosEstructuraMasIndirectos: 19000,
-    margen: 13716506.49, margenPercent: 13716506.49 / 13735506.49, ebitda: 13716506.49, ebitdaMargin: 13716506.49 / 13735506.49,
-    structureBreakdown: [...structureBreakdown, { key: "nomina", label: "NOMINA", amount: 12000 }] },
+  totals: { ...totals, honorarios: accumulatedProject.honorarios + secondProject.honorarios, indirectos: accumulatedProject.indirectos + secondProject.indirectos,
+    ingresosOgc: 14000506.49, costosOgc: 89000, costosEstructuraOgc: 89000, costosEstructuraMasIndirectos: 89000,
+    margen: 13911506.49, margenPercent: 13911506.49 / 14000506.49, ebitda: 13911506.49, ebitdaMargin: 13911506.49 / 14000506.49,
+    structureBreakdown: [{ ...structureBreakdown[0], amount: 77000 }, { key: "nomina", label: "NOMINA", amount: 12000 }] },
 };
 let revision = 0;
 let previewFailure = false;
@@ -155,7 +173,7 @@ function queryResult(name: string, args?: unknown): unknown {
   if (name === "desarrollos:getPnlSummary") {
     reportQueries.push(name);
     reportQueryArgs.push({ name, args });
-    return reportLoading === "pnl" ? undefined : importedCostsScenario ? importedCostsPnl : profitabilityFixes ? { ...pnl, structureGroups: undefined } : pnl;
+    return reportLoading === "pnl" ? undefined : rowTotalsScenario ? rowTotalsPnl : importedCostsScenario ? importedCostsPnl : profitabilityFixes ? { ...pnl, structureGroups: undefined } : pnl;
   }
   if (name === "desarrollos:getProfitabilitySummary") {
     reportQueries.push(name);

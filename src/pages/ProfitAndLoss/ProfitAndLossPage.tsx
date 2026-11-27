@@ -62,6 +62,7 @@ type PnlRow = {
   type: PnlRowType;
   values?: number[];
   percentages?: number[];
+  totalPercentage?: number;
 };
 
 type CollectedIncomeRecord = {
@@ -506,6 +507,7 @@ const buildMonthlyRows = (
   const netValues = ebitdaValues.map((value, index) => value + isrValues[index] + ptuValues[index]);
   const ebitdaPercentages = ebitdaValues.map((value, index) => safeDivide(value, monthlyIngresos[index]));
   const netPercentages = netValues.map((value, index) => safeDivide(value, monthlyIngresos[index]));
+  const totalIngresos = monthlyIngresos.reduce((sum, amount) => sum + amount, 0);
 
   return [
     { label: "INGRESOS OGC", type: "section" },
@@ -516,11 +518,13 @@ const buildMonthlyRows = (
     ...structureGroups.map((group, index) => ({ label: getStructureGroupLabel(group), type: "line" as const, values: costRows[index] })),
     { label: "TOTAL ESTRUCTURA", type: "subtotal", values: monthlyEstructura },
     { label: "SALDO DE INDIRECTOS", type: "subtotal", values: indirectosBalances },
-    { label: "EBITDA", type: "metric", values: ebitdaValues, percentages: ebitdaPercentages },
+    { label: "EBITDA", type: "metric", values: ebitdaValues, percentages: ebitdaPercentages,
+      totalPercentage: safeDivide(ebitdaValues.reduce((sum, amount) => sum + amount, 0), totalIngresos) },
     { label: "IMPUESTOS SOBRE RESULTADO", type: "section" },
     { label: "ISR CORPORATIVO", type: "line", values: isrValues },
     { label: "PTU", type: "line", values: ptuValues },
-    { label: "UTILIDAD NETA", type: "metric", values: netValues, percentages: netPercentages },
+    { label: "UTILIDAD NETA", type: "metric", values: netValues, percentages: netPercentages,
+      totalPercentage: safeDivide(netValues.reduce((sum, amount) => sum + amount, 0), totalIngresos) },
     { label: "INFORMATIVO", type: "section" },
     { label: "CARGA SOCIAL OBRA (SIROC - RECUPERABLE)", type: "line", values: sirocValues },
     { label: "FLUJO FISCAL (IVA + RETENCIONES)", type: "line", values: ivaRetencionesValues },
@@ -566,6 +570,11 @@ function MonthlyPnlTable({
   const [showComparison, setShowComparison] = useState(false);
   const foundMonth = months.findIndex((month) => month.key === mobileMonthKey);
   const mobileMonthIndex = foundMonth >= 0 ? foundMonth : Math.max(0, months.length - 1);
+  const showMobileTotal = mobileMonthKey === "total";
+  const rowsWithTotals = rows.map(row => ({
+    ...row,
+    total: row.values?.reduce((sum, value) => sum + safeNumber(value), 0),
+  }));
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:justify-between">
@@ -589,18 +598,24 @@ function MonthlyPnlTable({
 
       <div className="space-y-4 lg:hidden">
         <Label htmlFor="mobile-pnl-month">Periodo</Label>
-        <Select value={months[mobileMonthIndex]?.key} onValueChange={setMobileMonthKey}>
+        <Select value={showMobileTotal ? "total" : months[mobileMonthIndex]?.key} onValueChange={setMobileMonthKey}>
           <SelectTrigger id="mobile-pnl-month"><SelectValue placeholder="Seleccionar periodo" /></SelectTrigger>
-          <SelectContent>{months.map((month) => <SelectItem key={month.key} value={month.key}>{month.label}</SelectItem>)}</SelectContent>
+          <SelectContent>
+            {months.map((month) => <SelectItem key={month.key} value={month.key}>{month.label}</SelectItem>)}
+            <SelectItem value="total">Total del periodo</SelectItem>
+          </SelectContent>
         </Select>
-        {rows.map((row, index) => row.type === "section" ? <h3 key={`${row.label}-${index}`} className="pt-4 font-medium">{row.label}</h3> : (
-          <article key={`${row.label}-${index}`} className={cn("min-w-0 border border-border p-4", (row.type === "subtotal" || row.type === "metric") && SOFT_HIGHLIGHT_CLASS)}>
+        {rowsWithTotals.map((row, index) => row.type === "section" ? <h3 key={`${row.label}-${index}`} className="pt-4 font-medium">{row.label}</h3> : (
+          <article key={`${row.label}-${index}`} className={cn("min-w-0 border border-border p-4", showMobileTotal ? "bg-card" : (row.type === "subtotal" || row.type === "metric") && SOFT_HIGHLIGHT_CLASS)}>
             <h3 className="break-words text-sm text-muted-foreground">{row.label}</h3>
-            <p className="mt-2 break-words text-xl tabular-nums">{formatPnlValue(row.values?.[mobileMonthIndex])}</p>
-            {row.type === "metric" && <p className="mt-1 text-sm">{formatPercent(row.percentages?.[mobileMonthIndex])}</p>}
+            <p className="mt-2 break-words text-xl tabular-nums">{formatPnlValue(showMobileTotal ? row.total : row.values?.[mobileMonthIndex])}</p>
+            {row.type === "metric" && <p className="mt-1 text-sm">{formatPercent(showMobileTotal ? row.totalPercentage : row.percentages?.[mobileMonthIndex])}</p>}
             <details className="mt-3 border-t border-border pt-2">
               <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Ver detalle completo</summary>
-              <dl className="space-y-3">{months.map((month, monthIndex) => <div key={month.key} className="flex flex-wrap justify-between gap-2 text-sm"><dt>{month.label}</dt><dd className="tabular-nums">{formatPnlValue(row.values?.[monthIndex])}{row.type === "metric" && ` · ${formatPercent(row.percentages?.[monthIndex])}`}</dd></div>)}</dl>
+              <dl className="space-y-3">
+                {months.map((month, monthIndex) => <div key={month.key} className="flex flex-wrap justify-between gap-2 text-sm"><dt>{month.label}</dt><dd className="tabular-nums">{formatPnlValue(row.values?.[monthIndex])}{row.type === "metric" && ` · ${formatPercent(row.percentages?.[monthIndex])}`}</dd></div>)}
+                <div className="flex flex-wrap justify-between gap-2 border-t border-border bg-card pt-3 text-sm font-medium"><dt>Total del periodo</dt><dd className="tabular-nums">{formatPnlValue(row.total)}{row.type === "metric" && ` · ${formatPercent(row.totalPercentage)}`}</dd></div>
+              </dl>
             </details>
           </article>
         ))}
@@ -616,10 +631,11 @@ function MonthlyPnlTable({
                   {month.label}
                 </th>
               ))}
+              <th scope="col" className="border-l border-border bg-card px-8 py-4 text-center font-medium">Total</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, rowIndex) => {
+            {rowsWithTotals.map((row, rowIndex) => {
               const isSection = row.type === "section";
               const isSubtotal = row.type === "subtotal";
               const isMetric = row.type === "metric";
@@ -675,6 +691,19 @@ function MonthlyPnlTable({
                       </td>
                     );
                   })}
+                  <td className={cn(
+                    "border-l border-border bg-card px-8 py-6 text-center align-middle text-base font-medium",
+                    isSection || isDetail ? "text-disabled-foreground" : "text-foreground"
+                  )}>
+                    {!isSection && (
+                      <div className="flex flex-col gap-1">
+                        <span className={isMetric && safeNumber(row.total) >= 0 ? "text-[#1A5D21]" : ""}>
+                          {formatPnlValue(row.total)}
+                        </span>
+                        {isMetric && <span className="text-sm text-muted-foreground">{formatPercent(row.totalPercentage)}</span>}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -1230,6 +1259,11 @@ function ProjectProfitabilityView({
 }) {
   const projects = summary.projects;
   const totals = summary.totals;
+  const projectTotals = projects.reduce((acc, project) => ({
+    ingresosOgc: acc.ingresosOgc + safeNumber(project.ingresosOgc),
+    costosOgc: acc.costosOgc + safeNumber(project.costosOgc),
+    margen: acc.margen + safeNumber(project.margen),
+  }), { ingresosOgc: 0, costosOgc: 0, margen: 0 });
   const estructuraRows = buildStructureRows(totals);
   const honorariosOgc = totals.honorarios;
   const indirectosOgc = totals.indirectos;
@@ -1269,7 +1303,7 @@ function ProjectProfitabilityView({
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-lg text-foreground">RENTABILIDAD POR OBRA - ACUMULADO AL CORTE</h2>
             <div className="text-left md:text-right">
-              <p className="text-sm text-disabled-foreground">Ingresos por obra vs. costos reales OGC asignados y costos históricos de indirectos</p>
+              <p className="text-sm text-disabled-foreground">Ingresos por obra vs. costos reales OGC asignados y costos históricos de indirectos. El total suma las obras mostradas; los gastos sin obra se incluyen en EBITDA OGC.</p>
               <p className="mt-1 text-xs text-muted-foreground">Desde el inicio de cada obra hasta {currentMonthLabel}, con las reglas vigentes de Presupuesto. Los viáticos de colocación o envío dentro de otras partidas no son costos de estructura OGC.</p>
             </div>
           </div>
@@ -1322,19 +1356,19 @@ function ProjectProfitabilityView({
                 )}
 
                 <tr className={cn("border-b border-border", SOFT_HIGHLIGHT_CLASS)}>
-                  <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OGC</td>
+                  <td className="px-8 py-6 align-middle text-base text-foreground">TOTAL OBRAS</td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                    {formatTableCurrency(totals.ingresosOgc)}
+                    {formatTableCurrency(projectTotals.ingresosOgc)}
                   </td>
                   <td className={cn("px-8 py-6 text-center align-middle text-base", DETAIL_TEXT_CLASS)}>
-                    {formatAccountingCurrency(-Math.abs(totals.costosOgc))}
+                    {formatAccountingCurrency(-Math.abs(projectTotals.costosOgc))}
                   </td>
                   <td className={cn(STRONG_HIGHLIGHT_CLASS, "px-8 py-6 text-center align-middle text-base")}>
                     <div className="flex items-center justify-center gap-8">
-                      <span className={totals.margen >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
-                        {formatTableCurrency(totals.margen)}
+                      <span className={projectTotals.margen >= 0 ? "text-[#1A5D21]" : "text-[#802424]"}>
+                        {formatTableCurrency(projectTotals.margen)}
                       </span>
-                      <span className={DETAIL_TEXT_CLASS}>{formatWholePercent(totals.margenPercent)}</span>
+                      <span className={DETAIL_TEXT_CLASS}>{formatWholePercent(safeDivide(projectTotals.margen, projectTotals.ingresosOgc))}</span>
                     </div>
                   </td>
                 </tr>
