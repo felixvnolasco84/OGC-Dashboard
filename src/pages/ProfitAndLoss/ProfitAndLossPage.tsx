@@ -1111,16 +1111,16 @@ function AnnualPnlSummaryTables({
   return (
     <div className="grid grid-cols-1 gap-10 xl:grid-cols-2">
       <div className="space-y-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <h2 className="text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
-          <div className="text-left md:text-right">
+        <div className="space-y-2 text-left">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+            <h2 className="text-left text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
             <p className="text-sm text-disabled-foreground">Acumulado {periodLabel}</p>
-            {showDataNote && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Gastos OGC cargados e indirectos de transacciones, distribuidos por la fecha capturada.
-              </p>
-            )}
           </div>
+          {showDataNote && (
+            <p className="text-xs text-muted-foreground">
+              Gastos OGC cargados e indirectos de transacciones, distribuidos por la fecha capturada.
+            </p>
+          )}
         </div>
 
         <div className="overflow-x-auto border border-border bg-card">
@@ -1345,12 +1345,12 @@ function ProjectProfitabilityView({
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
           <div className="space-y-6">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <h2 className="text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
-              <div className="text-left md:text-right">
+            <div className="space-y-2 text-left">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                <h2 className="text-left text-lg text-foreground">COSTO ESTRUCTURA OGC</h2>
                 <p className="text-sm text-disabled-foreground">Acumulado hasta {currentMonthLabel}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Indirectos de transacciones y gastos OGC asignados a obras en Costos reales de indirectos. Gastos sin obra por categoría.</p>
               </div>
+              <p className="text-xs text-muted-foreground">Indirectos de transacciones y gastos OGC asignados a obras en Costos reales de indirectos. Gastos sin obra por categoría.</p>
             </div>
 
             <div className="overflow-x-auto border border-border bg-card">
